@@ -57,4 +57,4 @@ The provided model card is divided into 6 fields:
 
 #### DEVELOPMENT
 
-* **Silvia M. Herranz-Hernández** — Autonomous University of Madrid, Madrid, Spain
+* **Silvia M. Herranz-Hernández** — UCLouvain – Institut de Recherche Expérimentale et Clinique, Molecular Imaging Radiotherapy and Oncology (MIRO), Brussels, Belgium

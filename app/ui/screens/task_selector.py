@@ -6,6 +6,21 @@ import streamlit as st
 
 def task_selector_page() -> None:
     """Render the task selector page."""
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            max-width: 1100px;
+            padding-left: 5rem;
+            padding-right: 5rem;
+        }
+        .block-container p, .block-container li {
+            text-align: justify;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     # Inject the page CSS every render so layout is stable on reload
     st.markdown(
         """
@@ -21,23 +36,20 @@ def task_selector_page() -> None:
         div[role="radiogroup"] {
             background-color: #f9f9f9;
             padding: 1rem 2rem;
-            border-radius: 10px;
+            border-radius: 20px;
             border: 1px solid #ddd;
             display: inline-block;
             text-align: left;
             margin: auto;
         }
-        /* Texto de las opciones */
         label[data-baseweb="radio"] > div:first-child {
-            font-size: 16px !important;
+            font-size: 20px !important;
             padding: 4px 0;
         }
-        /* Opción seleccionada */
         div[role="radiogroup"] input:checked + div {
             color: #1E88E5 !important;
             font-weight: bold;
         }
-        /* Espaciado entre opciones */
         label[data-baseweb="radio"] {
             margin-bottom: 6px;
         }
@@ -55,7 +67,7 @@ def task_selector_page() -> None:
     )
 
     if "task" not in st.session_state:
-        left, center, right = st.columns([1, 2, 1])
+        left, center, right = st.columns([1, 1, 1])
         with center:
             selected_task = st.radio(
                 ".",

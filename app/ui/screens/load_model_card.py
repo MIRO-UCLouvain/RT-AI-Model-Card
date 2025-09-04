@@ -16,6 +16,21 @@ INFO_MSG = (
 
 def load_model_card_page() -> None:
     """Render the page for loading a model card from a JSON file."""
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            max-width: 1100px;
+            padding-left: 5rem;
+            padding-right: 5rem;
+        }
+        .block-container p, .block-container li {
+            text-align: justify;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.header("Load a Model Card")
 
     st.markdown(

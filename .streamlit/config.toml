@@ -1,0 +1,7 @@
+[theme]
+base="dark"
+primaryColor="#ff6e21"          # teal-green accent (trust, healthcare vibe)
+backgroundColor="#ffffffff"       # very light gray (not pure white → softer)
+secondaryBackgroundColor="#eaedf1ff"  # pale gray-blue panels/sidebar
+textColor="#1E293B"             # dark gray-blue (clean, not harsh black)
+font="sans serif"

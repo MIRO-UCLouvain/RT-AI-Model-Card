@@ -57,14 +57,18 @@ def _inject_css() -> None:
 # Navigation helpers
 
 
-def _render_menu() -> None:
+def _render_menu() -> None:  # noqa: C901
     if st.button("About Model Cards", use_container_width=True):
         st.session_state.runpage = model_card_info_render
         st.rerun()
 
     task = st.session_state.get("task", "Image-to-Image translation")
     missing = validate_required_fields(model_card_schema, current_task=task)
-    warn_count = len(missing) if isinstance(missing, (list, tuple)) else (1 if missing else 0)
+    warn_count = (
+        len(missing)
+        if isinstance(missing, (list, tuple))
+        else (1 if missing else 0)
+    )
 
     if warn_count:
         # compact warning card with subtle border and spacing
