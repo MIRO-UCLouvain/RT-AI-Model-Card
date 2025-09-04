@@ -626,7 +626,7 @@
       "description": "Strategy for data augmentation. Whenever possible and relevant, report the number of augmented samples per real ones. If none applied say NA (Not Applicable).",
       "required": true,
       "example": "[random, on-the-fly during training, all], [prior-to-training, 5 augmented per real image]",
-      "format": "^(?i:N/?A|\\[\\s*[A-Za-z0-9 _\\-]+\\s*\\](?:\\s*,\\s*\\[\\s*[A-Za-z0-9 _\\-]+\\s*\\])*)$",
+      "format": "^(?i:(?:N/?A)|\\[\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*(?:\\s*,\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*)*\\s*\\](?:\\s*,\\s*\\[\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*(?:\\s*,\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*)*\\s*\\])*)$",
       "format_description": "Must be 'NA' or 'N/A' (any case), or one or more lists of strings in square brackets (e.g. [random, on-the-fly during training, all], [prior-to-training, 5 augmented per real image]), separated by commas if multiple."
     },
     "url_info": {

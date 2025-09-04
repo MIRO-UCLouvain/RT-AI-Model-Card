@@ -62,6 +62,28 @@ def _render_menu() -> None:
         st.session_state.runpage = model_card_info_render
         st.rerun()
 
+    task = st.session_state.get("task", "Image-to-Image translation")
+    missing = validate_required_fields(model_card_schema, current_task=task)
+    warn_count = len(missing) if isinstance(missing, (list, tuple)) else (1 if missing else 0)
+
+    if warn_count:
+        # compact warning card with subtle border and spacing
+        with st.container(border=True):
+            st.markdown(
+                "Some required fields are missing\n",
+            )
+
+            if st.button(
+                "Warnings",
+                key="btn_review_warnings",
+                type="primary",
+                use_container_width=True,
+                help="Open the list of missing required fields",
+            ):
+                st.session_state.runpage = warnings_render
+                st.rerun()
+        st.divider()
+
     st.markdown("## Menu")
 
     if st.button("Card Metadata", use_container_width=True):
@@ -97,15 +119,6 @@ def _render_menu() -> None:
     if st.button("Appendix", use_container_width=True):
         st.session_state.runpage = appendix_render
         st.rerun()
-
-    task = st.session_state.get("task", "Image-to-Image translation")
-    if validate_required_fields(
-        model_card_schema,
-        current_task=task,
-    ) and st.button("Warnings"):
-        st.session_state.runpage = warnings_render
-        st.rerun()
-
 
 # Download helpers (Local tab)
 

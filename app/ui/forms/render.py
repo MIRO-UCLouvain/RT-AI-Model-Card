@@ -286,10 +286,7 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
     """
     full_key = f"{section_prefix}_{key}"
 
-    # 1) inline validation (kept behavior)
-    _validate_format(full_key, props)
-
-    # 2) help icon
+    # 1) help icon
     label = props.get("label") or key or "Field"
     description = props.get("description", "")
     example = props.get("example", "")
@@ -302,7 +299,7 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
         required,
     )
 
-    # 3) special key families with bespoke UIs
+    # 2) special key families with bespoke UIs
     if key == "type_metrics_other":
         _render_type_metrics_other(full_key)
         return
@@ -338,6 +335,9 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
 
     # Fallback: text input
     _render_text_input(full_key, props)
+
+    # 3) inline validation (kept behavior)
+    _validate_format(full_key, props)
 
 
 def _on_date_change(raw_key: str, widget_key: str, full_key: str) -> None:
