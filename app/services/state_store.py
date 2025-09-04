@@ -128,7 +128,8 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
                                         + io_key
                                     )
                                     st.session_state[io_full_key] = io_val
-                                    st.session_state["_" + io_full_key] = io_val
+                                    raw_key = f"_{io_full_key}"
+                                    st.session_state[raw_key] = io_val
 
                     # Metric group list(s)
                     elif isinstance(value, list) and key.startswith("type_"):
