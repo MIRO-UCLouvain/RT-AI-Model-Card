@@ -93,9 +93,4 @@ def task_selector_page() -> None:
     else:
         st.success(f"Task already selected: **{st.session_state['task']}**")
 
-    if st.button("Return to Main Page", use_container_width=True):
-        from app.ui.screens.main import main  # noqa: PLC0415
-        st.session_state.runpage = main
-        st.rerun()
-
     st.markdown("</div>", unsafe_allow_html=True)

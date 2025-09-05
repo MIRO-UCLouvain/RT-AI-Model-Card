@@ -44,14 +44,5 @@ def about_page() -> None:
         """,
         unsafe_allow_html=True,
     )
-    if st.button("Return to Main page"):
-        from app.ui.screens.main import main  # noqa: PLC0415
-        st.session_state.runpage = main
-        st.rerun()
-    st.markdown(_read_about_md())
 
-    st.markdown("---")
-    if st.button("Return to Main page", use_container_width=True):
-        from app.ui.screens.main import main  # noqa: PLC0415
-        st.session_state.runpage = main
-        st.rerun()
+    st.markdown(_read_about_md())
