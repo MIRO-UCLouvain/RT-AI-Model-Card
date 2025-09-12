@@ -1,6 +1,6 @@
 [theme]
 base="light"
-primaryColor="#05B9D1"         # azul petróleo / professional blue
+primaryColor="#0553D1"         # azul petróleo / professional blue
 
 # Fondo secundario para sidebar y paneles
 secondaryBackgroundColor="#f4f5f5ff"   # gris-azulado muy claro

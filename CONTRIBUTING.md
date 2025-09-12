@@ -1,7 +1,7 @@
 # Contributing to the Model Cards Writing Tool
 
 Welcome!  
-Thank you for considering contributing to the **RT Model Card Writing Tool**.  
+Thank you for considering contributing to the **RT AI Model Card Writing Tool**.  
 This project aims to make the creation of **transparent, standardized, and useful model cards** easier for researchers, developers, and practitioners.
 
 Please review the following guidelines carefully before submitting your contribution.

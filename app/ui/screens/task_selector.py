@@ -1,4 +1,5 @@
 """Module to select the task for the Model Card (with stable centered layout)."""  # noqa: E501
+
 from __future__ import annotations
 
 import streamlit as st
@@ -9,47 +10,40 @@ def task_selector_page() -> None:
     st.markdown(
         """
         <style>
-        .block-container {
-            max-width: 1100px;
-            padding-left: 5rem;
-            padding-right: 5rem;
-        }
-        .block-container p, .block-container li {
-            text-align: justify;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    # Inject the page CSS every render so layout is stable on reload
-    st.markdown(
-        """
-        <style>
         /* Contenedor central de todo el bloque */
         .radio-center {
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
+            gap: 2rem; /* Espacio uniforme entre título, caja y botón */
         }
+
         /* Caja de opciones centrada */
         div[role="radiogroup"] {
             background-color: #f9f9f9;
-            padding: 1rem 2rem;
+            padding: 2rem 3rem;   /* Más grande */
             border-radius: 20px;
-            border: 1px solid #ddd;
+            border: 2px solid #0553D1;  /* Borde azul */
             display: inline-block;
             text-align: left;
             margin: auto;
+            width: 100%;
+            max-width: 600px;
         }
+
+        /* Texto de las opciones */
         label[data-baseweb="radio"] > div:first-child {
-            font-size: 20px !important;
-            padding: 4px 0;
+            font-size: 22px !important;
+            padding: 6px 0;
         }
+
+        /* Opción seleccionada */
         div[role="radiogroup"] input:checked + div {
-            color: #1E88E5 !important;
+            color: #0553D1 !important;
             font-weight: bold;
         }
+
         label[data-baseweb="radio"] {
             margin-bottom: 6px;
         }
@@ -57,6 +51,8 @@ def task_selector_page() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
 
     # Always render the wrapper so width/centering don't change after reload
     st.markdown("<div class='radio-center'>", unsafe_allow_html=True)
@@ -80,7 +76,7 @@ def task_selector_page() -> None:
                 key="task_temp",
                 label_visibility="hidden",
             )
-
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Continue", use_container_width=True):
             st.session_state["task"] = selected_task
             # Lazy import to avoid circular import
