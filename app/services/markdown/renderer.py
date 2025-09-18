@@ -547,7 +547,6 @@ def render_full_model_card_md(
         )
     )
 
-
 DEFAULT_PDF_CSS = """
 /* --- Page setup --- */
 @page {
@@ -562,14 +561,15 @@ DEFAULT_PDF_CSS = """
 
 /* --- Palette --- */
 :root{
-  --brand: #0a2e5d;
-  --accent: #c7d6ea;
-  --text: #1f2937;
+  --brand: #0553D1;   /* main color */
+  --accent: #05B9D1;  /* secondary color */
+  --text: #111111;    /* negro para títulos y texto principal */
   --muted: #4b5563;
   --muted-2: #6b7280;
   --border: #e5e7eb;
   --bg-soft: #f8fafc;
   --bg-soft-2: #f3f4f6;
+  --table-head: #05B9D1;
 }
 
 /* --- Base text (-0.4pt) --- */
@@ -586,7 +586,7 @@ p, li { hyphens: auto; margin: 0.35em 0 0.6em; }
 h1 {
   font-size: 15.6pt;
   font-weight: 700;
-  color: var(--brand);
+  color: var(--text);  /* negro */
   margin: 1em 0 0.6em;
   string-set: section content();
 }
@@ -596,17 +596,34 @@ h2 {
   font-size: 13.6pt;
   font-weight: 700;
   color: #fff;
-  background: var(--brand);
+  background: var(--brand);  /* main color */
   border-radius: 4px;
   padding: 6px 10px;
   margin: 0.9em 0 0.55em;
   string-set: section content();
 }
 
-h3 { font-size: 12.1pt; font-weight: 600; color: var(--text); }
-h4 { font-size: 10.9pt; font-weight: 600; color: var(--muted); }
-h5 { font-size: 10.1pt; font-weight: 600; color: var(--muted-2); }
+/* --- H3 --- */
+h3 {
+  font-size: 12.1pt;
+  font-weight: 600;
+  color: var(--text);  /* negro */
+}
 
+/* --- H4 --- */
+h4 {
+  font-size: 10.9pt;
+  font-weight: 600;
+  color: #374151; /* gris oscuro */
+}
+
+h5 {
+  font-size: 10.1pt;
+  font-weight: 600;
+  color: var(--muted-2);
+}
+
+/* --- Lists --- */
 ul {
   margin: 0.3em 0 0.7em 1.2em;
   list-style: none;
@@ -621,7 +638,7 @@ ul li::before {
   content: "–";
   position: absolute;
   left: 0;
-  color: var(--brand);
+  color: var(--brand); /* main color */
   font-weight: 600;
 }
 
@@ -641,12 +658,12 @@ caption {
   caption-side: top;
   text-align: left;
   font-weight: 700;
-  color: var(--brand);
+  color: var(--text); /* negro */
   padding: 6px 0;
 }
 
 thead th {
-  background: var(--brand); /* azul corporativo sólido */
+  background: var(--table-head);
   color: #fff;
   font-weight: 600;
   text-align: left;
@@ -660,11 +677,11 @@ th, td {
 }
 
 tbody tr:nth-child(even) td {
-  background: #f9fafb; /* gris muy claro */
+  background: #f9fafb;
 }
 
 tbody tr:hover td {
-  background: #f3f6fb; /* hover suave, solo digital */
+  background: #f3f6fb; /* hover suave (solo digital) */
 }
 
 .badge {
@@ -674,8 +691,8 @@ tbody tr:hover td {
   padding: 2px 6px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--accent);
-  color: var(--brand);
+  background: var(--accent); /* secondary color */
+  color: var(--brand);       /* main color */
 }
 
 /* --- Figures --- */
@@ -693,9 +710,8 @@ img, figure img {
   border-radius: 6px;
 }
 figcaption { font-size: 9pt; color: var(--muted); margin-top: 0.3em; }
+"""
 
-
-"""  # noqa: RUF001
 
 
 def render_markdown_to_html(
