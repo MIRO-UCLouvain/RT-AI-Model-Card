@@ -195,7 +195,7 @@ def validate_learning_architectures(
 
 def validate_modalities_fields() -> list[MissingItem]:
     """
-    Validate required IO/TS fields per (modality, source) pair.
+    Validate the fields for each modality in the model card.
 
     :return: A list of missing items.
     :rtype: list[MissingItem]
@@ -204,17 +204,21 @@ def validate_modalities_fields() -> list[MissingItem]:
     for modality, source in _modalities_from_state():
         clean = modality.strip().replace(" ", "_").lower()
 
-        # Training
         prefix_train = f"training_data_{clean}_{source}_"
         for field, label in DATA_INPUT_OUTPUT_TS.items():
             if is_empty(st.session_state.get(f"{prefix_train}{field}")):
                 missing.append(
-                    ("training_data", f"{label} ({modality} - {source})"),
+                    (
+                        "training_data",
+                        f"{label} ({modality} - {source})",
+                    ),
                 )
 
-        # Evaluations
         for name in st.session_state.get("evaluation_forms", []):
             slug = name.replace(" ", "_")
+            if st.session_state.get(f"evaluation_{slug}_ts_same_as_training"):
+                continue
+
             prefix_eval = f"evaluation_{slug}_{clean}_"
             for field, label in DATA_INPUT_OUTPUT_TS.items():
                 full = f"{prefix_eval}{source}_{field}"
@@ -226,6 +230,7 @@ def validate_modalities_fields() -> list[MissingItem]:
                         ),
                     )
     return missing
+
 
 
 def _validate_metric_group(

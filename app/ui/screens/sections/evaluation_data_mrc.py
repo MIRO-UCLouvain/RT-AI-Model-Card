@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
 
 import streamlit as st
 
@@ -25,6 +25,9 @@ from app.ui.utils.typography import (
     title_header,
     title_header_grey,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 TITLE = "Evaluation data, methodology, and results / commissioning"
 SUBTITLE = (
@@ -58,9 +61,18 @@ TITLE_PATIENT_INFO = "3. Patient demographics and clinical characteristics"
 WARNING_EVAL_EXISTS = "An evaluation form with this name already exists."
 TITLE_QUANTITATIVE_EVALUATION = "Quantitative Evaluation"
 TITLE_QUALITATIVE_EVALUATION = "Qualitative Evaluation"
+NA_PLACEHOLDER = "N/A or NA if Not Applicable"
 # This page renders dynamic forms with prefixes like "evaluation_<name>", so no
 # single SECTION_PREFIX.
 
+FieldName = Literal[
+    "image_resolution",
+    "patient_positioning",
+    "scanner_model",
+    "scan_acquisition_parameters",
+    "scan_reconstruction_parameters",
+    "fov",
+]
 
 class Evaluation(TypedDict, total=False):
     """
@@ -324,18 +336,16 @@ def _render_general_info(section: Evaluation, section_prefix: str) -> None:
     )
 
 
-def _render_technical_characteristics(
+def _render_technical_characteristics(  # noqa: C901, PLR0915
     section: Evaluation,
     section_prefix: str,
 ) -> None:
     """
     Render the technical characteristics fields for the evaluation section.
-
-    :param section: The evaluation section data.
-    :type section: Evaluation
-    :param section_prefix: The prefix for the section fields.
-    :type section_prefix: str
-    """
+    Adds a toggle to reuse Training Dataset technical specs. When turned ON,
+    values are copied into the evaluation keys and fields are shown disabled.
+    When turned OFF after having autofilled, the evaluation keys are cleared.
+    """  # noqa: D205
     section_divider()
     title_header(TITLE_DATASET_TECHNICAL_CHARACTERISTICS)
     light_header_italics(TECHNICAL_CHARACTERISTICS_INFO)
@@ -363,9 +373,57 @@ def _render_technical_characteristics(
         st.warning(MODEL_IO_WARNING)
         return
 
-    tabs = st.tabs(
-        [strip_brackets(m["modality"]) for m in modality_entries],
+    # Evaluation-level checkbox
+    same_ts_key = f"{section_prefix}_ts_same_as_training"
+    autofilled_key = f"{section_prefix}_ts_autofilled"
+    load_value(same_ts_key, 0)
+    same_ts = st.checkbox(
+        "Use Training Dataset technical characteristics for this "
+        "*Evaluation Dataset*",
+        key="_" + same_ts_key,
+        on_change=store_value,
+        args=(same_ts_key,),
     )
+
+    def _iter_eval_field_keys() -> Iterator[tuple[str, str, FieldName]]:
+        """Yield (clean_modality, source, field_name) for all eval Technical
+        Specifications fields.
+        """  # noqa: D205
+        fields: tuple[FieldName, ...] = (
+            "image_resolution",
+            "patient_positioning",
+            "scanner_model",
+            "scan_acquisition_parameters",
+            "scan_reconstruction_parameters",
+            "fov",
+        )
+
+        for entry in modality_entries:
+            clean: str = entry["modality"].strip().replace(" ", "_").lower()
+            source: str = entry["source"]
+            for field in fields:
+                yield clean, source, field
+
+
+    # Turned ON → copy training → eval and mark autofilled
+    if same_ts:
+        for clean, source, field in _iter_eval_field_keys():
+            train_key = f"training_data_{clean}_{source}_{field}"
+            eval_key = f"{section_prefix}_{clean}_{source}_{field}"
+            st.session_state[eval_key] = st.session_state.get(train_key, "")
+        st.session_state[autofilled_key] = True
+        st.info(
+            "Filled from Training Dataset (read-only). Uncheck to"
+            " provide custom values.",
+        )
+    # Turned OFF → if we had autofilled, clear eval keys to blanks
+    elif st.session_state.get(autofilled_key):
+        for clean, source, field in _iter_eval_field_keys():
+            eval_key = f"{section_prefix}_{clean}_{source}_{field}"
+            st.session_state[eval_key] = ""
+        st.session_state[autofilled_key] = False
+
+    tabs = st.tabs([strip_brackets(m["modality"]) for m in modality_entries])
 
     for idx, entry in enumerate(modality_entries):
         modality, source = entry["modality"], entry["source"]
@@ -377,61 +435,83 @@ def _render_technical_characteristics(
             )
             title_header(heading, size="1rem")
 
+            # clone props and add disabled flag if needed
+            disabled_flag = {"disabled": True} if same_ts else {}
+
             field_keys = {
-                "image_resolution": section["image_resolution"],
-                "patient_positioning": section["patient_positioning"],
-                "scanner_model": section["scanner_model"],
-                "scan_acquisition_parameters": section[
-                    "scan_acquisition_parameters"
-                ],
-                "scan_reconstruction_parameters": section[
-                    "scan_reconstruction_parameters"
-                ],
-                "fov": section["fov"],
+                "image_resolution": {
+                    **section["image_resolution"],
+                    **disabled_flag,
+                },
+                "patient_positioning": {
+                    **section["patient_positioning"],
+                    **disabled_flag,
+                },
+                "scanner_model": {
+                    **section["scanner_model"],
+                    **disabled_flag,
+                },
+                "scan_acquisition_parameters": {
+                    **section["scan_acquisition_parameters"],
+                    **disabled_flag,
+                },
+                "scan_reconstruction_parameters": {
+                    **section["scan_reconstruction_parameters"],
+                    **disabled_flag,
+                },
+                "fov": {
+                    **section["fov"],
+                    **disabled_flag,
+                },
             }
             for f in field_keys.values():
-                f["placeholder"] = f.get(
-                    "placeholder",
-                    "N/A or NA if Not Applicable",
-                )
+                f["placeholder"] = f.get("placeholder", NA_PLACEHOLDER)
 
             col1, col2 = st.columns([1, 1])
             with col1:
                 render_field(
                     f"{clean_modality}_{source}_image_resolution",
-                    field_keys["image_resolution"],
+                    cast("FieldProps", field_keys["image_resolution"]),
                     section_prefix,
                 )
             with col2:
                 render_field(
                     f"{clean_modality}_{source}_patient_positioning",
-                    field_keys["patient_positioning"],
+                    cast("FieldProps", field_keys["patient_positioning"]),
                     section_prefix,
                 )
 
             render_field(
                 f"{clean_modality}_{source}_scanner_model",
-                field_keys["scanner_model"],
+                cast("FieldProps", field_keys["scanner_model"]),
                 section_prefix,
             )
 
             col1, col2 = st.columns([1, 1])
             with col1:
+                scan_acq_props = cast(
+                    "FieldProps",
+                    field_keys["scan_acquisition_parameters"],
+                )
                 render_field(
                     f"{clean_modality}_{source}_scan_acquisition_parameters",
-                    field_keys["scan_acquisition_parameters"],
+                    scan_acq_props,
                     section_prefix,
                 )
             with col2:
+                scan_recon_props = cast(
+                    "FieldProps",
+                    field_keys["scan_reconstruction_parameters"],
+                )
                 render_field(
                     f"{clean_modality}_{source}_scan_reconstruction_parameters",
-                    field_keys["scan_reconstruction_parameters"],
+                    scan_recon_props,
                     section_prefix,
                 )
 
             render_field(
                 f"{clean_modality}_{source}_fov",
-                field_keys["fov"],
+                cast("FieldProps", field_keys["fov"]),
                 section_prefix,
             )
 

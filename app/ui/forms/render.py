@@ -66,6 +66,7 @@ class FieldProps(TypedDict, total=False):
     model_types: list[str]
     format: str
     format_description: str
+    disabled: bool
 
 
 def has_renderable_fields(
@@ -349,7 +350,7 @@ def _on_date_change(raw_key: str, widget_key: str, full_key: str) -> None:
 
 def _render_date_input(
     full_key: str,
-    props: FieldProps,  # noqa: ARG001
+    props: FieldProps,
     key_name: str,  # noqa: ARG001
 ) -> None:
     widget_key = f"{full_key}_widget"
@@ -380,6 +381,7 @@ def _render_date_input(
             max_value=datetime.now(UTC).date(),
             key=raw_key,
             on_change=_on_change_wrapper,
+            disabled=bool(props.get("disabled", False)),
         )
     else:
         st.date_input(
@@ -389,6 +391,7 @@ def _render_date_input(
             max_value=datetime.now(UTC).date(),
             key=raw_key,
             on_change=_on_change_wrapper,
+            disabled=bool(props.get("disabled", False)),
         )
 
     user_date: date | None = st.session_state.get(raw_key)
@@ -485,13 +488,16 @@ def _render_text_input(full_key: str, props: FieldProps) -> None:
     :type props: FieldProps
     """
     load_value(full_key)
+    disabled = bool(props.get("disabled", False))
+    placeholder = "" if disabled else props.get("placeholder", "")
     st.text_input(
         props.get("label", full_key),
         key="_" + full_key,
         on_change=store_value,
         args=(full_key,),
         label_visibility="hidden",
-        placeholder=props.get("placeholder", ""),
+        disabled=disabled,
+        placeholder=placeholder,
     )
 
 
