@@ -134,21 +134,34 @@ _No input/output technical specifications provided._
 
 
 {% if ev.treatment_modality %} - **Treatment modality:** {{ ev.treatment_modality | default("—", true) }} {% endif %}
+
 {% if ev.beam_configuration_and_energy %} - **Beam configuration and energy:** {{ ev.beam_configuration_and_energy | default("—", true) }} {% endif %}
+
 {% if ev.dose_engine %} - **Dose engine:** {{ ev.dose_engine | default("—", true) }} {% endif %}
+
 {% if ev.target_volumes_and_prescription %} - **Target volumes and prescription:** {{ ev.target_volumes_and_prescription | default("—", true) }} {% endif %}
+
 {% if ev.number_of_fractions %} - **Number of fractions:** {{ ev.number_of_fractions | default("—", true) }} {% endif %}
+
 - **Reference standard:** {{ ev.reference_standard | default("—", true) }}
+
 - **Reference standard QA:** {{ ev.reference_standard_qa | default("—", true) }}
+
 {% if ev.reference_standard_qa_additional_information %} - **Additional information:** {{ ev.reference_standard_qa_additional_information | default("—") }} {% endif %}
 
 ##### Patient demographics and clinical characteristics
 {% if ev.icd10_11_ev %} - **ICD10/11:** {{ ev.icd10_11_ev | default("—") }} {% endif %}
+
 {% if ev.tnm_staging_ev %} - **TNM staging:** {{ ev.tnm_staging_ev | default("—") }} {% endif %}
+
 - **Age:** {{ ev.age_ev | default("—", true) }}
+
 - **Sex:** {{ ev.sex_ev | default("—", true) }}
+
 {% if ev.target_volume_cm3_ev %} - **Target volume (cm³):** {{ ev.target_volume_cm3_ev | default("—", true) }} {% endif %}
+
 {% if ev.bmi_ev %} - **BMI:** {{ ev.bmi_ev | default("—", true) }} {% endif %}
+
 {% if ev.additional_patient_info_ev %} - **Additional information:** {{ ev.additional_patient_info_ev | default("—", true) }} {% endif %}
 
 {% import "components.md.j2" as C %}

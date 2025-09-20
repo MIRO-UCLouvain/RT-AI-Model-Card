@@ -1,4 +1,5 @@
 """Module to select the task for the Model Card (with stable centered layout)."""  # noqa: E501
+
 from __future__ import annotations
 
 import streamlit as st
@@ -6,7 +7,6 @@ import streamlit as st
 
 def task_selector_page() -> None:
     """Render the task selector page."""
-    # Inject the page CSS every render so layout is stable on reload
     st.markdown(
         """
         <style>
@@ -16,28 +16,34 @@ def task_selector_page() -> None:
             flex-direction: column;
             align-items: center;
             width: 100%;
+            gap: 2rem; /* Espacio uniforme entre título, caja y botón */
         }
+
         /* Caja de opciones centrada */
         div[role="radiogroup"] {
             background-color: #f9f9f9;
-            padding: 1rem 2rem;
-            border-radius: 10px;
-            border: 1px solid #ddd;
+            padding: 2rem 3rem;   /* Más grande */
+            border-radius: 20px;
+            border: 2px solid #0553D1;  /* Borde azul */
             display: inline-block;
             text-align: left;
             margin: auto;
+            width: 100%;
+            max-width: 600px;
         }
+
         /* Texto de las opciones */
         label[data-baseweb="radio"] > div:first-child {
-            font-size: 16px !important;
-            padding: 4px 0;
+            font-size: 22px !important;
+            padding: 6px 0;
         }
+
         /* Opción seleccionada */
         div[role="radiogroup"] input:checked + div {
-            color: #1E88E5 !important;
+            color: #0553D1 !important;
             font-weight: bold;
         }
-        /* Espaciado entre opciones */
+
         label[data-baseweb="radio"] {
             margin-bottom: 6px;
         }
@@ -45,6 +51,8 @@ def task_selector_page() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
 
     # Always render the wrapper so width/centering don't change after reload
     st.markdown("<div class='radio-center'>", unsafe_allow_html=True)
@@ -55,7 +63,7 @@ def task_selector_page() -> None:
     )
 
     if "task" not in st.session_state:
-        left, center, right = st.columns([1, 2, 1])
+        left, center, right = st.columns([1, 1, 1])
         with center:
             selected_task = st.radio(
                 ".",
@@ -68,7 +76,7 @@ def task_selector_page() -> None:
                 key="task_temp",
                 label_visibility="hidden",
             )
-
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Continue", use_container_width=True):
             st.session_state["task"] = selected_task
             # Lazy import to avoid circular import
@@ -80,10 +88,5 @@ def task_selector_page() -> None:
             st.rerun()
     else:
         st.success(f"Task already selected: **{st.session_state['task']}**")
-
-    if st.button("Return to Main Page", use_container_width=True):
-        from app.ui.screens.main import main  # noqa: PLC0415
-        st.session_state.runpage = main
-        st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)

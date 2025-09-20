@@ -46,21 +46,34 @@ SIDEBAR_WIDTH_PX: int = 500
 REPO_ID_PARTS: int = 2
 
 # Location of the external CSS file
-CSS_PATH = (
-    Path(__file__).resolve().parent.parent / "static" / "sidebar.css"
-)
-
-def _inject_css() -> None:
-    inject_css(CSS_PATH)
-
-
+CSS_PATH = (Path(__file__).resolve().parent.parent / "static" / "sidebar.css")
 # Navigation helpers
 
 
-def _render_menu() -> None:
+def _render_menu() -> None:  # noqa: C901
     if st.button("About Model Cards", use_container_width=True):
         st.session_state.runpage = model_card_info_render
         st.rerun()
+
+    task = st.session_state.get("task", "Image-to-Image translation")
+    missing = validate_required_fields(model_card_schema, current_task=task)
+    warn_count = (
+        len(missing)
+        if isinstance(missing, (list, tuple))
+        else (1 if missing else 0)
+    )
+
+    if warn_count:
+        if st.button(
+            "Check Warnings",
+            key="btn_check_warnings",
+            use_container_width=True,
+            help="Open the list of missing required fields",
+        ):
+            st.session_state.runpage = warnings_render
+            st.rerun()
+
+        st.divider()
 
     st.markdown("## Menu")
 
@@ -96,14 +109,6 @@ def _render_menu() -> None:
 
     if st.button("Appendix", use_container_width=True):
         st.session_state.runpage = appendix_render
-        st.rerun()
-
-    task = st.session_state.get("task", "Image-to-Image translation")
-    if validate_required_fields(
-        model_card_schema,
-        current_task=task,
-    ) and st.button("Warnings"):
-        st.session_state.runpage = warnings_render
         st.rerun()
 
 
@@ -430,10 +435,35 @@ def _readme_tab() -> None:
     _hub_push_form()
 
 
+def _render_github_repo(repo_url: str) -> None:
+    """Render a GitHub repository link with a badge (centered card-style)."""
+    st.markdown(
+        f"""
+        <div style="text-align: center; padding: 1.2em; border: 1px solid #ddd;
+                    border-radius: 10px; background-color: #ffffff;">
+            <p style="font-size: 1.1em;">
+                This project is <strong>open-source</strong>.
+                Explore the code, report issues, or contribute on GitHub.
+                Feel free to star the repository if you find it useful!
+            </p>
+            <a href="{repo_url}" target="_blank">
+                <img src="https://img.shields.io/badge/GitHub-Repository-181717?logo=github&logoColor=white"
+                     alt="GitHub Repository"/>
+            </a>
+            <a href="{repo_url}/stargazers" target="_blank">
+                <img src="https://img.shields.io/github/stars/{repo_url.split('github.com/')[-1]}?style=social"
+                     alt="GitHub Stars"/>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def sidebar_render() -> None:
     """Render the sidebar for the Streamlit app."""
     with st.sidebar:
-        _inject_css()
+        inject_css(CSS_PATH)
         _render_menu()
         st.markdown("## Model Card Builder")
         enlarge_tab_titles(16)
@@ -444,3 +474,7 @@ def sidebar_render() -> None:
             _local_downloads_tab()
         with tab_readme:
             _readme_tab()
+        st.divider()
+        _render_github_repo(
+            repo_url="https://github.com/MIRO-UCLouvain/RT-Model-Card",
+        )

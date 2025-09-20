@@ -1,0 +1,163 @@
+:root{
+  --brand-600:#023483;
+  --brand-700:#032264;
+}
+
+/* ===== Topbar (siempre misma ventana) ===================== */
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  background: var(--brand-600);
+  border-bottom: 2px solid var(--brand-700);
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+
+.topbar__inner{
+  height: 80px;                 /* más alta */
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar__brand{ display:flex; align-items:center; }
+.topbar__home,
+.topbar__home:visited{
+  color:#fff !important;
+  text-decoration:none;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+
+/* Navegación: blanco, sin borde, no bold, más separados */
+.topbar__nav{ display:flex; align-items:center; gap: 1.4rem; }
+
+.topbar__link,
+.topbar__link:visited{
+  color:#ffffff !important;     /* <- letras BLANCAS siempre */
+  text-decoration:none;
+  font-weight:500;              /* <- no en negrita */
+  padding:.65rem 1.15rem;       /* <- más “anchos” */
+  border-radius:1rem;
+  background:transparent;
+  opacity:.98;
+  transition:opacity .15s ease, background .15s ease, transform .1s ease;
+  /* sin borde */
+}
+
+.topbar__link:hover{
+  opacity:1;
+  background:rgba(255,255,255,.12);
+  transform:translateY(-1px);
+}
+
+.topbar__link--active{
+  background:rgba(255,255,255,.18);
+}
+
+/* ===== Hero (más largo + imagen opcional pegada al borde) === */
+.hero{
+  width:100vw;
+  margin-left:calc(-50vw + 50%);
+  color:white;
+  text-align:center;
+  position:relative;
+  overflow:visible;
+  background:linear-gradient(
+    180deg,
+    var(--brand-600) 0%,
+    #4781ec 55%,
+    #ffffff 100%
+  );
+}
+
+.hero--long{
+  padding: 6.5rem 0 7rem;  /* <- degradado más largo */
+}
+
+.hero-inner{
+  max-width:1100px;
+  margin:0 auto;
+  padding:0 2rem;
+}
+
+.hero h1{
+  margin:0 0 .65rem;
+  font-weight:800;
+  font-size: clamp(28px,4vw,44px);
+}
+
+.hero .lead{
+  color:#f0f4ff;
+  font-size: clamp(14px,1.8vw,18px);
+  margin:0 auto;
+  max-width:900px;
+}
+
+/* Imagen pegada al borde inferior del gradiente */
+.hero__img{
+  position:absolute;
+  left:50%;
+  bottom:-3.5rem;              /* sobresale hacia la zona blanca */
+  transform:translateX(-50%);
+  width:min(820px, 88vw);
+  pointer-events:none;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.12));
+}
+.hero__img img{
+  display:block;
+  width:100%;
+  height:auto;
+}
+
+/* --- GitHub icon link on the right --- */
+.topbar__iconlink{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:.4rem;               /* clickable area */
+  border-radius:.8rem;
+  text-decoration:none;
+  transition:background .15s ease, transform .1s ease, opacity .15s ease;
+  opacity:.98;
+}
+
+.topbar__iconlink:hover{
+  background: rgba(255,255,255,.12);
+  transform: translateY(-1px);
+}
+
+.topbar__icon{
+  height: 35px;
+  width: 35px;
+  object-fit: contain;
+  /* If the PNG is dark, this makes it appear white on the blue bar: */
+  filter: invert(1) brightness(2);
+  display:block;
+}
+
+/* Sin subrayado en TODOS los estados de la topbar */
+.topbar__nav a,
+.topbar__nav a:visited,
+.topbar__nav a:hover,
+.topbar__nav a:focus,
+.topbar__nav a:active,
+.topbar__brand a,
+.topbar__brand a:visited,
+.topbar__brand a:hover,
+.topbar__brand a:focus,
+.topbar__brand a:active,
+.topbar__iconlink,
+.topbar__iconlink:visited,
+.topbar__iconlink:hover,
+.topbar__iconlink:focus,
+.topbar__iconlink:active{
+  text-decoration: none !important;
+  border-bottom: none !important;
+  color: #fff !important;    /* evita colores “visited” raros */
+}

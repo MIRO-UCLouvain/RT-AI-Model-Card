@@ -1,4 +1,4 @@
-# Model Card — Model {{ model_basic_information_name | default("", true) }}
+# Model Card {%if card_metadata_version_number %} — version {{ card_metadata_version_number | default("—", true) }} {%endif%}{%if model_basic_information_name %} — Model {{ model_basic_information_name | default("", true) }} {%endif%}
 
 **Task:** {{ task }}
 

@@ -50,6 +50,7 @@ MODEL_IO_WARNING = (
     "in the previous section to enable technical details."
 )
 TITLE_PATIENT_INFO = "3. Patient demographics and clinical characteristics"
+TITLE_TRAINING_METHODOLOGY = "Training Methodology"
 
 SECTION_PREFIX = "training_data"
 
@@ -404,7 +405,8 @@ def _render_reference_and_validation(section: TrainingData) -> None:
         section["additional_patient_info"],
         SECTION_PREFIX,
     )
-
+    section_divider()
+    title_header(TITLE_TRAINING_METHODOLOGY, size="1.2rem")
     col1, col2, col3 = st.columns([1.7, 1.2, 1])
     with col1:
         render_field(

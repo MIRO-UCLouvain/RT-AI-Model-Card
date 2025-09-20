@@ -1,0 +1,11 @@
+[theme]
+base="light"
+primaryColor="#0553D1"         # azul petróleo / professional blue
+
+# Fondo secundario para sidebar y paneles
+secondaryBackgroundColor="#f4f5f5ff"   # gris-azulado muy claro
+
+# Texto principal
+textColor="#1e293b"           # gris azulado oscuro (mejor contraste que negro puro)
+
+font="sans serif"

@@ -66,6 +66,7 @@ class FieldProps(TypedDict, total=False):
     model_types: list[str]
     format: str
     format_description: str
+    disabled: bool
 
 
 def has_renderable_fields(
@@ -286,10 +287,7 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
     """
     full_key = f"{section_prefix}_{key}"
 
-    # 1) inline validation (kept behavior)
-    _validate_format(full_key, props)
-
-    # 2) help icon
+    # 1) help icon
     label = props.get("label") or key or "Field"
     description = props.get("description", "")
     example = props.get("example", "")
@@ -302,7 +300,7 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
         required,
     )
 
-    # 3) special key families with bespoke UIs
+    # 2) special key families with bespoke UIs
     if key == "type_metrics_other":
         _render_type_metrics_other(full_key)
         return
@@ -339,64 +337,69 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
     # Fallback: text input
     _render_text_input(full_key, props)
 
+    # 3) inline validation (kept behavior)
+    _validate_format(full_key, props)
+
+
+def _on_date_change(raw_key: str, widget_key: str, full_key: str) -> None:
+    user_date: date | None = st.session_state.get(raw_key)
+    st.session_state[widget_key] = user_date
+    formatted = user_date.strftime("%Y%m%d") if user_date else None
+    st.session_state[full_key] = formatted
+
 
 def _render_date_input(
     full_key: str,
-    props: FieldProps,  # noqa: ARG001
-    *,
+    props: FieldProps,
     key_name: str,  # noqa: ARG001
 ) -> None:
-    """
-    Render a date input field.
+    widget_key = f"{full_key}_widget"
+    raw_key = f"_{widget_key}"
 
-    :param full_key: The full key of the field.
-    :type full_key: str
-    :param props: The properties of the field.
-    :type props: FieldProps
-    :param key_name: The key name for the field.
-    :type key_name: str
-    """
-    widget_key = f"{full_key}_widget"       # holds `date` or None
-    raw_key = f"_{widget_key}"              # mirror for the widget
+    stored = st.session_state.get(full_key)
+    initial_widget_date: date | None = None
+    if (
+        isinstance(stored, str)
+        and len(stored) == DATE_STR_LEN
+        and stored.isdigit()
+    ):
+        try:
+            y, m, d = int(stored[:4]), int(stored[4:6]), int(stored[6:8])
+            initial_widget_date = date(y, m, d)
+        except ValueError:
+            initial_widget_date = None
+    elif isinstance(stored, date):
+        initial_widget_date = stored
 
-    # Prepare initial widget value:
-    # 1) If widget already exists, use it (user-edited value)
-    # 2) Else, convert any stored YYYYMMDD string to a `date`
-    # 3) Else, keep None (no default)
-    initial_widget_date: date | None = st.session_state.get(widget_key)
-    if initial_widget_date is None:
-        stored = st.session_state.get(full_key)
-        if (
-            isinstance(stored, str)
-            and len(stored) == DATE_STR_LEN
-            and stored.isdigit()
-        ):
-            try:
-                y, m, d = int(stored[:4]), int(stored[4:6]), int(stored[6:8])
-                initial_widget_date = date(y, m, d)
-            except ValueError:
-                initial_widget_date = None
+    def _on_change_wrapper() -> None:
+        _on_date_change(raw_key, widget_key, full_key)
 
-    # Ensure widget_key exists with the correct initial value,
-    # and mirror it to the raw_key so Streamlit's widget reads it.
-    load_value(widget_key, default=initial_widget_date)
+    if raw_key in st.session_state:
+        st.date_input(
+            "Click and select a date",
+            min_value=date(1900, 1, 1),
+            max_value=datetime.now(UTC).date(),
+            key=raw_key,
+            on_change=_on_change_wrapper,
+            disabled=bool(props.get("disabled", False)),
+        )
+    else:
+        st.date_input(
+            "Click and select a date",
+            value=initial_widget_date,
+            min_value=date(1900, 1, 1),
+            max_value=datetime.now(UTC).date(),
+            key=raw_key,
+            on_change=_on_change_wrapper,
+            disabled=bool(props.get("disabled", False)),
+        )
 
-    # Render the widget; on_change will copy from raw_key -> widget_key
-    st.date_input(
-        "Click and select a date",
-        value=st.session_state.get(widget_key, None),
-        min_value=date(1900, 1, 1),
-        max_value=datetime.now(UTC).date(),
-        key=raw_key,
-        on_change=store_value,
-        args=(widget_key,),
-    )
-
-    # Persist as 'YYYYMMDD' or None. No inline warnings here.
-    user_date: date | None = st.session_state.get(widget_key)
+    user_date: date | None = st.session_state.get(raw_key)
+    st.session_state[widget_key] = user_date
     st.session_state[full_key] = (
         user_date.strftime("%Y%m%d") if user_date else None
     )
+
 
 def _render_version_number(full_key: str) -> None:
     """
@@ -485,13 +488,16 @@ def _render_text_input(full_key: str, props: FieldProps) -> None:
     :type props: FieldProps
     """
     load_value(full_key)
+    disabled = bool(props.get("disabled", False))
+    placeholder = "" if disabled else props.get("placeholder", "")
     st.text_input(
         props.get("label", full_key),
         key="_" + full_key,
         on_change=store_value,
         args=(full_key,),
         label_visibility="hidden",
-        placeholder=props.get("placeholder", ""),
+        disabled=disabled,
+        placeholder=placeholder,
     )
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import streamlit as st
 
@@ -12,10 +13,25 @@ INFO_MSG = (
     "Only `.json` files are supported. Please ensure your file is in the "
     "correct format."
 )
-
+CSS_PATH = (Path(__file__).resolve().parent.parent / "static" / "global.css")
 
 def load_model_card_page() -> None:
     """Render the page for loading a model card from a JSON file."""
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            max-width: 1100px;
+            padding-left: 5rem;
+            padding-right: 5rem;
+        }
+        .block-container p, .block-container li {
+            text-align: justify;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     st.header("Load a Model Card")
 
     st.markdown(
@@ -69,9 +85,3 @@ def load_model_card_page() -> None:
                 st.session_state.runpage = card_metadata_render
                 st.success("Model card loaded successfully!")
                 st.rerun()
-
-    if st.button("Return to Main Page", use_container_width=True):
-        from app.ui.screens.main import main  # noqa: PLC0415
-
-        st.session_state.runpage = main
-        st.rerun()
