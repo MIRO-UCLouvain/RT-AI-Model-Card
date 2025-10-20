@@ -98,8 +98,8 @@
     "clearance_approved_by_name": {
       "type": "String, Free text format",
       "label": "Name(s)",
-      "description": "Name of the person(s) who approved the model or contact person on behalf of the team. If several, separate them by commas.",
-      "required": true,
+      "description": "Name of the person(s) or department(s) who approved the model or contact person on behalf of the team. If several, separate them by commas.",
+      "required": false,
       "example": "Maria Smith"
     },
     "clearance_approved_by_institution": {
@@ -112,8 +112,8 @@
     "clearance_approved_by_contact_email": {
       "type": "String, Free text format",
       "label": "Contact Email(s)",
-      "description": "Contact email(s) for the team or persons. If several, separate them by commas.",
-      "required": true,
+      "description": "Contact email(s) for the department, team or persons. If several, separate them by commas.",
+      "required": false,
       "format": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(\\s*,\\s*[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})*$",
       "format_description": "Must be one or more valid email addresses separated by commas, e.g. user@example.com or user1@example.com, user2@example.org"
     },
@@ -154,8 +154,8 @@
     "developed_by_name": {
       "type": "String, Free text format",
       "label": "Name",
-      "description": "Name of the person(s) who developed the model or contact person on behalf of the development team. If several, separate them by commas.",
-      "required": true,
+      "description": Name of the department(s) or person(s) who developed the model, or contact person on behalf of the development team. If several, separate them by commas.",
+      "required": false,
       "example": "Maria Smith"
     },
     "developed_by_institution": {
@@ -168,8 +168,8 @@
     "developed_by_email": {
       "type": "String, Free text format",
       "label": "Contact Email(s)",
-      "description": "Contact email for the development team or persons. If several, separate them by commas.",
-      "required": true,
+      "description": "Contact email for the development department, team or persons. If several, separate them by commas.",
+      "required": false,
       "format": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(\\s*,\\s*[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})*$",
       "format_description": "Must be one or more valid email addresses separated by commas, e.g. user@example.com or user1@example.com, user2@example.org"
     },
@@ -323,7 +323,7 @@
       "type": "Integer",
       "label": "Number of inputs",
       "description": "Number of inputs in the learning architecture. This may refer to channels (e.g., in CNNs), tokens (e.g., in transformers), feature vectors (e.g., in tabular models), etc",
-      "required": true,
+      "required": false,
       "example": 5,
       "format": "^(?:[0-9]{1,100000}|10\\^[0-9]+|10\\s*\\^\\s*[0-9]+|10[⁰¹²³⁴⁵⁶⁷⁸⁹]+)$",
       "format_description": "Must be a positive integer with up to 100000 digits, or a power of ten (e.g. 10^6, 10 ^ 6, or 10⁶)."
@@ -332,7 +332,7 @@
       "type": "select",
       "label": "Input Content",
       "description": "Expected content of each input, separated by commas.",
-      "required": true,
+      "required": false,
       "options": [
         "CT (Computed Tomography)",
         "4DCT (4 Dimensional Computed Tomography)",
@@ -384,7 +384,7 @@
       "type": "list[float] or list[list[float]]",
       "label": "Input Size",
       "description": "Size of each input, separated by commas. If only one entry while the number of inputs> 1, all inputs have the same size. If the size of the learning model inputs is not known or may vary according to the input data (e.g. it is extracted after an AutoML pre-process like in nnUnet), indicate “NA” (not applicable)",
-      "required": true,
+      "required": false,
       "example": "[[128], [128, 128, 128], [64, 64, 64]]",
       "format": "^(?i:N/?A|\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\]|\\[\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\](?:\\s*,\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\])*\\s*\\]|\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\](?:\\s*,\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\])*)$",
       "format_description": "Must be 'NA' or 'N/A' (any case), a list of numbers (e.g. [128, 64, 64]), several lists separated by commas (e.g. [12], [89, 50]), or a list of lists (e.g. [[128], [64, 64]])."
@@ -393,7 +393,7 @@
       "type": "Integer",
       "label": "Number of outputs",
       "description": "Number of outputs in the learning architecture. This may refer to channels (e.g., in CNNs), tokens (e.g., in transformers), feature vectors (e.g., in tabular models), etc",
-      "required": true,
+      "required": false,
       "example": 1,
       "format": "^(?:[0-9]{1,100000}|10\\^[0-9]+|10\\s*\\^\\s*[0-9]+|10[⁰¹²³⁴⁵⁶⁷⁸⁹]+)$",
       "format_description": "Must be a positive integer with up to 100000 digits, or a power of ten (e.g. 10^6, 10 ^ 6, or 10⁶)."
@@ -402,7 +402,7 @@
       "type": "select",
       "label": "Output Content",
       "description": "Modalities/types of each output, separated by commas",
-      "required": true,
+      "required": false,
       "options": [
         "CT (Computed Tomography)",
         "4DCT (4 Dimensional Computed Tomography)",
@@ -454,7 +454,7 @@
       "type": "list[float] or list[list[float]]",
       "label": "Output Size",
       "description": "Size of each output, separated by commas. If only one entry while the number of outputs > 1, all outputs have the same size.",
-      "required": true,
+      "required": false,
       "example": "[[128], [128, 128, 128], [64, 64, 64]]",
       "format": "^(?i:N/?A|\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\]|\\[\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\](?:\\s*,\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\])*\\s*\\]|\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\](?:\\s*,\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\])*)$",
       "format_description": "Must be 'NA' or 'N/A' (any case), a list of numbers (e.g. [128, 64, 64]), several lists separated by commas (e.g. [12], [89, 50]), or a list of lists (e.g. [[128], [64, 64]])."
@@ -617,14 +617,14 @@
       "type": "String, Free text format",
       "label": "Type of Data Augmentation",
       "description": "Data augmentation operations performed (flipping, rotations, etc). Whenever relevant, please add both the type and the range/value of the operation (e.g. rotation ([-10º, +10º]). If none applied say “Not applicable”",
-      "required": true,
+      "required": false,
       "example": "Flipping [left, right], rotation [-10º,+10º], …"
     },
     "strategy_for_data_augmentation": {
       "type": "List of strings, Free text format",
       "label": "Strategy for Data Augmentation",
       "description": "Strategy for data augmentation. Whenever possible and relevant, report the number of augmented samples per real ones. If none applied say NA (Not Applicable).",
-      "required": true,
+      "required": false,
       "example": "[random, on-the-fly during training, all], [prior-to-training, 5 augmented per real image]",
       "format": "^(?i:(?:N/?A)|\\[\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*(?:\\s*,\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*)*\\s*\\](?:\\s*,\\s*\\[\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*(?:\\s*,\\s*[A-Za-z0-9][A-Za-z0-9 _\\-]*)*\\s*\\])*)$",
       "format_description": "Must be 'NA' or 'N/A' (any case), or one or more lists of strings in square brackets (e.g. [random, on-the-fly during training, all], [prior-to-training, 5 augmented per real image]), separated by commas if multiple."
@@ -693,7 +693,8 @@
         "External beam radiation therapy (EBRT) - Photons (LINAC) - IMRT",
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT",
         "External beam radiation therapy (EBRT) - Carbon",
-        "Brachytherapy"
+        "Brachytherapy",
+        "Other"
       ],
       "example": [
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT"
@@ -720,7 +721,9 @@
       "options": [
         "Monte Carlo",
         "Pencil beam",
-        "Collapsed cone convolution"
+        "Collapsed cone convolution",
+        "Boltzmann Transport Equation (BTE)",
+        "Other"
       ],
       "example": "Monte Carlo"
     },
@@ -1037,7 +1040,8 @@
         "External beam radiation therapy (EBRT) - Photons (LINAC) - IMRT",
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT",
         "External beam radiation therapy (EBRT) - Carbon",
-        "Brachytherapy"
+        "Brachytherapy",
+        "Other"
       ],
       "example": [
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT"
@@ -1064,7 +1068,9 @@
       "options": [
         "Monte Carlo",
         "Pencil beam",
-        "Collapsed cone convolution"
+        "Collapsed cone convolution",
+        "Boltzmann Transport Equation",
+        "Other"
       ],
       "example": "Monte Carlo"
     },
@@ -2747,7 +2753,8 @@
         "External beam radiation therapy (EBRT) - Photons (LINAC) - IMRT",
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT",
         "External beam radiation therapy (EBRT) - Carbon",
-        "Brachytherapy"
+        "Brachytherapy",
+        "Other"
       ],
       "example": [
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT"
@@ -2764,7 +2771,9 @@
       "options": [
         "Monte Carlo",
         "Pencil beam",
-        "Collapsed cone convolution"
+        "Collapsed cone convolution",
+        "Boltzmann Transport Equation",
+        "Other"
       ],
       "example": "Monte Carlo"
     },
@@ -4399,7 +4408,8 @@
         "External beam radiation therapy (EBRT) - Photons (LINAC) - IMRT",
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT",
         "External beam radiation therapy (EBRT) - Carbon",
-        "Brachytherapy"
+        "Brachytherapy",
+        "Other"
       ],
       "example": [
         "External beam radiation therapy (EBRT) - Photons (LINAC) - VMAT"
@@ -4416,7 +4426,9 @@
       "options": [
         "Monte Carlo",
         "Pencil beam",
-        "Collapsed cone convolution"
+        "Collapsed cone convolution",
+        "Boltzmann Transport Equation",
+        "Other"
       ],
       "example": "Monte Carlo"
     },
