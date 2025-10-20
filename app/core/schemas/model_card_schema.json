@@ -154,7 +154,7 @@
     "developed_by_name": {
       "type": "String, Free text format",
       "label": "Name",
-      "description": Name of the department(s) or person(s) who developed the model, or contact person on behalf of the development team. If several, separate them by commas.",
+      "description": "Name of the department(s) or person(s) who developed the model, or contact person on behalf of the development team. If several, separate them by commas.",
       "required": false,
       "example": "Maria Smith"
     },
