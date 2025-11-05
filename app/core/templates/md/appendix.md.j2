@@ -1,0 +1,12 @@
+## Appendix
+
+{% set n = appendix_files|length if appendix_files is defined and appendix_files is not none else 0 %}
+{% for item in appendix_files %}
+- {% if item.label %}**{{ item.label }}:** {% endif %} {{ item.file.name }}
+
+{% if item.file.is_image and item.file.url %}
+  ![{{ item.file.name }}]({{ item.file.url }})
+{% endif %}
+
+{% endfor %}
+

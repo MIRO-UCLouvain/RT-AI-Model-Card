@@ -1,0 +1,52 @@
+:root{
+  --sb-bg:#f4f5f5ff;
+  --sb-surface:#ffffff;
+  --sb-border:#e5e7eb;
+  --sb-text:#111827;
+  --sb-muted:#6b7280;
+  --sb-accent:#ef4444;
+  --sb-hover:#f1f5f9;
+  --sb-press:#e5e7eb;
+  --sb-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+/* Sidebar background override */
+[data-testid="stSidebar"] { background-color: #6b79a0 !important; }
+[data-testid="stSidebar"] .block-container { background-color: transparent !important; }
+
+/* Shell */
+[data-testid="stSidebar"][aria-expanded="true"]{
+  width:clamp(260px,26vw,500px)!important;
+  min-width:260px!important;
+  background:var(--sb-bg)!important;
+  border-right:1px solid var(--sb-border)!important;
+}
+[data-testid="stSidebar"][aria-expanded="false"]{width:0!important;min-width:0!important;}
+[data-testid="stSidebar"] .block-container{padding:18px 16px 24px!important;}
+[data-testid="stSidebar"] h2,[data-testid="stSidebar"] h3{color:var(--sb-text)!important;margin:10px 0 12px!important;letter-spacing:.2px;}
+[data-testid="stSidebar"] h2{font-size:1.15rem!important;}
+[data-testid="stSidebar"] h3{font-size:1rem!important;color:var(--sb-muted)!important;}
+[data-testid="stSidebar"] hr,[data-testid="stSidebar"] .stDivider{
+  border:none!important;border-top:1px solid var(--sb-border)!important;margin:16px 0!important;opacity:.9;
+}
+
+/* Scrollbar */
+[data-testid="stSidebar"] ::-webkit-scrollbar{ width:10px; }
+[data-testid="stSidebar"] ::-webkit-scrollbar-track{ background:transparent; }
+[data-testid="stSidebar"] ::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:0; border:2px solid transparent; background-clip:padding-box; }
+[data-testid="stSidebar"] ::-webkit-scrollbar-thumb:hover{ background:#94a3b8; }
+
+/* Pale-yellow warning panel that styles the next st.container() */
+#warn-box-anchor + div[data-testid="stVerticalBlock"],
+#warn-box-anchor + div.stVerticalBlock{
+  background: #FFFBEB;              /* amber-50 */
+  border: 1px solid #FDE68A;        /* amber-200 */
+  border-radius: 12px;
+  padding: 12px 12px 10px;          /* inner spacing for the button */
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  margin: 8px 0 16px;
+}
+
+/* Mobile width */
+@media (max-width:1024px){
+  [data-testid="stSidebar"][aria-expanded="true"]{ width:260px!important; }
+}

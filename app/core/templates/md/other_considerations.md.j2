@@ -1,0 +1,20 @@
+## 5. Other considerations
+{% set oc = other_considerations or {} %}
+
+{% if oc.responsible_use_and_ethical_considerations 
+   or oc.risk_analysis 
+   or oc.post_market_surveillance_live_monitoring %}
+  {% if oc.responsible_use_and_ethical_considerations %}
+- **Responsible Use and Ethical Considerations:** {{ oc.responsible_use_and_ethical_considerations | default("—") }}
+  {% endif %}
+
+  {% if oc.risk_analysis %}
+- **Risk Analysis:** {{ oc.risk_analysis | default("—") }}
+  {% endif %}
+
+  {% if oc.post_market_surveillance_live_monitoring %}
+- **Post-Market Surveillance / Live Monitoring:** {{ oc.post_market_surveillance_live_monitoring | default("—") }}
+  {% endif %}
+{% else %}
+_No other considerations provided._
+{% endif %}

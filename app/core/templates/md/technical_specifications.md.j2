@@ -1,0 +1,121 @@
+{% import "components.md.j2" as C %}
+
+## 2. Technical specifications
+
+### 2.1 Model overview
+
+#### Model pipeline
+- **Summary** **\*** : {{ technical_specifications_model_pipeline_summary | default("—", true) }}
+
+{% set f = technical_specifications_model_pipeline_figure %}
+{% if f %}
+**Figure:** {{ (f.name if f is defined and f.name is defined else (f.get("name") if f.get is defined else "—")) or "—" }}
+{{ C.render_file(f, label="Figure") }}
+{% endif %}
+
+- **Model inputs** **\*** : {{ technical_specifications_model_inputs | default("—", true) }}
+
+- **Additional information**: {{ technical_specifications_additional_information_model_inputs | default("—", true) }}
+
+- **Model outputs** **\*** : {{ technical_specifications_model_outputs | default("—", true) }}
+
+- **Additional information**: {{ technical_specifications_additional_information_model_outputs | default("—", true) }}
+
+- **Pre-processing** **\*** : {{ technical_specifications_pre_processing | default("—", true) }}
+
+- **Post-processing** **\*** : {{ technical_specifications_post_processing | default("—", true) }}
+
+### 2.2 Learning architecture(s)
+
+{% set la_list = learning_architectures | default([]) %}
+{% if la_list | length == 0 %}
+_No learning architectures provided._
+{% else %}
+{% for la in la_list %}
+#### Learning architecture {{ loop.index }} {{ la.name or '' }}
+
+| Field | Value |
+|----------|-------|
+| **Total number of trainable parameters** **\*** | {{ la.total_number_trainable_parameters | default("—", true) }} |
+| **Number of inputs** | {{ la.number_of_inputs | default("—", true) }} |
+| **Input content** | {{ la.input_content | default("—") }} |
+{% if la.additional_information_input_content %}
+| **Additional information regarding input content** | {{ la.additional_information_input_content | default("—") }} |
+{% endif %}
+{% if la.input_format %}
+| **Input format** | {{ la.input_format | default("—") }} |
+{% endif %}
+| **Input size** | {{ la.input_size | default("—", true) }} |
+| **Number of outputs** | {{ la.number_of_outputs | default("—", true) }} |
+| **Output content** | {{ la.output_content | default("—") }} |
+{% if la.additional_information_output_content %}
+| **Additional information regarding output content** | {{ la.additional_information_output_content | default("—") }} |
+{% endif %}
+{% if la.output_format %}
+| **Output format** | {{ la.output_format | default("—") }} |
+{% endif %}
+| **Output size** | {{ la.output_size | default("—", true) }} |
+| **Loss function** **\*** | {{ la.loss_function | default("—", true) }} |
+| **Batch size** | {{ la.batch_size | default("—", true) }} |
+| **Regularisation** | {{ la.regularisation | default("—", true) }} |
+{% set f = la.architecture_figure %}
+{% if f %}
+| **Architecture figure** **\*** | {{ (f.name if f is defined and f.name is defined else (f.get("name") if f.get is defined else "—")) }}<br>{{ C.render_file(f, label="Architecture figure") }} |
+{% endif %}
+| **Uncertainty quantification techniques** **\*** | {{ la.uncertainty_quantification_techniques | default("NA", true) }} |
+| **Explainability techniques** **\*** | {{ la.explainability_techniques | default("NA", true) }} |
+{% if la.additional_information_ts %}
+| **Additional information** | {{ la.additional_information_ts | default("—") }} |
+{% endif %}
+{% if la.citation_details_ts %}
+| **Citation(s)** | {{ la.citation_details_ts | default("—") }} |
+{% endif %}
+
+{% if not loop.last %}
+---
+{% endif %}
+{% endfor %}
+{% endif %}
+
+
+### 2.3 Hardware & software
+{% set hw = hw_and_sw or {} %}
+
+{% if hw.libraries_and_dependencies or hw.hardware_recommended or hw.inference_time_for_recommended_hw 
+   or hw.installation_getting_started or hw.environmental_impact %}
+
+  {% if hw.libraries_and_dependencies %}
+
+- **Libraries and dependencies:** {{ hw.libraries_and_dependencies }}
+
+  {% endif %}
+
+  {% if hw.hardware_recommended %}
+
+- **Hardware (recommended):** {{ hw.hardware_recommended }}
+
+  {% endif %}
+
+  {% if hw.inference_time_for_recommended_hw %}
+
+- **Inference time (s) for recommended hardware:** {{ hw.inference_time_for_recommended_hw }}
+
+  {% endif %}
+
+  {% if hw.installation_getting_started %}
+
+- **Installation / Getting started:** {{ hw.installation_getting_started }}
+
+  {% endif %}
+
+  {% if hw.environmental_impact %}
+
+- **Environmental impact:** {{ hw.environmental_impact }}
+
+  {% endif %}
+
+{% else %}
+
+_No hardware and software details specified._
+
+{% endif %}

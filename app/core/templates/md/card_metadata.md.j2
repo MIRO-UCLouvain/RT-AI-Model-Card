@@ -1,0 +1,20 @@
+# Model Card {%if card_metadata_version_number %} — version {{ card_metadata_version_number | default("—", true) }} {%endif%}{%if model_basic_information_name %} — Model {{ model_basic_information_name | default("", true) }} {%endif%}
+
+**Task:** {{ task }}
+
+---
+
+## 0. Card Metadata
+
+**Creation date** **\*** : {{ card_metadata_card_creation_date | default("—", true) }}
+
+### Versioning
+
+- **Version number** **\*** : {{ card_metadata_version_number | default("—", true) }}
+- **Version changes** **\*** : {{ card_metadata_version_changes | default("NA", true) }}
+
+{%if card_metadata_doi %}
+
+**DOI**: {{ card_metadata_doi | default("—", true) }}
+
+{%endif %}

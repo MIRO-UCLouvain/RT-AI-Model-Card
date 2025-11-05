@@ -1,0 +1,35 @@
+{{ sections.card_metadata }}
+
+---
+
+{{ sections.model_basic_information }}
+
+---
+
+{{ sections.technical_specifications }}
+
+---
+
+{{ sections.training_data }}
+
+---
+
+{{ sections.evaluations }}
+
+---
+
+{{ sections.other_considerations }}
+
+---
+
+{% if appendix_files and appendix_files|length > 0 %}
+## Appendix
+
+{% for item in appendix_files %}
+{% if item.label %}**{{ item.label }}:** {% endif %} {{ item.file.name }}
+
+  {% if item.file.is_image and item.file.url %}
+  ![{{ item.file.name }}]({{ item.file.url }})
+  {% endif %}
+{% endfor %}
+{% endif %}

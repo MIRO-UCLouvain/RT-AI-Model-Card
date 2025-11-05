@@ -1,0 +1,92 @@
+## 1. Model Basic Information
+**Name** **\*** : {{ model_basic_information_name | default("—", true) }}
+
+**Creation date** **\*** : {{ model_basic_information_creation_date | default("—", true) }}
+
+### Versioning
+
+- **Version number** **\*** : {{ model_basic_information_version_number | default("—", true) }}
+- **Version changes** **\*** : {{ model_basic_information_version_changes | default("NA", true) }}
+
+{% if model_basic_information_doi %}
+
+**DOI**: {{ model_basic_information_doi | default("—", true) }}
+
+{% endif %}
+
+### Model scope
+
+- **Summary** **\*** : {{ model_basic_information_model_scope_summary | default("—", true) }}
+
+- **Anatomical site** **\*** : {{ model_basic_information_model_scope_anatomical_site | default("—", true) }}
+
+### Clearance 
+
+- **Type** **\*** : {{ model_basic_information_clearance_type | default("—", true) }}
+
+#### Approved by
+
+- **Name(s)**: {{ model_basic_information_clearance_approved_by_name | default("—", true) }}
+
+- **Institution(s)** **\*** : {{ model_basic_information_clearance_approved_by_institution | default("—", true) }}
+
+- **Contact email(s)**: {{ model_basic_information_clearance_approved_by_contact_email | default("—", true) }}
+
+{% if model_basic_information_clearance_additional_information %}
+
+#### Additional Information
+{{ model_basic_information_clearance_additional_information | default("—", true) }}
+
+{% endif %}
+
+{% if model_basic_information_intended_users %}
+
+**Intended users**: {{ model_basic_information_intended_users | default("—", true) }}
+
+{% endif %}
+
+**Observed limitations** **\*** : {{ model_basic_information_observed_limitations | default("—", true) }}
+
+{% if model_basic_information_potential_limitations %}
+
+**Potential limitations**: {{ model_basic_information_potential_limitations | default("—", true) }}
+
+{% endif %}
+
+**Type of learning architecture** **\*** : {{ model_basic_information_type_of_learning_architecture | default("—", true) }}
+
+### Developed by
+
+- **Name**: {{ model_basic_information_developed_by_name | default("—", true) }}
+
+- **Institution(s)** **\*** : {{ model_basic_information_developed_by_institution | default("—", true) }}
+
+- **Contact email(s)**: {{ model_basic_information_developed_by_email | default("—", true) }}
+
+**Conflict of interest** **\*** : {{ model_basic_information_conflict_of_interest | default("—", true) }}
+
+**Software licence** **\*** : {{ model_basic_information_software_license | default("—", true) }}
+
+{% if model_basic_information_code_source %}
+
+**Code source**: {{ model_basic_information_code_source | default("—", true) }}
+
+{% endif %}
+
+{% if model_basic_information_model_source %}
+
+**Model source**: {{ model_basic_information_model_source | default("—", true) }}
+
+{% endif %}
+
+{% if model_basic_information_citation_details %}
+
+**Citation details**: {{ model_basic_information_citation_details | default("—", true) }}
+
+{% endif %}
+
+{% if model_basic_information_url_info %}
+
+**URL info**: {{ model_basic_information_url_info | default("—", true) }}
+
+{% endif %}

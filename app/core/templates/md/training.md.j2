@@ -1,0 +1,110 @@
+{% import "components.md.j2" as C %}
+
+## 3. Training Data Methodology and Information
+
+#### Fine tuned form
+
+- **Model name** **\*** : {{ training_data_model_name | default("—", true) }}
+
+- **URL/DOI to model card** **\*** : {{ training_data_url_doi_to_model_card | default("—", true) }}
+
+- **Tuning technique** **\*** : {{ training_data_tuning_technique | default("—", true) }}
+
+#### Training Dataset
+
+##### General information
+
+- **Total size** **\*** : {{ training_data_total_size | default("—", true) }}
+
+- **Number of patients** **\*** : {{ training_data_number_of_patients | default("—", true) }}
+
+- **Source** **\*** : {{ training_data_source | default("—", true) }}
+
+- **Acquisition period** **\*** : {{ training_data_acquisition_period | default("—", true) }}
+
+- **Inclusion / exclusion criteria** **\*** : {{ training_data_inclusion_exclusion_criteria | default("—", true) }}
+
+- **Type of data augmentation**: {{ training_data_type_of_data_augmentation | default("—", true) }}
+
+- **Strategy for data augmentation:** {{ training_data_strategy_for_data_augmentation | default("—", true) }}
+
+{% if training_data_url_info %}- **URL info:** {{ training_data_url_info }}{% endif %}
+
+##### Technical specifications
+{% set io_list = training_data_inputs_outputs_technical_specifications | default([], true) %}
+{% if io_list %}
+  {% for item in io_list %}
+**{{ item.entry }}** ({{ item.source }})
+
+| Field | Value |
+|-------|-------|
+{% for key, label in DATA_INPUT_OUTPUT_TS.items() %}
+{% if key in ["scanner_model", "scan_acquisition_parameters", "scan_reconstruction_parameters", "fov"] %}
+| **{{ label }}** **\*** | {{ item[key] | default("NA", true) }} |
+{% else %}
+| **{{ label }}** **\*** | {{ item[key] | default("—", true) }} |
+{% endif %}
+{% endfor %}
+
+  {% endfor %}
+{% else %}
+_No input/output technical specifications provided._
+{% endif %}
+
+
+{% if training_data_treatment_modality_train %}- **Treatment modality** **\*** : {{ training_data_treatment_modality_train | default("—", true) }}{% endif %}
+
+{% if training_data_beam_configuration_energy %}- **Beam configuration and energy** **\*** : {{ training_data_beam_configuration_energy | default("—", true) }}{% endif %}
+
+{% if training_data_dose_engine %}- **Dose engine** **\*** : {{ training_data_dose_engine | default("—", true) }}{% endif %}
+
+{% if training_data_target_volumes_and_prescription %}- **Target volumes and prescription** **\*** : {{ training_data_target_volumes_and_prescription | default("—", true) }}{% endif %}
+
+{% if training_data_number_of_fractions %}- **Number of fractions** **\*** : {{ training_data_number_of_fractions | default("—", true) }}{% endif %}
+
+- **Reference standard** **\*** : {{ training_data_reference_standard | default("NA", true) }}
+
+- **Reference standard QA** **\*** : {{ training_data_reference_standard_qa | default("NA", true) }}
+
+{% if training_data_reference_standard_qa_additional_information %}
+
+- **Additional information**: {{ training_data_reference_standard_qa_additional_information | default("—", true)}}
+
+{% endif %}
+
+##### Patient demographics and clinical characteristics
+
+{% if training_data_icd10_11 %}- **ICD10/11**: {{ training_data_icd10_11 | default("—") }}{% endif %}
+
+{% if training_data_tnm_staging %}- **TNM staging**: {{ training_data_tnm_staging | default("—") }}{% endif %}
+
+- **Age** **\*** : {{ training_data_age | default("NA", true) }}
+
+- **Sex** **\*** : {{ training_data_sex | default("NA", true) }}
+
+{% if training_data_target_volume_cm3 %}- **Target volume (cm³)**: {{ training_data_target_volume_cm3 | default("—") }}{% endif %}
+
+{% if training_data_bmi %}- **BMI**: {{ training_data_bmi | default("—") }}{% endif %}
+
+{% if training_data_additional_patient_info %}- **Additional patient info**: {{ training_data_additional_patient_info | default("—") }}{% endif %}
+
+**Validation strategy** **\*** : {{ training_data_validation_strategy | default("—", true) }}
+
+**Validation data partition** **\*** : {{ training_data_validation_data_partition | default("—", true) }}
+
+{% if training_data_weights_initialization %} **Weights initialization**: {{ training_data_weights_initialization }}{% endif %}
+
+{% if training_data_epochs %} **Epochs**: {{ training_data_epochs }}{% endif %}
+
+{% if training_data_optimiser %} **Optimiser**: {{ training_data_optimiser }}{% endif %}
+
+{% if training_data_learning_rate %} **Learning rate**: {{ training_data_learning_rate }}{% endif %}
+
+{% if training_data_train_and_validation_loss_curves %}
+**Train & validation loss curves** **\*** :
+{{ C.render_file(training_data_train_and_validation_loss_curves, label="Loss curves") }}
+{% endif %}
+
+**Model choice criteria** **\*** : {{ training_data_model_choice_criteria | default("—", true) }}
+
+**Inference method** **\*** : {{ training_data_inference_method | default("—", true) }}

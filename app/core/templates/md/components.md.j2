@@ -1,0 +1,51 @@
+{# templates/components.md.j2 #}
+{% macro render_file(value, label=None, show_non_images_as_text=False) -%}
+  {# 1) Guard: no value #}
+  {% set has_value = value is not none and value != "" %}
+  {% if not has_value %}
+    {% if show_non_images_as_text and label %}**{{ label }}:** —{% endif %}
+  {% else %}
+
+    {# 2) Extract common fields (works with objects or dict-like values) #}
+    {% set name = value.name if value is defined and value.name is defined
+                 else (value.get('name') if value.get is defined else None) %}
+    {% set ftype = value.type if value is defined and value.type is defined
+                  else (value.get('type') if value.get is defined else None) %}
+
+    {# Try several URL fields commonly present in Streamlit uploads #}
+    {% set url = None %}
+    {% if value.upload_url is defined %}{% set url = value.upload_url %}{% endif %}
+    {% if not url and value.display_url is defined %}{% set url = value.display_url %}{% endif %}
+    {% if not url and value.url is defined %}{% set url = value.url %}{% endif %}
+    {% if not url and value.get is defined and value.get('upload_url') %}{% set url = value.get('upload_url') %}{% endif %}
+    {% if not url and value.get is defined and value.get('display_url') %}{% set url = value.get('display_url') %}{% endif %}
+    {% if not url and value.get is defined and value.get('url') %}{% set url = value.get('url') %}{% endif %}
+
+    {# 3) Image detection without Python methods #}
+    {% set name_lower = (name|lower if name else '') %}
+    {% set mime = (ftype|lower if ftype else '') %}
+    {% set is_img = false %}
+
+    {# MIME starts with "image/" -> compare first 6 chars #}
+    {% if mime and mime[:6] == 'image/' %}
+      {% set is_img = true %}
+    {% elif name_lower %}
+      {# Check filename suffix using tail slices (no .endswith) #}
+      {% set tail4 = name_lower[-4:] %}
+      {% set tail5 = name_lower[-5:] %}
+      {% set tail6 = name_lower[-6:] %}
+      {% if ('.png' in tail4) or ('.jpg' in tail4) or ('.gif' in tail4) or ('.svg' in tail4)
+            or ('.webp' in tail5) or ('.jpeg' in tail5) %}
+        {% set is_img = true %}
+      {% endif %}
+    {% endif %}
+
+    {# 4) Render #}
+    {% if is_img and url %}
+![{{ label or name or 'Figure' }}]({{ url }})
+    {% elif show_non_images_as_text %}
+**{{ label or 'File' }}:** {{ name or value }}
+    {% endif %}
+
+  {% endif %}
+{%- endmacro %}

@@ -1,0 +1,132 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rt-model-card"
+version = "0.1.0"                  # SemVer: increase in each release
+description = "Open-source Writing Tool for Artificial Intelligence Models in Radiotherapy applications."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}       
+authors = [{ name = "Silvia María Herranz Hernández", email = "herranzsilviamaria@gmail.com" }]
+keywords = ["model cards", "documentation", "ML", "AI", "streamlit", "RT", "Radiotherapy", "standarization", "transparency"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache Software License",   # ← si usas Apache-2.0
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Documentation",
+  "Framework :: Streamlit",
+]
+
+dependencies = [
+  "streamlit==1.47.0",
+  "modelcards==0.1.2",
+  "pandas",
+  "lxml",
+  "altair>=5,<6",
+  "Markdown==3.6",
+  "bleach>=6.1.0",
+  "cssselect2>=0.7.0",
+  "tinycss2>=1.3.0",
+  "WeasyPrint==61.2",
+  "pydyf==0.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+  "ruff",
+  "mypy",
+  "build",
+  "twine",
+  "commitizen",
+  "mkdocs-material",
+]
+
+[tool.poetry]
+package-mode = true
+
+[[tool.poetry.packages]]
+include = "app"
+from = "."
+
+[project.urls]
+Homepage = "https://github.com/<TU_ORG>/rt-modelcard-writing-tool"
+Documentation = "https://<TU_ORG>.github.io/rt-modelcard-writing-tool/"
+Source = "https://github.com/<TU_ORG>/rt-modelcard-writing-tool"
+Issues = "https://github.com/<TU_ORG>/rt-modelcard-writing-tool/issues"
+
+[project.scripts]
+rt-modelcards = "app.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"] 
+
+
+[tool.setuptools.package-data]
+app = [
+  "core/templates/**/*.md.j2",
+  "core/schemas/*.json",
+]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D105","D107","D212","Q003","PLC0414","S101","TID252","ANN201","ANN001"]
+external = ["WPS"]
+
+[tool.ruff.lint.per-file-ignores]
+"asv_benchmarks/**.py" = ["ARG001","ARG002"]
+"plot_*.py" = ["ANN","ARG001","B018","D205","D415","E402","ERA001",
+               "PLW0603","S310","T201","TC001","TC002"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"matplotlib.pyplot.axes".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.gca".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.gcf".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.legend".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.plot".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.scatter".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.subplot".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.suptitle".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.tight_layout".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.title".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.xaxis".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.xlim".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.yaxis".msg = "Use Matplotlib object-oriented API instead."
+"matplotlib.pyplot.ylim".msg = "Use Matplotlib object-oriented API instead."
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.lint.pep8-naming]
+extend-ignore-names = ["X","y"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+ignore-decorators = ["typing.overload"]
+
+[tool.ruff.lint.pylint]
+max-args = 7
+
+[tool.mypy]
+strict = true
+strict_equality = true
+implicit_reexport = true
+enable_error_code = "ignore-without-code"
+
+[[tool.mypy.overrides]]
+module = ["cartopy.*","fdasrsf.*","findiff.*","joblib.*","lazy_loader.*",
+          "mpl_toolkits.*","scipy.*","skdatasets.*","sklearn.*","sphinx_gallery.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["examples.*","tutorial.*"]
+disallow_untyped_defs = false
+warn_return_any = false
