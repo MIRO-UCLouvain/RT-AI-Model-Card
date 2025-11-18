@@ -1,0 +1,18 @@
+Alembic migrations for the RT-ModelCard backend.
+
+Run from inside the backend container:
+
+  # Generate a new migration from current model changes
+  docker compose exec backend alembic revision --autogenerate -m "description"
+
+  # Apply all pending migrations
+  docker compose exec backend alembic upgrade head
+
+  # Roll back one step
+  docker compose exec backend alembic downgrade -1
+
+  # Show migration history
+  docker compose exec backend alembic history --verbose
+
+  # Show current applied revision
+  docker compose exec backend alembic current
