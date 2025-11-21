@@ -47,8 +47,11 @@ async def create_model_card(
     )
 
     await session.commit()
-    await session.refresh(card)
-    return card
+    # Re-fetch with selectinload so card.versions is eagerly populated
+    # before Pydantic tries to access it outside the async context.
+    refreshed = await ModelCardRepository.get_by_id(session, card.id)
+    assert refreshed is not None  # just created, guaranteed to exist
+    return refreshed
 
 
 async def create_new_version(

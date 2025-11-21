@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import io
+import json
+import re
 import zipfile
 from pathlib import Path
 from typing import Any
 
 import streamlit as st
 
+from app.client.model_cards import BackendError, create_model_card, create_version
 from app.core.model_card.constants import SCHEMA
 from app.services.markdown.renderer import render_full_model_card_md
 from app.services.readme.builder import (
@@ -460,6 +463,88 @@ def _render_github_repo(repo_url: str) -> None:
     )
 
 
+def _derive_slug(name: str) -> str:
+    """Convert a model name to a URL-safe slug."""
+    s = name.lower().strip()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s or "my-model-card"
+
+
+def _cloud_tab() -> None:
+    """Render the Cloud save tab in the sidebar."""
+    st.markdown("## Save to Cloud")
+
+    card_id: int | None = st.session_state.get("cloud_card_id")
+    version_num: int | None = st.session_state.get("cloud_version_number")
+
+    if card_id is not None:
+        st.caption(f"Cloud ID: {card_id} · version {version_num}")
+    else:
+        st.caption("Not yet saved to cloud.")
+
+    model_name: str = st.session_state.get(
+        "model_basic_information_name", ""
+    ) or ""
+    task_type: str = st.session_state.get("task", "Other") or "Other"
+
+    slug = st.text_input(
+        "Slug (unique identifier)",
+        value=_derive_slug(model_name),
+        key="cloud_slug",
+        disabled=card_id is not None,
+        help="URL-safe name, e.g. my-segmentation-model. Cannot change after first save.",
+    )
+    title = st.text_input(
+        "Version title",
+        value=model_name,
+        key="cloud_title",
+        help="Short description for this version.",
+    )
+
+    # Always sanitize the slug so it satisfies the API pattern constraint,
+    # regardless of what the user typed into the text_input.
+    clean_slug = _derive_slug(slug)
+    if clean_slug != slug and slug:
+        st.caption(f'Slug will be saved as: **{clean_slug}**')
+
+    label = "Save new version" if card_id is not None else "Save to Cloud"
+    if st.button(label, use_container_width=True, key="btn_cloud_save"):
+        try:
+            content: dict = json.loads(parse_into_json(SCHEMA))
+            if card_id is None:
+                result = create_model_card(
+                    slug=clean_slug,
+                    task_type=task_type,
+                    title=title or clean_slug,
+                    content=content,
+                )
+                st.session_state.cloud_card_id = result["id"]
+                saved_version = result["versions"][0]["version_number"]
+            else:
+                result = create_version(
+                    card_id=card_id,
+                    title=title or clean_slug,
+                    content=content,
+                )
+                saved_version = result["version_number"]
+            st.session_state.cloud_version_number = saved_version
+            st.success(f"Saved as version {saved_version}.")
+            st.rerun()
+        except BackendError as exc:
+            msg = str(exc)
+            st.error(msg)
+            if "already exists" in msg:
+                st.info(
+                    "A card with this slug was saved in a previous session. "
+                    "Change the slug to create a new card, or reload the page "
+                    "if you want to add a new version to the existing one."
+                )
+        except (ValueError, KeyError, TypeError) as exc:
+            st.error(f"Unexpected error: {exc}")
+
+
 def sidebar_render() -> None:
     """Render the sidebar for the Streamlit app."""
     with st.sidebar:
@@ -467,13 +552,15 @@ def sidebar_render() -> None:
         _render_menu()
         st.markdown("## Model Card Builder")
         enlarge_tab_titles(16)
-        tab_local, tab_readme = st.tabs(
-            ["Local downloads", "Upload README to Hub"],
+        tab_local, tab_readme, tab_cloud = st.tabs(
+            ["Local downloads", "Upload README to Hub", "☁ Cloud"],
         )
         with tab_local:
             _local_downloads_tab()
         with tab_readme:
             _readme_tab()
+        with tab_cloud:
+            _cloud_tab()
         st.divider()
         _render_github_repo(
             repo_url="https://github.com/MIRO-UCLouvain/RT-Model-Card",

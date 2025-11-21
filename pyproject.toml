@@ -22,6 +22,7 @@ classifiers = [
 
 dependencies = [
   "streamlit==1.47.0",
+  "httpx>=0.27,<1",
   "modelcards==0.1.2",
   "pandas",
   "lxml",
