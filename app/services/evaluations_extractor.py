@@ -2,6 +2,7 @@
 """Module for handling evaluations extraction from Streamlit session state."""
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any, cast
 
 import streamlit as st
@@ -17,8 +18,14 @@ from app.core.model_card.constants import (
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
+_METRIC_SUFFIX_RE = re.compile(r"(?: \d+)$")
 
-def extract_evaluations_from_state() -> list[dict[str, Any]]:  # noqa: C901, PLR0912
+
+def _metric_base_name(name: str) -> str:
+    """Remove trailing ' #n' suffix from a metric label."""
+    return _METRIC_SUFFIX_RE.sub("", str(name or ""))
+
+def extract_evaluations_from_state() -> list[dict[str, Any]]:  # noqa: C901, PLR0912, PLR0915
     """
     Extract evaluations from session state using the app schema.
 
@@ -93,15 +100,20 @@ def extract_evaluations_from_state() -> list[dict[str, Any]]:  # noqa: C901, PLR
                 )
 
         io_details: list[dict[str, Any]] = []
+        counts: dict[tuple[str, str], int] = {}
         for entry in modality_entries:
             clean = entry["modality"].strip().replace(" ", "_").lower()
             source = entry["source"]
+            pair = (clean, source)
+            idx_for_pair = counts.get(pair, 0)
+            counts[pair] = idx_for_pair + 1
+
             detail: dict[str, Any] = {
                 "entry": entry["modality"],
                 "source": source,
             }
             for field in DATA_INPUT_OUTPUT_TS:
-                k = f"{prefix}{clean}_{source}_{field}"
+                k = f"{prefix}{clean}_{source}_{idx_for_pair}_{field}"
                 val = (
                     st.session_state.get(k)
                     or st.session_state.get(f"_{k}")
@@ -110,6 +122,7 @@ def extract_evaluations_from_state() -> list[dict[str, Any]]:  # noqa: C901, PLR
                 )
                 detail[field] = val
             io_details.append(detail)
+
 
         evaluation = insert_after(
             evaluation,
@@ -124,12 +137,14 @@ def extract_evaluations_from_state() -> list[dict[str, Any]]:  # noqa: C901, PLR
             metric_entries = st.session_state.get(type_list_key, [])
             metric_dic[metric_key] = []
 
-            for metric_name in metric_entries:
-                entry2: dict[str, Any] = {"name": metric_name}
+            for metric_id in metric_entries:
+                base_name = _metric_base_name(metric_id)
+                entry2: dict[str, Any] = {"name": base_name}
                 for field in EVALUATION_METRIC_FIELDS[metric_key]:
-                    full_key = f"{nested_prefix}{metric_name}_{field}"
+                    full_key = f"{nested_prefix}{metric_id}_{field}"
                     entry2[field] = st.session_state.get(full_key, "")
                 metric_dic[metric_key].append(entry2)
+
 
         evaluation = insert_dict_after(
             evaluation,

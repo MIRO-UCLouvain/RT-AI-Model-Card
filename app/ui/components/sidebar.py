@@ -90,14 +90,14 @@ def _render_menu() -> None:  # noqa: C901
         st.rerun()
 
     if st.button(
-        "Training Data Methodology and Information",
+        "Training Data, Methodology and Information",
         use_container_width=True,
     ):
         st.session_state.runpage = training_data_render
         st.rerun()
 
     if st.button(
-        "Evaluation Data Methodology, Results and Commissioning",
+        "Evaluation Data, Methodology, Results and Commissioning",
         use_container_width=True,
     ):
         st.session_state.runpage = evaluation_data_mrc_render

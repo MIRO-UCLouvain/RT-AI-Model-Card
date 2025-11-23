@@ -58,6 +58,7 @@ PREFIX_MODEL_BASIC = "model_basic_information_"
 PREFIX_TECH_SPEC = "technical_specifications_"
 PREFIX_TRAINING = "training_data_"
 PREFIX_EVALS = "evaluations_"
+PREFIX_OTHER_CONSIDERATIONS = "other_considerations_"
 
 _MARKDOWN_EXTENSIONS = [
     "tables",
@@ -403,6 +404,7 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
                     la["architecture_figure"] = norm
         if prefix == PREFIX_TRAINING:
             ctx["DATA_INPUT_OUTPUT_TS"] = DATA_INPUT_OUTPUT_TS
+
             modality_entries: list[dict[str, str]] = []
             for key, value in _safe_session_items():
                 if key.endswith("model_inputs") and isinstance(value, list):
@@ -415,30 +417,62 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
                         {"modality": item, "source": "model_outputs"}
                         for item in value
                     )
+            counts: dict[tuple[str, str], int] = {}
             io_details: list[dict[str, Any]] = []
+
             for entry in modality_entries:
                 clean = entry["modality"].strip().replace(" ", "_").lower()
                 source = entry["source"]
-                detail: dict[str, Any] = {
-                    "entry": entry["modality"],
-                    "source": source,
-                }
+                pair = (clean, source)
+                idx = counts.get(pair, 0)
+                counts[pair] = idx + 1
+
+                suffix = f"{clean}_{source}_{idx}"
+
+                detail = {"entry": entry["modality"], "source": source}
+
                 for field_key in DATA_INPUT_OUTPUT_TS:
-                    per_mod_key = f"training_data_{clean}_{source}_{field_key}"
+                    k = f"training_data_{suffix}_{field_key}"
                     val = (
-                        st.session_state.get(per_mod_key)
-                        or st.session_state.get(f"_{per_mod_key}")
-                        or st.session_state.get(f"__{per_mod_key}")
+                        st.session_state.get(k)
+                        or st.session_state.get(f"_{k}")
+                        or st.session_state.get(f"__{k}")
                         or ""
                     )
+
                     if not val:
                         global_key = f"training_data_{field_key}"
                         val = st.session_state.get(global_key, "")
+
                     detail[field_key] = val
+
                 io_details.append(detail)
-            ctx["training_data_inputs_outputs_technical_specifications"] = (
-                io_details
-            )
+
+            ctx["training_data_inputs_outputs_technical_specifications"] = io_details
+
+        if prefix == PREFIX_OTHER_CONSIDERATIONS:
+            oc = {
+                "responsible_use_and_ethical_considerations": (
+                    ctx.get(
+                        "other_considerations_responsible_use_and_ethical_considerations",
+                        "",
+                    ) or ""
+                ).strip(),
+                "risk_analysis": (
+                    ctx.get(
+                        "other_considerations_risk_analysis",
+                        "",
+                    ) or ""
+                ).strip(),
+                "post_market_surveillance_live_monitoring": (
+                    ctx.get(
+                        "other_considerations_post_market_surveillance_live_monitoring",
+                        "",
+                    ) or ""
+                ).strip(),
+            }
+            ctx["other_considerations"] = oc
+
         if prefix == PREFIX_EVALS:
             _prime_normalized_uploads()
             ev = extract_evaluations_from_state()

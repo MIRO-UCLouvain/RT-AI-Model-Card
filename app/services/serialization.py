@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import OrderedDict
 from copy import deepcopy
 from typing import Any, cast
@@ -19,6 +20,20 @@ from app.core.model_card.constants import (
 from app.services.evaluations_extractor import (
     extract_evaluations_from_state,
 )
+
+_METRIC_SUFFIX_RE = re.compile(r"(?: \d+)$")
+
+
+def _metric_base_name(name: str) -> str:
+    """
+    Remove trailing ' n' suffix from a metric label.
+
+    :param name: The metric label.
+    :type name: str
+    :return: The base name of the metric.
+    :rtype: str
+    """
+    return _METRIC_SUFFIX_RE.sub("", str(name or ""))
 
 
 def _get_with_fallback(key: str) -> str:
@@ -49,15 +64,20 @@ def _iter_modalities() -> list[dict[str, str]]:
     """
     out: list[dict[str, str]] = []
     for k, v in st.session_state.items():
-        if isinstance(k, str) and isinstance(v, list):
-            if k.endswith("model_inputs"):
-                out.extend(
-                    {"modality": item, "source": "model_inputs"} for item in v
-                )
-            elif k.endswith("model_outputs"):
-                out.extend(
-                    {"modality": item, "source": "model_outputs"} for item in v
-                )
+        if not (isinstance(k, str) and isinstance(v, list)):
+            continue
+
+        if not k.startswith("technical_specifications_"):
+            continue
+
+        if k.endswith("model_inputs"):
+            out.extend(
+                {"modality": item, "source": "model_inputs"} for item in v
+            )
+        elif k.endswith("model_outputs"):
+            out.extend(
+                {"modality": item, "source": "model_outputs"} for item in v
+            )
     return out
 
 
@@ -160,19 +180,24 @@ def _inject_training_iots(
     Inject training inputs/outputs technical specifications
     into the structured output.
 
-    :param raw: The raw section data.
-    :type raw: dict[str, dict[str, Any]]
-    :param structured: The structured output.
-    :type structured: OrderedDict[str, Any]
+    Tiene en cuenta que ahora las keys de TS llevan un índice:
+    training_data_{clean}_{source}_{idx}_{field}
     """  # noqa: D205
     io_details: list[dict[str, Any]] = []
+
+    counts: dict[tuple[str, str], int] = {}
+
     for entry in _iter_modalities():
         clean = entry["modality"].strip().replace(" ", "_").lower()
         src = entry["source"]
-        detail = {"entry": entry["modality"], "source": src}
+        pair = (clean, src)
+        idx_for_pair = counts.get(pair, 0)
+        counts[pair] = idx_for_pair + 1
+
+        detail: dict[str, Any] = {"entry": entry["modality"], "source": src}
         for field in DATA_INPUT_OUTPUT_TS:
             detail[field] = _get_with_fallback(
-                f"training_data_{clean}_{src}_{field}",
+                f"training_data_{clean}_{src}_{idx_for_pair}_{field}",
             )
         io_details.append(detail)
 
@@ -188,6 +213,7 @@ def _inject_training_iots(
         io_details,
         "url_info",
     )
+
 
 
 def _attach_metrics(
@@ -210,11 +236,12 @@ def _attach_metrics(
         for metric_type in TASK_METRIC_MAP.get(task_norm, []):
             metrics: list[dict[str, Any]] = []
             list_key = f"evaluation_{name}_{metric_type}_list"
-            for metric_name in st.session_state.get(list_key, []):
-                m = {"name": metric_name}
+            for metric_id in st.session_state.get(list_key, []):
+                base_name = _metric_base_name(metric_id)
+                m = {"name": base_name}
                 for field in EVALUATION_METRIC_FIELDS[metric_type]:
                     m[field] = _get_with_fallback(
-                        f"evaluation_{name}_{metric_name}_{field}",
+                        f"evaluation_{name}_{metric_id}_{field}",
                     )
                 metrics.append(m)
             if metrics:

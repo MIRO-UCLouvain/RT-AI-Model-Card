@@ -222,14 +222,23 @@ def _render_technical_characteristics(section: TrainingData) -> None:
     if not modality_entries:
         st.warning(MODEL_IO_WARNING)
         return
+    counts: dict[tuple[str, str], int] = {}
 
     tabs = st.tabs(
         [strip_brackets(m["modality"]) for m in modality_entries],
     )
-    for idx, entry in enumerate(modality_entries):
+    for tab_idx, entry in enumerate(modality_entries):
         modality, source = entry["modality"], entry["source"]
-        with tabs[idx]:
+        with tabs[tab_idx]:
             clean_modality = modality.strip().replace(" ", "_").lower()
+
+            pair = (clean_modality, source)
+            idx_for_pair = counts.get(pair, 0)
+            counts[pair] = idx_for_pair + 1
+
+            # sufijo único por modalidad + source + aparición
+            suffix = f"{clean_modality}_{source}_{idx_for_pair}"
+
             title_header(
                 f"{strip_brackets(modality)} — "
                 f"{source.replace('_', ' ').capitalize()}",
@@ -257,19 +266,19 @@ def _render_technical_characteristics(section: TrainingData) -> None:
             col1, col2 = st.columns([1, 1])
             with col1:
                 render_field(
-                    f"{clean_modality}_{source}_image_resolution",
+                    f"{suffix}_image_resolution",
                     field_keys["image_resolution"],
                     SECTION_PREFIX,
                 )
             with col2:
                 render_field(
-                    f"{clean_modality}_{source}_patient_positioning",
+                    f"{suffix}_patient_positioning",
                     field_keys["patient_positioning"],
                     SECTION_PREFIX,
                 )
 
             render_field(
-                f"{clean_modality}_{source}_scanner_model",
+                f"{suffix}_scanner_model",
                 field_keys["scanner_model"],
                 SECTION_PREFIX,
             )
@@ -277,19 +286,19 @@ def _render_technical_characteristics(section: TrainingData) -> None:
             col1, col2 = st.columns([1, 1])
             with col1:
                 render_field(
-                    f"{clean_modality}_{source}_scan_acquisition_parameters",
+                    f"{suffix}_scan_acquisition_parameters",
                     field_keys["scan_acquisition_parameters"],
                     SECTION_PREFIX,
                 )
             with col2:
                 render_field(
-                    f"{clean_modality}_{source}_scan_reconstruction_parameters",
+                    f"{suffix}_scan_reconstruction_parameters",
                     field_keys["scan_reconstruction_parameters"],
                     SECTION_PREFIX,
                 )
 
             render_field(
-                f"{clean_modality}_{source}_fov",
+                f"{suffix}_fov",
                 field_keys["fov"],
                 SECTION_PREFIX,
             )
@@ -304,7 +313,7 @@ def _render_dose_prediction_fields(section: TrainingData) -> None:
             SECTION_PREFIX,
         )
 
-    col1, col2 = st.columns([2, 1.1])
+    col1, col2 = st.columns([1.4, 1.6])
     with col1:
         if should_render(section["beam_configuration_energy"], task):
             render_field(

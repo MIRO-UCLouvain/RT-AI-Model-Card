@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -19,6 +20,20 @@ if TYPE_CHECKING:
 
 MissingItem = tuple[str, str]  # (section, human_readable_label)
 _EMPTY_SENTINELS: tuple[Any, ...] = ("", None, [], {})
+
+_METRIC_SUFFIX_RE = re.compile(r"(?: \d+)$")
+
+
+def _metric_base_name(name: str) -> str:
+    """
+    Remove trailing ' #n' suffix from a metric label.
+
+    :param name: The metric label.
+    :type name: str
+    :return: The base name of the metric.
+    :rtype: str
+    """
+    return _METRIC_SUFFIX_RE.sub("", str(name or ""))
 
 
 def is_empty(value: object) -> bool:
@@ -201,12 +216,19 @@ def validate_modalities_fields() -> list[MissingItem]:
     :rtype: list[MissingItem]
     """
     missing: list[MissingItem] = []
-    for modality, source in _modalities_from_state():
-        clean = modality.strip().replace(" ", "_").lower()
+    modalities = _modalities_from_state()
 
-        prefix_train = f"training_data_{clean}_{source}_"
+    counts_train: dict[tuple[str, str], int] = {}
+    for modality, source in modalities:
+        clean = modality.strip().replace(" ", "_").lower()
+        pair = (clean, source)
+        idx = counts_train.get(pair, 0)
+        counts_train[pair] = idx + 1
+
+        prefix_train = f"training_data_{clean}_{source}_{idx}_"
         for field, label in DATA_INPUT_OUTPUT_TS.items():
-            if is_empty(st.session_state.get(f"{prefix_train}{field}")):
+            full = f"{prefix_train}{field}"
+            if is_empty(st.session_state.get(full)):
                 missing.append(
                     (
                         "training_data",
@@ -214,14 +236,23 @@ def validate_modalities_fields() -> list[MissingItem]:
                     ),
                 )
 
-        for name in st.session_state.get("evaluation_forms", []):
-            slug = name.replace(" ", "_")
-            if st.session_state.get(f"evaluation_{slug}_ts_same_as_training"):
-                continue
+    for name in st.session_state.get("evaluation_forms", []):
+        slug = name.replace(" ", "_")
 
-            prefix_eval = f"evaluation_{slug}_{clean}_"
+        if st.session_state.get(f"evaluation_{slug}_ts_same_as_training"):
+            continue
+
+        counts_eval: dict[tuple[str, str], int] = {}
+        for modality, source in modalities:
+            clean = modality.strip().replace(" ", "_").lower()
+            pair = (clean, source)
+            idx = counts_eval.get(pair, 0)
+            counts_eval[pair] = idx + 1
+
             for field, label in DATA_INPUT_OUTPUT_TS.items():
-                full = f"{prefix_eval}{source}_{field}"
+                full = (
+                    f"evaluation_{slug}_{clean}_{source}_{idx}_{field}"
+                )
                 if is_empty(st.session_state.get(full)):
                     missing.append(
                         (
@@ -229,6 +260,7 @@ def validate_modalities_fields() -> list[MissingItem]:
                             f"{label} ({modality} - {source})(Eval: {name})",
                         ),
                     )
+
     return missing
 
 
@@ -261,9 +293,10 @@ def _validate_metric_group(
         f"{prefix}{metric_type}_list",
         [],
     )
-    for metric_name in entry_list:
-        metric_prefix = f"evaluation_{slug}.{metric_name}"
-        short = metric_name.split(" (")[0]
+    for metric_id in entry_list:
+        metric_prefix = f"evaluation_{slug}.{metric_id}"
+        base = _metric_base_name(metric_id)
+        short = base.split(" (")[0]
         for field_key in EVALUATION_METRIC_FIELDS.get(metric_type, []):
             props = eval_section.get(field_key)
             if props and props.get("required", False):
@@ -276,6 +309,7 @@ def _validate_metric_group(
                             f"(Metric: {short}, Eval: {name})",
                         ),
                     )
+
 
 
 def validate_evaluation_forms(

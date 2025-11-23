@@ -385,10 +385,11 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
         args=(same_ts_key,),
     )
 
-    def _iter_eval_field_keys() -> Iterator[tuple[str, str, FieldName]]:
-        """Yield (clean_modality, source, field_name) for all eval Technical
-        Specifications fields.
-        """  # noqa: D205
+    def _iter_eval_field_keys() -> Iterator[tuple[int, str, str, FieldName]]:
+        """Yield (idx, clean_modality, source, field_name) for all eval.
+
+        Technical Specifications fields.
+        """
         fields: tuple[FieldName, ...] = (
             "image_resolution",
             "patient_positioning",
@@ -398,36 +399,47 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
             "fov",
         )
 
+        counts: dict[tuple[str, str], int] = {}
+
         for entry in modality_entries:
             clean: str = entry["modality"].strip().replace(" ", "_").lower()
             source: str = entry["source"]
+            pair = (clean, source)
+            idx_for_pair = counts.get(pair, 0)
+            counts[pair] = idx_for_pair + 1
             for field in fields:
-                yield clean, source, field
+                yield idx_for_pair, clean, source, field
+
 
 
     # Turned ON → copy training → eval and mark autofilled
     if same_ts:
-        for clean, source, field in _iter_eval_field_keys():
-            train_key = f"training_data_{clean}_{source}_{field}"
-            eval_key = f"{section_prefix}_{clean}_{source}_{field}"
+        for idx_for_pair, clean, source, field in _iter_eval_field_keys():
+            train_key = f"training_data_{clean}_{source}_{idx_for_pair}_{field}"  # noqa: E501
+            eval_key = (
+                f"{section_prefix}_{clean}_{source}_{idx_for_pair}_{field}"
+            )
             st.session_state[eval_key] = st.session_state.get(train_key, "")
         st.session_state[autofilled_key] = True
         st.info(
             "Filled from Training Dataset (read-only). Uncheck to"
             " provide custom values.",
         )
-    # Turned OFF → if we had autofilled, clear eval keys to blanks
     elif st.session_state.get(autofilled_key):
-        for clean, source, field in _iter_eval_field_keys():
-            eval_key = f"{section_prefix}_{clean}_{source}_{field}"
+        for idx_for_pair, clean, source, field in _iter_eval_field_keys():
+            eval_key = (
+                f"{section_prefix}_{clean}_{source}_{idx_for_pair}_{field}"
+            )
             st.session_state[eval_key] = ""
         st.session_state[autofilled_key] = False
 
-    tabs = st.tabs([strip_brackets(m["modality"]) for m in modality_entries])
 
-    for idx, entry in enumerate(modality_entries):
+    tabs = st.tabs([strip_brackets(m["modality"]) for m in modality_entries])
+    counts: dict[tuple[str, str], int] = {}
+
+    for tab_idx, entry in enumerate(modality_entries):
         modality, source = entry["modality"], entry["source"]
-        with tabs[idx]:
+        with tabs[tab_idx]:
             clean_modality = modality.strip().replace(" ", "_").lower()
             heading = (
                 f"{strip_brackets(modality)} — "
@@ -435,7 +447,11 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
             )
             title_header(heading, size="1rem")
 
-            # clone props and add disabled flag if needed
+            pair = (clean_modality, source)
+            idx_for_pair = counts.get(pair, 0)
+            counts[pair] = idx_for_pair + 1
+            suffix = f"{clean_modality}_{source}_{idx_for_pair}"
+
             disabled_flag = {"disabled": True} if same_ts else {}
 
             field_keys = {
@@ -470,19 +486,19 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
             col1, col2 = st.columns([1, 1])
             with col1:
                 render_field(
-                    f"{clean_modality}_{source}_image_resolution",
+                    f"{suffix}_image_resolution",
                     cast("FieldProps", field_keys["image_resolution"]),
                     section_prefix,
                 )
             with col2:
                 render_field(
-                    f"{clean_modality}_{source}_patient_positioning",
+                    f"{suffix}_patient_positioning",
                     cast("FieldProps", field_keys["patient_positioning"]),
                     section_prefix,
                 )
 
             render_field(
-                f"{clean_modality}_{source}_scanner_model",
+                f"{suffix}_scanner_model",
                 cast("FieldProps", field_keys["scanner_model"]),
                 section_prefix,
             )
@@ -494,7 +510,7 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
                     field_keys["scan_acquisition_parameters"],
                 )
                 render_field(
-                    f"{clean_modality}_{source}_scan_acquisition_parameters",
+                    f"{suffix}_scan_acquisition_parameters",
                     scan_acq_props,
                     section_prefix,
                 )
@@ -504,17 +520,19 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
                     field_keys["scan_reconstruction_parameters"],
                 )
                 render_field(
-                    f"{clean_modality}_{source}_scan_reconstruction_parameters",
+                    f"{suffix}_scan_reconstruction_parameters",
                     scan_recon_props,
                     section_prefix,
                 )
 
             render_field(
-                f"{clean_modality}_{source}_fov",
+                f"{suffix}_fov",
                 cast("FieldProps", field_keys["fov"]),
                 section_prefix,
             )
 
+            for f in field_keys.values():
+                f["placeholder"] = f.get("placeholder", NA_PLACEHOLDER)
 
 def _render_dose_prediction_eval(
     section: Evaluation,
@@ -539,7 +557,7 @@ def _render_dose_prediction_eval(
             section_prefix,
         )
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1.4, 1.6])
     with col1:
         if should_render(section["beam_configuration_energy"], current_task):
             render_field(
@@ -1433,7 +1451,7 @@ def _render_one_evaluation_form(
             current_task,
         )
 
-        col1, col2 = st.columns([0.2, 0.8])
+        col1, col2 = st.columns([0.2, 0.8])  # noqa: RUF059
         with col1:
             if st.button("Delete", key=f"delete_eval_{form_name}"):
                 st.session_state["_to_delete_eval_form"] = form_name

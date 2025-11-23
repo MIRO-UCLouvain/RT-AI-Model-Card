@@ -18,19 +18,34 @@ def store_value(key: str) -> None:
     """
     st.session_state[key] = st.session_state["_" + key]
 
+# def load_value(key: str, default: object | None = None) -> None:
+#     """
+#     Load the value of a key from the session state.
+
+#     :param key: The key to load the value for.
+#     :type key: str
+#     :param default: The default value to use if the key is not found, defaults
+#         to None
+#     :type default: Optional[object], optional
+#     """
+#     if key not in st.session_state:
+#         st.session_state[key] = default
+#     st.session_state["_" + key] = st.session_state[key]
+
 def load_value(key: str, default: object | None = None) -> None:
     """
     Load the value of a key from the session state.
 
-    :param key: The key to load the value for.
-    :type key: str
-    :param default: The default value to use if the key is not found, defaults
-        to None
-    :type default: Optional[object], optional
+    - Inicializa la clave lógica `key` si no existe.
+    - Inicializa la clave del widget `_" + key` SOLO si aún no existe.
     """
     if key not in st.session_state:
         st.session_state[key] = default
-    st.session_state["_" + key] = st.session_state[key]
+
+    widget_key = "_" + key
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = st.session_state[key]
+
 
 def _normalize_to_yyyymmdd(value: object) -> str | None:
     """
@@ -78,8 +93,10 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
                     st.session_state[full_key + "_list"] = v
 
             ios: list[dict[str, Any]] = content.get(
-                "inputs_outputs_technical_specifications", [],
+                "inputs_outputs_technical_specifications",
+                [],
             )
+            idx_counts: dict[tuple[str, str], int] = {}
             for io in ios:
                 clean: str = (
                     io["entry"]
@@ -88,12 +105,20 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
                     .lower()
                 )
                 src: str = io["source"]
+                pair = (clean, src)
+                idx_for_pair = idx_counts.get(pair, 0)
+                idx_counts[pair] = idx_for_pair + 1
+
                 for io_key, io_val in io.items():
                     if io_key not in ["entry", "source"]:
-                        io_full_key = f"training_data_{clean}_{src}_{io_key}"
+                        io_full_key = (
+                            f"training_data_{clean}_{src}_"
+                            f"{idx_for_pair}_{io_key}"
+                        )
                         st.session_state[io_full_key] = io_val
                         raw_key = f"_{io_full_key}"
                         st.session_state[raw_key] = io_val
+
 
         # ---------------------------
         # EVALUATIONS
@@ -109,6 +134,7 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
                 for key, value in entry.items():
                     # Inputs/outputs tech specs for this evaluation
                     if key == "inputs_outputs_technical_specifications":
+                        idx_counts2: dict[tuple[str, str], int] = {}
                         for io in value:
                             clean2: str = (
                                 io["entry"]
@@ -117,36 +143,42 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
                                 .lower()
                             )
                             src2: str = io["source"]
+                            pair2 = (clean2, src2)
+                            idx2 = idx_counts2.get(pair2, 0)
+                            idx_counts2[pair2] = idx2 + 1
+
                             for io_key, io_val in io.items():
                                 if io_key not in ["entry", "source"]:
                                     io_full_key = (
-                                        prefix
-                                        + clean2
-                                        + "_"
-                                        + src2
-                                        + "_"
-                                        + io_key
+                                        f"{prefix}{clean2}_{src2}_"
+                                        f"{idx2}_{io_key}"
                                     )
                                     st.session_state[io_full_key] = io_val
                                     raw_key = f"_{io_full_key}"
                                     st.session_state[raw_key] = io_val
 
+
                     # Metric group list(s)
                     elif isinstance(value, list) and key.startswith("type_"):
-                        metric_names: list[str] = [m["name"] for m in value]
-                        st.session_state[f"{prefix}{key}_list"] = metric_names
-                        st.session_state[f"{prefix}{key}"] = metric_names
+                        counts: dict[str, int] = {}
+                        metric_ids: list[str] = []
 
                         for metric in value:
-                            metric_prefix = (
-                                f"evaluation_{name}."
-                                f"{metric['name']}"
-                            )
+                            base = metric.get("name", "")
+                            counts[base] = counts.get(base, 0) + 1
+                            idx = counts[base]
+                            internal = base if idx == 1 else f"{base} {idx}"
+                            metric_ids.append(internal)
+
+                            metric_prefix = f"evaluation_{name}.{internal}"
                             for m_field, m_val in metric.items():
                                 if m_field != "name":
-                                    st.session_state[
-                                        f"{metric_prefix}_{m_field}"
-                                    ] = m_val
+                                    key_name = f"{metric_prefix}_{m_field}"
+                                    st.session_state[key_name] = m_val
+
+                        st.session_state[f"{prefix}{key}_list"] = metric_ids
+                        st.session_state[f"{prefix}{key}"] = metric_ids
+
 
                     elif "date" in key.lower():
                         base_key = f"{prefix}{key}"          # stores YYYYMMDD

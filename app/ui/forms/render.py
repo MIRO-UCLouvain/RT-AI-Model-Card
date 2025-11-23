@@ -42,6 +42,8 @@ DELETE_HINT = (
 
 # Named constant for the expected length of a YYYYMMDD date string.
 DATE_STR_LEN = 8
+_METRIC_SUFFIX_RE = re.compile(r"(?: \d+)$")
+
 
 FieldType = Literal["text", "select", "image", "date"]
 
@@ -143,7 +145,6 @@ def should_render(props: FieldProps, current_task: str | None) -> bool:
         return current_task.strip().lower() in (m.lower() for m in model_types)
     return False
 
-
 def _coerce_float_np(value: object, default: float = 0.0) -> float:
     """
     Converts a value to float using NumPy, returning default if invalid.
@@ -191,6 +192,17 @@ def _fingerprint_uploaded(uploaded: object | None) -> tuple[str, int] | None:
         return (str(name), int(size))
     except (AttributeError, TypeError, ValueError, OSError):
         return None
+
+def _metric_base_name(name: str) -> str:
+    """
+    Remove trailing ' n' suffix from a metric label.
+
+    :param name: The metric label.
+    :type name: str
+    :return: The base name of the metric.
+    :rtype: str
+    """
+    return _METRIC_SUFFIX_RE.sub("", str(name or ""))
 
 
 def render_image_field(
@@ -330,6 +342,9 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
             return
         if key in ["type_dose_dm", "type_dose_dm_seg", "type_dose_dm_dp"]:
             _render_dose_metric_selector(full_key)
+            return
+        if key == "dose_engine":
+            _render_dose_engine_select(full_key, props)
             return
         _render_simple_select(full_key, props)
         return
@@ -501,7 +516,7 @@ def _render_text_input(full_key: str, props: FieldProps) -> None:
     )
 
 
-def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # noqa: PLR0912, PLR0915
+def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # noqa: C901, PLR0912, PLR0915
     """
     Render a content list select input.
 
@@ -516,11 +531,11 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
 
     load_value(content_list_key, default=[])
     load_value(type_key)
-    load_value(subtype_key)
 
     options = props.get("options", [])
     if st.session_state.get("_" + type_key) == "RTSTRUCT":
         col1, col2, col3 = st.columns([2, 1, 0.4])
+
         with col1:
             st.selectbox(
                 label=".",
@@ -531,42 +546,67 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                 label_visibility="hidden",
                 placeholder=DEFAULT_SELECT,
             )
+
+        load_value(subtype_key, default=[])
         with col2:
-            subtype_value = st.selectbox(
+            selected_subtypes = st.multiselect(
                 label=".",
                 options=[*RTSTRUCT_SUBTYPES, "Other"],
                 key="_" + subtype_key,
-                on_change=store_value,
-                args=(subtype_key,),
+                help=props.get("description", ""),
                 label_visibility="hidden",
-                placeholder=DEFAULT_SELECT,
             )
+            st.session_state[subtype_key] = selected_subtypes
+
             st.info(
                 "If the structure name isn't in the dropdown menu, select "
                 "**Other** and introduce the name manually.",
             )
-            if subtype_value == "Other":
-                custom_key = f"{subtype_key}_custom"
-                load_value(custom_key, default="")
+
+            custom_key = f"{subtype_key}_custom"
+            load_value(custom_key, default="")
+            if "Other" in (selected_subtypes or []):
                 st.text_input(
                     "Enter custom RTSTRUCT subtype",
                     value=st.session_state.get(custom_key, ""),
                     key=custom_key,
                     placeholder="Introduce custom value",
                 )
+
         with col3:
             st.markdown(
                 "<div style='margin-top: 26px;'>",
                 unsafe_allow_html=True,
             )
             if st.button("Add", key=f"{full_key}_add_button"):
-                subtype = st.session_state.get(subtype_key, "")
-                if subtype == "Other":
-                    subtype = st.session_state.get(f"{subtype_key}_custom", "")
-                entry = f"RTSTRUCT_{subtype}"
-                st.session_state[content_list_key].append(entry)
-                st.session_state[full_key] = st.session_state[content_list_key]
+                selected: list[str] = (
+                    st.session_state.get(subtype_key, []) or []
+                )
+                display_parts: list[str] = []
+
+                for subtype in selected:
+                    if subtype == "Other":
+                        custom = (
+                            st.session_state.get(custom_key, "") or ""
+                        ).strip()
+                        if custom:
+                            display_parts.append(custom)
+                    else:
+                        display_parts.append(subtype)
+
+                if not display_parts:
+                    st.error(
+                        "Please select at least one structure "
+                        "or enter a custom name.",
+                    )
+                else:
+                    label = "RTSTRUCT: " + ", ".join(display_parts)
+                    st.session_state[content_list_key].append(label)
+                    st.session_state[full_key] = st.session_state[
+                        content_list_key
+                    ]
             st.markdown("</div>", unsafe_allow_html=True)
+
     else:
         col1, col2, col3 = st.columns([2, 1, 0.5])
         with col1:
@@ -639,9 +679,11 @@ def _render_treatment_modality_select(
     """
     content_list_key2 = f"{full_key}_modality_list"
     type_key2 = f"{full_key}_modality_type"
+    custom_key2 = f"{type_key2}_custom"
 
     load_value(content_list_key2, default=[])
     load_value(type_key2)
+    load_value(custom_key2, default="")
 
     col1, col2 = st.columns([4, 0.5])
     with col1:
@@ -654,6 +696,14 @@ def _render_treatment_modality_select(
             label_visibility="hidden",
             placeholder=DEFAULT_SELECT,
         )
+
+        if st.session_state.get(type_key2) == "Other":
+            st.text_input(
+                "Enter the name of the Treatment Modality",
+                key=custom_key2,
+                placeholder="Introduce the Treatment Modality",
+            )
+
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
         add_clicked = st.button("Add", key=f"{full_key}_modality_add_button")
@@ -664,7 +714,15 @@ def _render_treatment_modality_select(
         if raw_value2 in [None, "", DEFAULT_SELECT]:
             st.error("Please select an option before adding.")
         else:
-            entry = strip_brackets(str(raw_value2))
+            if raw_value2 == "Other":
+                custom_val = st.session_state.get(custom_key2, "").strip()
+                if not custom_val:
+                    st.error("Please enter a custom modality name.")
+                    return
+                entry = strip_brackets(custom_val)
+            else:
+                entry = strip_brackets(str(raw_value2))
+
             st.session_state[content_list_key2].append(entry)
             st.session_state[full_key] = st.session_state[content_list_key2]
 
@@ -672,6 +730,76 @@ def _render_treatment_modality_select(
         full_key,
         content_list_key2,
         clear_key=f"{full_key}_modality_clear_all",
+    )
+
+def _render_dose_engine_select(full_key: str, props: FieldProps) -> None:
+    """
+    Render a multi-select for dose_engine, allowing several options and
+    a free-text 'Other'.
+
+    :param full_key: The full key of the field.
+    :type full_key: str
+    :param props: The properties of the field.
+    :type props: FieldProps
+    """  # noqa: D205
+    list_key = f"{full_key}_dose_engine_list"
+    type_key = f"{full_key}_dose_engine_type"
+    custom_key = f"{type_key}_custom"
+
+    load_value(list_key, default=[])
+    load_value(type_key)
+    load_value(custom_key, default="")
+
+    col1, col2 = st.columns([4, 0.5])
+
+    with col1:
+        st.selectbox(
+            label=".",
+            options=props.get("options", []),
+            key="_" + type_key,
+            on_change=store_value,
+            args=(type_key,),
+            label_visibility="hidden",
+            placeholder=DEFAULT_SELECT,
+        )
+
+        # --- Show free text input ONLY when "Other" is selected ---
+        if st.session_state.get(type_key) == "Other":
+            st.text_input(
+                "Enter custom Dose Engine",
+                key=custom_key,
+                placeholder="Introduce the Dose Engine",
+            )
+
+    with col2:
+        st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
+        add_clicked = st.button("Add", key=f"{full_key}_dose_engine_add_button")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    raw_value = st.session_state.get(type_key)
+
+    if add_clicked:
+        if raw_value in [None, "", DEFAULT_SELECT]:
+            st.error("Please select an option before adding.")
+        else:
+            if raw_value == "Other":
+                custom_val = st.session_state.get(custom_key, "").strip()
+                if not custom_val:
+                    st.error("Please enter a custom dose engine name.")
+                    return
+                entry = strip_brackets(custom_val)
+            else:
+                entry = strip_brackets(str(raw_value))
+
+            # Add to list (allow duplicates)
+            st.session_state[list_key].append(entry)
+            # Expose the final value to schema under full_key
+            st.session_state[full_key] = st.session_state[list_key]
+
+    _render_inline_tag_list(
+        full_key,
+        list_key,
+        clear_key=f"{full_key}_dose_engine_clear_all",
     )
 
 
@@ -706,15 +834,28 @@ def _render_metric_select_list(full_key: str, props: FieldProps) -> None:
         st.markdown("</div>", unsafe_allow_html=True)
 
     if add_clicked:
-        value = st.session_state.get(type_key)
-        if not value:
-            st.markdown(" ")
-            st.error(
-                "Please choose an image similarity metrics before adding.",
-            )
-        elif value not in st.session_state[type_list_key]:
-            st.session_state[type_list_key].append(value)
-            st.session_state[full_key] = st.session_state[type_list_key]
+            value = st.session_state.get(type_key)
+            if not value:
+                st.markdown(" ")
+                st.error(
+                    "Please choose an image similarity metrics before adding.",
+                )
+            else:
+                entries: list[str] = st.session_state[type_list_key]
+
+                base = str(value)
+                same_count = sum(
+                    1 for m in entries if _metric_base_name(m) == base
+                )
+                internal_name = (
+                    base
+                    if same_count == 0
+                    else f"{base} {same_count + 1}"
+                )
+
+                entries.append(internal_name)
+                st.session_state[type_list_key] = entries
+                st.session_state[full_key] = entries
 
     with col3:
         if st.session_state[type_list_key]:
@@ -828,9 +969,22 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
                 st.error("Please enter a value for the dose metric.")
             else:
                 metric = f"{dm_type}{val_struct.get('value', '')}"
-        if metric and metric not in st.session_state[dm_list_key]:
-            st.session_state[dm_list_key].append(metric)
-            st.session_state[dm_key] = st.session_state[dm_list_key]
+
+        if metric:
+            entries: list[str] = st.session_state[dm_list_key]
+            base = metric
+            same_count = sum(
+                1 for m in entries if _metric_base_name(m) == base
+            )
+            internal_name = (
+                base
+                if same_count == 0
+                else f"{base} {same_count + 1}"
+            )
+
+            entries.append(internal_name)
+            st.session_state[dm_list_key] = entries
+            st.session_state[dm_key] = entries
 
     with col4:
         if st.session_state[dm_list_key]:
@@ -873,16 +1027,22 @@ def _render_type_metrics_other(full_key: str) -> None:
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
         if st.button("Add", key=f"{full_key}_add_button"):
-            value = st.session_state.get(metrics_selected_key, "")
-            if value and value.strip():
-                value = value.strip()
-                if value not in st.session_state[metrics_list_key]:
-                    st.session_state[metrics_list_key].append(value)
-                    st.session_state[full_key] = st.session_state[
-                        metrics_list_key
-                    ]
-                else:
-                    show_warning = True
+            value = (st.session_state.get(metrics_selected_key, "") or "").strip()
+            if value:
+                entries: list[str] = st.session_state[metrics_list_key]
+                base = value
+                same_count = sum(
+                    1 for m in entries if _metric_base_name(m) == base
+                )
+                internal_name = (
+                    base
+                    if same_count == 0
+                    else f"{base} {same_count + 1}"
+                )
+
+                entries.append(internal_name)
+                st.session_state[metrics_list_key] = entries
+                st.session_state[full_key] = entries
             else:
                 show_warning = True
         st.markdown("</div>", unsafe_allow_html=True)

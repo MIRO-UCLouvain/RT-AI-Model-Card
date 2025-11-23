@@ -22,6 +22,8 @@ SUBTITLE = (
 )
 TITLE_SUBSECTION_MODEL_OVERVIEW = "1. Model overview"
 TITLE_SUBSECTION_MODEL_OVERVIEW_PIPELINE = "Model pipeline"
+TITLE_SUBSECTION_MODEL_OVERVIEW_INPUTS = "Model inputs"
+TITLE_SUBSECTION_MODEL_OVERVIEW_OUTPUTS = "Model outputs"
 TITLE_SUBSECTION_LA = "2. Learning Architecture"
 TITLE_SUBSECTION_HW_SW = "3. Hardware & Software"
 LEARNING_ARCHITECTURE_INFO = (
@@ -51,7 +53,9 @@ class ModelOverview(TypedDict, total=False):
     model_pipeline_summary: FieldProps
     model_pipeline_figure: FieldProps
     model_inputs: FieldProps
+    additional_information_model_inputs: FieldProps
     model_outputs: FieldProps
+    additional_information_model_outputs: FieldProps
     pre_processing: FieldProps
     post_processing: FieldProps
 
@@ -120,17 +124,34 @@ def _render_model_overview(mo_section: ModelOverview) -> None:
     )
 
     section_divider()
+
+    title_header(TITLE_SUBSECTION_MODEL_OVERVIEW_INPUTS, size="1.25rem")
     render_field(
         "model_inputs",
         mo_section["model_inputs"],
         SECTION_TECH,
     )
     render_field(
+        "additional_information_model_inputs",
+        mo_section["additional_information_model_inputs"],
+        SECTION_TECH,
+    )
+
+    section_divider()
+
+    title_header(TITLE_SUBSECTION_MODEL_OVERVIEW_OUTPUTS, size="1.25rem")
+    render_field(
         "model_outputs",
         mo_section["model_outputs"],
         SECTION_TECH,
     )
+    render_field(
+        "additional_information_model_outputs",
+        mo_section["additional_information_model_outputs"],
+        SECTION_TECH,
+    )
 
+    section_divider()
     col1, col2 = st.columns([1, 1])
     with col1:
         render_field(
