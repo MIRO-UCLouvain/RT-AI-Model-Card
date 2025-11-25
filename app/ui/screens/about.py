@@ -46,3 +46,16 @@ def about_page() -> None:
     )
 
     st.markdown(_read_about_md())
+
+    st.markdown("---")
+    col_back, col_issue = st.columns(2)
+    with col_back:
+        if st.button("← Back to Main Page", key="about_back_home", use_container_width=True):
+            st.query_params["view"] = "home"
+            st.rerun()
+    with col_issue:
+        st.link_button(
+            "Open an Issue ↗",
+            "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
+            use_container_width=True,
+        )

@@ -1,13 +1,14 @@
 """API routes for model card management.
 
 All routes are thin: parse input, call one service function, return schema.
-Business logic lives in services/model_card.py.
+Business logic lives in services/model_card.py and services/publication.py.
 """
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from dependencies import get_db
+from dependencies import get_current_user, get_db
+from models.user import User
 from schemas.model_card import (
     ModelCardCreate,
     ModelCardRead,
@@ -16,6 +17,7 @@ from schemas.model_card import (
     ModelCardVersionRead,
 )
 from services import model_card as model_card_service
+from services.publication import request_publication
 
 router = APIRouter(prefix="/model-cards", tags=["model-cards"])
 
@@ -74,3 +76,18 @@ async def create_new_version(
 ) -> ModelCardVersionRead:
     version = await model_card_service.create_new_version(db, card_id, data)
     return ModelCardVersionRead.model_validate(version)
+
+
+@router.post(
+    "/{card_id}/request-publication",
+    response_model=ModelCardRead,
+    status_code=status.HTTP_200_OK,
+    summary="Request publication review for a model card",
+)
+async def request_publication_endpoint(
+    card_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ModelCardRead:
+    card = await request_publication(db, card_id, current_user)
+    return ModelCardRead.model_validate(card)

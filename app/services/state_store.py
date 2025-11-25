@@ -8,6 +8,35 @@ import streamlit as st
 
 from app.core.date_utils import is_yyyymmdd, set_safe_date_field, to_date
 
+# All known form-section key prefixes (and their _-prefixed widget shadow keys).
+_FORM_PREFIXES: tuple[str, ...] = (
+    "card_metadata_",       "_card_metadata_",
+    "model_basic_information_", "_model_basic_information_",
+    "technical_specifications_", "_technical_specifications_",
+    "learning_architecture_",   "_learning_architecture_",
+    "hw_and_sw_",               "_hw_and_sw_",
+    "training_data_",           "_training_data_",
+    "evaluation_",              "_evaluation_",
+    "other_considerations_",    "_other_considerations_",
+    "appendix_",                "_appendix_",
+)
+
+
+def clear_form_state() -> None:
+    """Remove all model-card form data and navigation state from session state.
+
+    Safe to call at any time — auth state is left untouched.
+    """
+    for nav_key in ("task", "task_temp", "runpage", "last_readme_text", "format_error"):
+        st.session_state.pop(nav_key, None)
+
+    to_remove = [
+        k for k in list(st.session_state.keys())
+        if any(k.startswith(p) for p in _FORM_PREFIXES)
+    ]
+    for key in to_remove:
+        st.session_state.pop(key, None)
+
 
 def store_value(key: str) -> None:
     """

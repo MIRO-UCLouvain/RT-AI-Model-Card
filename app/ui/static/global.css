@@ -173,3 +173,12 @@ p, li{ line-height: 1.65; color: var(--ink); }
   vertical-align: middle;
   margin: .25rem .15rem 0;
 }
+
+/* Hide the invisible wrapper that components.html() injects at height=0 */
+iframe[height="0"],
+.element-container:has(> iframe[height="0"]) {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}

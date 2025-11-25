@@ -42,6 +42,16 @@ class ModelCardRepository:
         return list(result.scalars().all())
 
     @staticmethod
+    async def list_approved(session: AsyncSession) -> list[ModelCard]:
+        """Return all cards with publication_status == 'approved'."""
+        result = await session.execute(
+            select(ModelCard)
+            .where(ModelCard.publication_status == "approved")
+            .order_by(ModelCard.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
     async def create(
         session: AsyncSession,
         slug: str,

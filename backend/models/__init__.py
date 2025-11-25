@@ -5,5 +5,6 @@ before Alembic or any table-creation call runs.
 """
 
 from models.model_card import ModelCard, ModelCardVersion
+from models.user import User
 
-__all__ = ["ModelCard", "ModelCardVersion"]
+__all__ = ["ModelCard", "ModelCardVersion", "User"]

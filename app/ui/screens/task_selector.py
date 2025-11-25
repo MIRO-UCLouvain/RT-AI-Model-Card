@@ -4,9 +4,18 @@ from __future__ import annotations
 
 import streamlit as st
 
+from app.services.state_store import clear_form_state
+
 
 def task_selector_page() -> None:
     """Render the task selector page."""
+    if not st.session_state.get("auth_token"):
+        st.warning(
+            "You can continue creating a model card, but you will not be able "
+            "to publish it unless you are logged in. "
+            "[Login](?view=login) or [Register](?view=register)."
+        )
+
     st.markdown(
         """
         <style>
@@ -90,3 +99,32 @@ def task_selector_page() -> None:
         st.success(f"Task already selected: **{st.session_state['task']}**")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("---")
+    if not st.session_state.get("_task_confirm_back"):
+        _, col_back, _ = st.columns([1, 2, 1])
+        with col_back:
+            if st.button("← Back to Main Page", key="task_back_home", use_container_width=True):
+                if st.session_state.get("task"):
+                    # Task already selected — ask for confirmation before resetting
+                    st.session_state["_task_confirm_back"] = True
+                    st.rerun()
+                else:
+                    st.query_params["view"] = "home"
+                    st.rerun()
+    else:
+        st.warning(
+            "⚠️ Leaving will reset the task selection and all unsaved form data. "
+            "Make sure to download your card first."
+        )
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            if st.button("Leave & Reset", key="task_confirm_leave", use_container_width=True):
+                st.session_state.pop("_task_confirm_back", None)
+                clear_form_state()
+                st.query_params["view"] = "home"
+                st.rerun()
+        with col_no:
+            if st.button("Stay", key="task_cancel_leave", use_container_width=True):
+                st.session_state.pop("_task_confirm_back", None)
+                st.rerun()

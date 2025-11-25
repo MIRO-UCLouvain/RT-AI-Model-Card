@@ -1,27 +1,21 @@
 """Module for CSS utilities."""
 from __future__ import annotations
 
-from functools import lru_cache
 from pathlib import Path
 
 import streamlit as st
 
 
-def _read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-@lru_cache(maxsize=16)
 def load_css_text(path: str | Path) -> str:
     """
-    Load CSS text (cached).
+    Load CSS text from file.
 
     :param path: Path to the CSS file.
     :type path: str | Path
     :return: CSS text.
     :rtype: str
     """
-    p = Path(path)
-    return _read_text(p)
+    return Path(path).read_text(encoding="utf-8")
 
 def inject_css(path: str | Path) -> None:
     """

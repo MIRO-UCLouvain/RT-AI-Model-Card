@@ -1,8 +1,18 @@
 """Pydantic schemas for model card API input/output validation."""
 
+import enum
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class PublicationStatus(str, enum.Enum):
+    """Valid states for the model card moderation workflow."""
+
+    DRAFT = "draft"
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 # ── Version schemas ───────────────────────────────────────────────────────────
@@ -61,6 +71,7 @@ class ModelCardRead(ModelCardBase):
 
     id: int
     is_public: bool
+    publication_status: PublicationStatus
     created_at: datetime
     updated_at: datetime
     versions: list[ModelCardVersionRead]
@@ -73,5 +84,6 @@ class ModelCardSummary(ModelCardBase):
 
     id: int
     is_public: bool
+    publication_status: PublicationStatus
     created_at: datetime
     updated_at: datetime

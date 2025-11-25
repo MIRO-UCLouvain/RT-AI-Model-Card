@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from pathlib import Path
 
 import streamlit as st
@@ -11,32 +10,24 @@ from app.ui.utils.css import inject_css
 
 CSS_PATH = Path(__file__).resolve().parent.parent / "static" / "topbar.css"
 
-def _load_github_icon_b64() -> str | None:
-    """Return base64 of the GitHub icon if found, else None."""
-    candidates = [
-        Path("docs/logo/github_logo/github_logo.png"),
-        Path(__file__).resolve().parents[3]
-        / "docs" / "logo" / "github_logo" / "github_logo.png",
-    ]
-    for p in candidates:
-        try:
-            if p.exists():
-                return base64.b64encode(p.read_bytes()).decode("ascii")
-        except OSError:
-            continue
-    return None
 
-
-def render_topbar(active: str, github_url: str | None = None) -> None:
+def render_topbar(
+    active: str,
+    github_url: str | None = None,
+    auth_email: str | None = None,
+) -> None:
     """
     Render the top bar navigation.
 
     Parameters
     ----------
-    active : {"home","create","load","about"}
+    active : {"home","create","load","about","published","login","register",
+              "my_cards","requests","profile","logout"}
         Which tab to highlight.
     github_url : str | None
-        External link for the GitHub icon. If None, a default is used.
+        External link for the GitHub repository. If None, a default is used.
+    auth_email : str | None
+        Email of the logged-in user, or None if not authenticated.
     """
     inject_css(CSS_PATH)
 
@@ -47,20 +38,23 @@ def render_topbar(active: str, github_url: str | None = None) -> None:
     if github_url is None:
         github_url = "https://github.com/MIRO-UCLouvain/RT-Model-Card"
 
-    # --- GitHub icon (embedded base64 so it always shows) ---
-    icon_b64 = _load_github_icon_b64()
-    if icon_b64:
-        icon_html = (
-            f'<a class="topbar__iconlink" href="{github_url}" '
-            f'target="_blank" rel="noopener noreferrer" aria-label="GitHub">'
-            f'<img class="topbar__icon" '
-            f'src="data:image/png;base64,{icon_b64}" alt="GitHub"/></a>'
+    # --- Auth area (right column) ---
+    if auth_email:
+        initial = auth_email[0].upper()
+        username = auth_email.split("@")[0]
+        auth_html = (
+            '<div class="topbar__auth">'
+            f'<span class="topbar__avatar">{initial}</span>'
+            f'<span class="topbar__username">{username}</span>'
+            '<a href="?view=logout" target="_self" class="topbar__logout-btn">Logout</a>'
+            '</div>'
         )
     else:
-        # Fallback text link if file is missing
-        icon_html = (
-            f'<a class="{cls("github")}" href="{github_url}" '
-            f'target="_self" aria-label="GitHub">GitHub</a>'
+        auth_html = (
+            '<div class="topbar__auth">'
+            f'<a class="{cls("login")}" href="?view=login" target="_self">Login</a>'
+            f'<a class="{cls("register")}" href="?view=register" target="_self">Register</a>'
+            '</div>'
         )
 
     st.markdown(
@@ -75,15 +69,12 @@ def render_topbar(active: str, github_url: str | None = None) -> None:
             <nav class="topbar__nav">
               <a class="{cls('create')}"
                  href="?view=create"
-                 target="_self">Create</a>
-              <a class="{cls('load')}"
-                 href="?view=load"
-                 target="_self">Load</a>
-              <a class="{cls('about')}"
-                 href="?view=about"
-                 target="_self">About</a>
-              {icon_html}
+                 target="_self">Create Model Card</a>
+              <a class="{cls('published')}"
+                 href="?view=published"
+                 target="_self">Published Model Cards</a>
             </nav>
+            {auth_html}
           </div>
         </div>
         """,

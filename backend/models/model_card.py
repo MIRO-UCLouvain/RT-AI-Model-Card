@@ -1,5 +1,6 @@
 """ORM models for model card persistence and versioning."""
 
+import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -11,6 +12,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.types import Uuid
 
 from models.base import Base, TimestampMixin
 
@@ -23,6 +25,9 @@ class ModelCard(Base, TimestampMixin):
 
     Content is stored in :class:`ModelCardVersion`.  A model card can have
     many versions; the active snapshot is the one where ``is_latest=True``.
+
+    ``publication_status`` drives the moderation workflow:
+    draft → pending → approved | rejected.
     """
 
     __tablename__ = "model_card"
@@ -31,6 +36,22 @@ class ModelCard(Base, TimestampMixin):
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     task_type: Mapped[str] = mapped_column(String(100), nullable=False)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Moderation workflow
+    publication_status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="draft",
+        server_default="draft",
+    )
+
+    # Ownership — nullable so cards created before auth was added still work.
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(native_uuid=False),
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     versions: Mapped[list["ModelCardVersion"]] = relationship(
         "ModelCardVersion",

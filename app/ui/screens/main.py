@@ -10,7 +10,13 @@ import streamlit as st
 from app.ui.components.topbar import render_hero, render_topbar
 from app.ui.screens.about import about_page
 from app.ui.screens.load_model_card import load_model_card_page
+from app.ui.screens.login import login_page
+from app.ui.screens.my_cards import my_cards_page
+from app.ui.screens.profile import profile_page
+from app.ui.screens.published_cards import published_cards_page
+from app.ui.screens.register import register_page
 from app.ui.screens.task_selector import task_selector_page
+from app.ui.utils.auth import clear_auth, restore_auth, restore_card_state
 from app.ui.utils.css import inject_css
 
 CSS_PATH = Path(__file__).resolve().parent.parent / "static" / "global.css"
@@ -97,12 +103,106 @@ def _render_github_repo(repo_url: str) -> None:
         unsafe_allow_html=True,
     )
 
+
+def _render_logged_in_home() -> None:
+    """Render the action dashboard shown to authenticated users."""
+    email: str = st.session_state.get("auth_email", "")
+    name = email.split("@")[0] if email else "there"
+
+    st.markdown(f"## Welcome back, **{name}**!")
+    st.markdown("What would you like to do?")
+    st.markdown("")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.container(border=True):
+            st.markdown("#### Create Model Card")
+            st.markdown(
+                "Start a new AI model card for your radiotherapy model."
+            )
+            if st.button(
+                "Create Model Card",
+                use_container_width=True,
+                key="home_create",
+            ):
+                st.query_params["view"] = "create"
+                st.rerun()
+
+        with st.container(border=True):
+            st.markdown("#### My Model Cards")
+            st.markdown(
+                "View and manage the model card you've saved this session."
+            )
+            if st.button(
+                "My Model Cards",
+                use_container_width=True,
+                key="home_my_cards",
+            ):
+                st.query_params["view"] = "my_cards"
+                st.rerun()
+
+    with col2:
+        with st.container(border=True):
+            st.markdown("#### Load Model Card")
+            st.markdown("Load an existing model card from a JSON file.")
+            if st.button(
+                "Load Model Card",
+                use_container_width=True,
+                key="home_load",
+            ):
+                st.query_params["view"] = "load"
+                st.rerun()
+
+        with st.container(border=True):
+            st.markdown("#### Published Model Cards")
+            st.markdown(
+                "Browse approved model cards in the public catalogue."
+            )
+            if st.button(
+                "Published Model Cards",
+                use_container_width=True,
+                key="home_published",
+            ):
+                st.query_params["view"] = "published"
+                st.rerun()
+
+    st.markdown("---")
+    st.link_button(
+        "Open an Issue ↗",
+        "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
+    )
+
+
 def main() -> None:
     """Entrypoint for the main screen and simple router."""
     inject_css(CSS_PATH)
 
     view = _get_view()
-    render_topbar(view)
+
+    # Handle logout BEFORE restore_auth() so that clicking the topbar logout
+    # link (which causes a full page reload) doesn't re-read the auth cookies
+    # before we get a chance to clear them.
+    if view == "logout":
+        clear_auth()
+        st.query_params["view"] = "home"
+        st.rerun()
+        return
+
+    # Restore auth and card state from browser cookies after a page reload
+    restore_auth()
+    restore_card_state()
+
+    # Login/register pages must always be rendered unauthenticated.
+    # If stale cookies were restored (race condition: the cookie-clearing JS
+    # injected during logout may not have executed before the next full-page
+    # reload), clear them now so the UI and browser cookies stay in sync.
+    if view in ("login", "register") and (
+        st.session_state.get("auth_token") or st.session_state.get("auth_email")
+    ):
+        clear_auth()
+
+    render_topbar(view, auth_email=st.session_state.get("auth_email"))
 
     if view == "create":
         task_selector_page()
@@ -116,16 +216,43 @@ def main() -> None:
         about_page()
         return
 
-    # Home
-    render_hero()
-    # Use one shared, larger text style for ABOUT + repo
-    st.markdown('<div class="home-copy">', unsafe_allow_html=True)
-    _title_with_logo()
-    st.markdown(ABOUT_TEXT)
-    _render_github_repo(
-        repo_url="https://github.com/MIRO-UCLouvain/RT-Model-Card",
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    if view == "published":
+        published_cards_page()
+        return
+
+    if view == "login":
+        login_page()
+        return
+
+    if view == "register":
+        register_page()
+        return
+
+    if view in ("my_cards", "requests"):
+        my_cards_page()
+        return
+
+    if view == "profile":
+        profile_page()
+        return
+
+    # Home — different content depending on auth state
+    if st.session_state.get("auth_token"):
+        _render_logged_in_home()
+    else:
+        render_hero()
+        st.markdown('<div class="home-copy">', unsafe_allow_html=True)
+        _title_with_logo()
+        st.markdown(ABOUT_TEXT)
+        _render_github_repo(
+            repo_url="https://github.com/MIRO-UCLouvain/RT-Model-Card",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.link_button(
+            "Open an Issue ↗",
+            "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
+        )
 
 
 if __name__ == "__main__":

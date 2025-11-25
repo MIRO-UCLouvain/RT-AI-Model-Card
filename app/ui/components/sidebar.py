@@ -11,7 +11,13 @@ from typing import Any
 
 import streamlit as st
 
-from app.client.model_cards import BackendError, create_model_card, create_version
+from app.client.model_cards import (
+    BackendError,
+    create_model_card,
+    create_version,
+)
+from app.ui.utils.auth import save_card_state
+from app.services.state_store import clear_form_state
 from app.core.model_card.constants import SCHEMA
 from app.services.markdown.renderer import render_full_model_card_md
 from app.services.readme.builder import (
@@ -50,8 +56,9 @@ REPO_ID_PARTS: int = 2
 
 # Location of the external CSS file
 CSS_PATH = (Path(__file__).resolve().parent.parent / "static" / "sidebar.css")
-# Navigation helpers
 
+
+# ── Navigation ────────────────────────────────────────────────────────────────
 
 def _render_menu() -> None:  # noqa: C901
     if st.button("About Model Cards", use_container_width=True):
@@ -115,8 +122,7 @@ def _render_menu() -> None:  # noqa: C901
         st.rerun()
 
 
-# Download helpers (Local tab)
-
+# ── Local downloads tab ────────────────────────────────────────────────────────
 
 def _error_if_format_invalid() -> bool:
     if st.session_state.get("format_error"):
@@ -338,8 +344,7 @@ def _local_downloads_tab() -> None:
         _download_zip_json_plus_files_ui()
 
 
-# README tab helpers
-
+# ── README tab ────────────────────────────────────────────────────────────────
 
 def _readme_generate_form() -> None:
     with st.form("form_generate_readme"):
@@ -438,6 +443,104 @@ def _readme_tab() -> None:
     _hub_push_form()
 
 
+# ── Save section ──────────────────────────────────────────────────────────────
+
+def _derive_slug(name: str) -> str:
+    """Convert a model name to a URL-safe slug."""
+    s = name.lower().strip()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s or "my-model-card"
+
+
+def _save_section() -> None:
+    """Auth-gated save controls above the download tabs."""
+    token: str | None = st.session_state.get("auth_token")
+    if not token:
+        st.info("Log in to save and publish your model card.")
+        return
+
+    st.markdown("## Save")
+    card_id: int | None = st.session_state.get("saved_card_id")
+    version: int | None = st.session_state.get("saved_version")
+
+    if card_id is not None:
+        st.caption(f"Saved · ID {card_id} · version {version}")
+    else:
+        st.caption("Not yet saved.")
+
+    model_name: str = st.session_state.get(
+        "model_basic_information_name", ""
+    ) or ""
+    task_type: str = st.session_state.get("task", "Other") or "Other"
+
+    slug = st.text_input(
+        "Slug (unique identifier)",
+        value=_derive_slug(model_name),
+        key="saved_slug",
+        disabled=card_id is not None,
+        help="URL-safe name, e.g. my-segmentation-model. Cannot change after first save.",
+    )
+    title = st.text_input(
+        "Version title",
+        value=model_name,
+        key="saved_title",
+        help="Short description for this version.",
+    )
+
+    clean_slug = _derive_slug(slug)
+    if clean_slug != slug and slug:
+        st.caption(f"Slug will be saved as: **{clean_slug}**")
+
+    label = "Save new version" if card_id is not None else "Save"
+    if st.button(label, use_container_width=True, key="btn_save"):
+        try:
+            content: dict = json.loads(parse_into_json(SCHEMA))
+            if card_id is None:
+                result = create_model_card(
+                    slug=clean_slug,
+                    task_type=task_type,
+                    title=title or clean_slug,
+                    content=content,
+                )
+                st.session_state.saved_card_id = result["id"]
+                st.session_state.saved_publication_status = result.get(
+                    "publication_status", "draft"
+                )
+                saved_version = result["versions"][0]["version_number"]
+            else:
+                result = create_version(
+                    card_id=card_id,
+                    title=title or clean_slug,
+                    content=content,
+                )
+                saved_version = result["version_number"]
+            st.session_state.saved_version = saved_version
+            # Persist card identifiers to browser cookies so they survive page reloads
+            save_card_state(
+                card_id=st.session_state.saved_card_id,
+                version=saved_version,
+                slug=clean_slug,
+                status=st.session_state.get("saved_publication_status", "draft"),
+            )
+            st.success(f"Saved as version {saved_version}.")
+            st.rerun()
+        except BackendError as exc:
+            msg = str(exc)
+            st.error(msg)
+            if "already exists" in msg:
+                st.info(
+                    "A card with this slug was saved in a previous session. "
+                    "Change the slug to create a new card, or reload the page "
+                    "if you want to add a new version to the existing one."
+                )
+        except (ValueError, KeyError, TypeError) as exc:
+            st.error(f"Unexpected error: {exc}")
+
+
+# ── GitHub badge ──────────────────────────────────────────────────────────────
+
 def _render_github_repo(repo_url: str) -> None:
     """Render a GitHub repository link with a badge (centered card-style)."""
     st.markdown(
@@ -463,105 +566,57 @@ def _render_github_repo(repo_url: str) -> None:
     )
 
 
-def _derive_slug(name: str) -> str:
-    """Convert a model name to a URL-safe slug."""
-    s = name.lower().strip()
-    s = re.sub(r"[^a-z0-9\s-]", "", s)
-    s = re.sub(r"\s+", "-", s)
-    s = re.sub(r"-+", "-", s).strip("-")
-    return s or "my-model-card"
-
-
-def _cloud_tab() -> None:
-    """Render the Cloud save tab in the sidebar."""
-    st.markdown("## Save to Cloud")
-
-    card_id: int | None = st.session_state.get("cloud_card_id")
-    version_num: int | None = st.session_state.get("cloud_version_number")
-
-    if card_id is not None:
-        st.caption(f"Cloud ID: {card_id} · version {version_num}")
-    else:
-        st.caption("Not yet saved to cloud.")
-
-    model_name: str = st.session_state.get(
-        "model_basic_information_name", ""
-    ) or ""
-    task_type: str = st.session_state.get("task", "Other") or "Other"
-
-    slug = st.text_input(
-        "Slug (unique identifier)",
-        value=_derive_slug(model_name),
-        key="cloud_slug",
-        disabled=card_id is not None,
-        help="URL-safe name, e.g. my-segmentation-model. Cannot change after first save.",
-    )
-    title = st.text_input(
-        "Version title",
-        value=model_name,
-        key="cloud_title",
-        help="Short description for this version.",
-    )
-
-    # Always sanitize the slug so it satisfies the API pattern constraint,
-    # regardless of what the user typed into the text_input.
-    clean_slug = _derive_slug(slug)
-    if clean_slug != slug and slug:
-        st.caption(f'Slug will be saved as: **{clean_slug}**')
-
-    label = "Save new version" if card_id is not None else "Save to Cloud"
-    if st.button(label, use_container_width=True, key="btn_cloud_save"):
-        try:
-            content: dict = json.loads(parse_into_json(SCHEMA))
-            if card_id is None:
-                result = create_model_card(
-                    slug=clean_slug,
-                    task_type=task_type,
-                    title=title or clean_slug,
-                    content=content,
-                )
-                st.session_state.cloud_card_id = result["id"]
-                saved_version = result["versions"][0]["version_number"]
-            else:
-                result = create_version(
-                    card_id=card_id,
-                    title=title or clean_slug,
-                    content=content,
-                )
-                saved_version = result["version_number"]
-            st.session_state.cloud_version_number = saved_version
-            st.success(f"Saved as version {saved_version}.")
-            st.rerun()
-        except BackendError as exc:
-            msg = str(exc)
-            st.error(msg)
-            if "already exists" in msg:
-                st.info(
-                    "A card with this slug was saved in a previous session. "
-                    "Change the slug to create a new card, or reload the page "
-                    "if you want to add a new version to the existing one."
-                )
-        except (ValueError, KeyError, TypeError) as exc:
-            st.error(f"Unexpected error: {exc}")
-
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 def sidebar_render() -> None:
     """Render the sidebar for the Streamlit app."""
     with st.sidebar:
         inject_css(CSS_PATH)
         _render_menu()
+        _save_section()
         st.markdown("## Model Card Builder")
         enlarge_tab_titles(16)
-        tab_local, tab_readme, tab_cloud = st.tabs(
-            ["Local downloads", "Upload README to Hub", "☁ Cloud"],
+        tab_local, tab_readme = st.tabs(
+            ["Local downloads", "Upload README to Hub"],
         )
         with tab_local:
             _local_downloads_tab()
         with tab_readme:
             _readme_tab()
-        with tab_cloud:
-            _cloud_tab()
         st.divider()
         _render_github_repo(
             repo_url="https://github.com/MIRO-UCLouvain/RT-Model-Card",
         )
+        st.divider()
+        if not st.session_state.get("_sidebar_confirm_back"):
+            col_back, col_issue = st.columns(2)
+            with col_back:
+                if st.button(
+                    "← Main Page",
+                    key="sidebar_back_home",
+                    use_container_width=True,
+                ):
+                    st.session_state["_sidebar_confirm_back"] = True
+                    st.rerun()
+            with col_issue:
+                st.link_button(
+                    "Open an Issue ↗",
+                    "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
+                    use_container_width=True,
+                )
+        else:
+            st.warning(
+                "⚠️ All unsaved data will be lost. "
+                "Download your card before leaving."
+            )
+            col_yes, col_no = st.columns(2)
+            with col_yes:
+                if st.button("Leave", key="sidebar_confirm_leave", use_container_width=True):
+                    st.session_state.pop("_sidebar_confirm_back", None)
+                    clear_form_state()
+                    st.query_params["view"] = "home"
+                    st.rerun()
+            with col_no:
+                if st.button("Stay", key="sidebar_cancel_leave", use_container_width=True):
+                    st.session_state.pop("_sidebar_confirm_back", None)
+                    st.rerun()

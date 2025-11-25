@@ -85,3 +85,16 @@ def load_model_card_page() -> None:
                 st.session_state.runpage = card_metadata_render
                 st.success("Model card loaded successfully!")
                 st.rerun()
+
+    st.markdown("---")
+    col_back, col_issue = st.columns(2)
+    with col_back:
+        if st.button("← Back to Main Page", key="load_back_home", use_container_width=True):
+            st.query_params["view"] = "home"
+            st.rerun()
+    with col_issue:
+        st.link_button(
+            "Open an Issue ↗",
+            "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
+            use_container_width=True,
+        )

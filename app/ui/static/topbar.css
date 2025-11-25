@@ -13,16 +13,11 @@
   background: var(--brand-600);
   border-bottom: 2px solid var(--brand-700);
   box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  overflow: visible;
 }
 
 .topbar__inner{
-  height: 80px;                 /* más alta */
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  /* Layout handled by the grid rule below */
 }
 
 .topbar__brand{ display:flex; align-items:center; }
@@ -152,6 +147,11 @@
 .topbar__brand a:hover,
 .topbar__brand a:focus,
 .topbar__brand a:active,
+.topbar__auth a,
+.topbar__auth a:visited,
+.topbar__auth a:hover,
+.topbar__auth a:focus,
+.topbar__auth a:active,
 .topbar__iconlink,
 .topbar__iconlink:visited,
 .topbar__iconlink:hover,
@@ -160,4 +160,83 @@
   text-decoration: none !important;
   border-bottom: none !important;
   color: #fff !important;    /* evita colores “visited” raros */
+}
+
+/* ===== Three-column topbar layout ======================================== */
+
+.topbar__inner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* Auth zone — right-aligned */
+.topbar__auth {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* User email — non-clickable, dimmed */
+.topbar__user-email {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.82rem;
+  padding: 0 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+/* External link arrow indicator */
+.topbar__link--external::after {
+  content: “ \2197”;  /* ↗ */
+  font-size: 0.72em;
+  opacity: 0.65;
+}
+
+/* ===== Profile area (shown when logged in) ================================ */
+
+.topbar__avatar {
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.topbar__username {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.topbar__logout-btn,
+.topbar__logout-btn:visited {
+  color: #fff !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+  padding: 0.35rem 0.9rem;
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 0.88rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.topbar__logout-btn:hover {
+  background: rgba(255, 80, 80, 0.55);
 }

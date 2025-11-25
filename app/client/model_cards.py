@@ -49,7 +49,45 @@ def _raise_for_status(response: httpx.Response) -> None:
         raise BackendError(str(detail))
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
+def login(email: str, password: str) -> dict:
+    """Authenticate and return ``{"access_token": ..., "token_type": "bearer"}``.
+
+    The login endpoint uses OAuth2 form data; ``email`` maps to the
+    ``username`` field as per the backend convention.
+    """
+    try:
+        with _client() as client:
+            response = client.post(
+                "/v1/auth/login",
+                data={"username": email, "password": password},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def register(email: str, password: str) -> dict:
+    """Register a new user account. Returns the UserResponse dict."""
+    try:
+        with _client() as client:
+            response = client.post(
+                "/v1/auth/register",
+                json={"email": email, "password": password},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+# ── Model cards ───────────────────────────────────────────────────────────────
 
 def create_model_card(
     slug: str,
@@ -125,6 +163,42 @@ def create_version(card_id: int, title: str, content: dict) -> dict:
             response = client.post(
                 f"/v1/model-cards/{card_id}/versions", json=payload
             )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def request_publication(card_id: int, token: str) -> dict:
+    """Submit a model card for publication review.
+
+    Requires a valid Bearer token for the card owner.
+    Returns the updated model card dict with publication_status = 'pending'.
+    """
+    try:
+        with _client() as client:
+            response = client.post(
+                f"/v1/model-cards/{card_id}/request-publication",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def list_public_model_cards() -> list[dict]:
+    """Return summaries of all approved (published) model cards.
+
+    No authentication required.
+    """
+    try:
+        with _client() as client:
+            response = client.get("/v1/public-model-cards")
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
     except httpx.ConnectError:
