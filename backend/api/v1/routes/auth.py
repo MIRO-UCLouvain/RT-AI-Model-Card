@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from dependencies import get_db
+from dependencies import get_current_user, get_db
+from models.user import User
 from schemas.user import TokenResponse, UserCreate, UserResponse
 from security import create_access_token
 from services.user import authenticate_user, create_user
@@ -38,3 +39,9 @@ async def login(
     user = await authenticate_user(db, form.username, form.password)
     token = create_access_token(user.id)
     return TokenResponse(access_token=token)
+
+
+@router.get("/me", response_model=UserResponse)
+async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
+    """Return the profile of the currently authenticated user."""
+    return UserResponse.model_validate(current_user)

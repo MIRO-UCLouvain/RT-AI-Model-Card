@@ -30,8 +30,15 @@ class UserRepository:
         session: AsyncSession,
         email: str,
         hashed_password: str,
+        first_name: str | None = None,
+        last_name: str | None = None,
     ) -> User:
-        user = User(email=email, hashed_password=hashed_password)
+        user = User(
+            email=email,
+            hashed_password=hashed_password,
+            first_name=first_name,
+            last_name=last_name,
+        )
         session.add(user)
         await session.flush()  # populates user.id without committing
         return user

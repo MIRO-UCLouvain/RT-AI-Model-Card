@@ -1,10 +1,8 @@
-:root{
-  --brand-600:#023483;
-  --brand-700:#032264;
-}
+/* ===== Topbar ============================================================= */
+/* Uses --brand-600 / --brand-700 from global.css (:root).                  */
+/* Do NOT redefine :root here — it would override the design system.        */
 
-/* ===== Topbar (siempre misma ventana) ===================== */
-.topbar{
+.topbar {
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -12,169 +10,64 @@
   margin-left: calc(-50vw + 50%);
   background: var(--brand-600);
   border-bottom: 2px solid var(--brand-700);
-  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   overflow: visible;
 }
-
-.topbar__inner{
-  /* Layout handled by the grid rule below */
-}
-
-.topbar__brand{ display:flex; align-items:center; }
-.topbar__home,
-.topbar__home:visited{
-  color:#fff !important;
-  text-decoration:none;
-  font-weight:700;
-  letter-spacing:.2px;
-}
-
-/* Navegación: blanco, sin borde, no bold, más separados */
-.topbar__nav{ display:flex; align-items:center; gap: 1.4rem; }
-
-.topbar__link,
-.topbar__link:visited{
-  color:#ffffff !important;     /* <- letras BLANCAS siempre */
-  text-decoration:none;
-  font-weight:500;              /* <- no en negrita */
-  padding:.65rem 1.15rem;       /* <- más “anchos” */
-  border-radius:1rem;
-  background:transparent;
-  opacity:.98;
-  transition:opacity .15s ease, background .15s ease, transform .1s ease;
-  /* sin borde */
-}
-
-.topbar__link:hover{
-  opacity:1;
-  background:rgba(255,255,255,.12);
-  transform:translateY(-1px);
-}
-
-.topbar__link--active{
-  background:rgba(255,255,255,.18);
-}
-
-/* ===== Hero (más largo + imagen opcional pegada al borde) === */
-.hero{
-  width:100vw;
-  margin-left:calc(-50vw + 50%);
-  color:white;
-  text-align:center;
-  position:relative;
-  overflow:visible;
-  background:linear-gradient(
-    180deg,
-    var(--brand-600) 0%,
-    #4781ec 55%,
-    #ffffff 100%
-  );
-}
-
-.hero--long{
-  padding: 6.5rem 0 7rem;  /* <- degradado más largo */
-}
-
-.hero-inner{
-  max-width:1100px;
-  margin:0 auto;
-  padding:0 2rem;
-}
-
-.hero h1{
-  margin:0 0 .65rem;
-  font-weight:800;
-  font-size: clamp(28px,4vw,44px);
-}
-
-.hero .lead{
-  color:#f0f4ff;
-  font-size: clamp(14px,1.8vw,18px);
-  margin:0 auto;
-  max-width:900px;
-}
-
-/* Imagen pegada al borde inferior del gradiente */
-.hero__img{
-  position:absolute;
-  left:50%;
-  bottom:-3.5rem;              /* sobresale hacia la zona blanca */
-  transform:translateX(-50%);
-  width:min(820px, 88vw);
-  pointer-events:none;
-  filter: drop-shadow(0 10px 18px rgba(0,0,0,.12));
-}
-.hero__img img{
-  display:block;
-  width:100%;
-  height:auto;
-}
-
-/* --- GitHub icon link on the right --- */
-.topbar__iconlink{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:.4rem;               /* clickable area */
-  border-radius:.8rem;
-  text-decoration:none;
-  transition:background .15s ease, transform .1s ease, opacity .15s ease;
-  opacity:.98;
-}
-
-.topbar__iconlink:hover{
-  background: rgba(255,255,255,.12);
-  transform: translateY(-1px);
-}
-
-.topbar__icon{
-  height: 35px;
-  width: 35px;
-  object-fit: contain;
-  /* If the PNG is dark, this makes it appear white on the blue bar: */
-  filter: invert(1) brightness(2);
-  display:block;
-}
-
-/* Sin subrayado en TODOS los estados de la topbar */
-.topbar__nav a,
-.topbar__nav a:visited,
-.topbar__nav a:hover,
-.topbar__nav a:focus,
-.topbar__nav a:active,
-.topbar__brand a,
-.topbar__brand a:visited,
-.topbar__brand a:hover,
-.topbar__brand a:focus,
-.topbar__brand a:active,
-.topbar__auth a,
-.topbar__auth a:visited,
-.topbar__auth a:hover,
-.topbar__auth a:focus,
-.topbar__auth a:active,
-.topbar__iconlink,
-.topbar__iconlink:visited,
-.topbar__iconlink:hover,
-.topbar__iconlink:focus,
-.topbar__iconlink:active{
-  text-decoration: none !important;
-  border-bottom: none !important;
-  color: #fff !important;    /* evita colores “visited” raros */
-}
-
-/* ===== Three-column topbar layout ======================================== */
 
 .topbar__inner {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  height: 80px;
+  height: 72px;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1.25rem;
+  padding: 0 1.5rem;
 }
 
-/* Auth zone — right-aligned */
+/* ── Brand ──────────────────────────────────────────────────────────────── */
+.topbar__brand {
+  display: flex;
+  align-items: center;
+}
+
+.topbar__home,
+.topbar__home:visited {
+  color: #fff !important;
+  text-decoration: none !important;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.15px;
+}
+
+/* ── Nav (unauthenticated) ──────────────────────────────────────────────── */
+.topbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.topbar__link,
+.topbar__link:visited {
+  color: #ffffff !important;
+  text-decoration: none !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.topbar__link:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.topbar__link--active {
+  background: rgba(255, 255, 255, 0.18);
+  font-weight: 600;
+}
+
+/* ── Auth zone (right) ──────────────────────────────────────────────────── */
 .topbar__auth {
   display: flex;
   align-items: center;
@@ -182,61 +75,190 @@
   justify-content: flex-end;
 }
 
-/* User email — non-clickable, dimmed */
-.topbar__user-email {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.82rem;
-  padding: 0 0.4rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
+/* ── User profile dropdown ──────────────────────────────────────────────── */
+.topbar__profile {
+  position: relative;
+  outline: none;
 }
 
-/* External link arrow indicator */
-.topbar__link--external::after {
-  content: “ \2197”;  /* ↗ */
-  font-size: 0.72em;
-  opacity: 0.65;
+.topbar__profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem 0.4rem 0.45rem;
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.13);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
 }
 
-/* ===== Profile area (shown when logged in) ================================ */
+.topbar__profile-trigger:hover,
+.topbar__profile:focus-within .topbar__profile-trigger {
+  background: rgba(255, 255, 255, 0.22);
+}
 
 .topbar__avatar {
-  width: 26px;
-  height: 26px;
-  background: rgba(255, 255, 255, 0.28);
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   flex-shrink: 0;
-  text-transform: uppercase;
   color: #fff;
+  text-transform: uppercase;
 }
 
 .topbar__username {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.88rem;
-  white-space: nowrap;
-}
-
-.topbar__logout-btn,
-.topbar__logout-btn:visited {
-  color: #fff !important;
-  text-decoration: none !important;
-  border-bottom: none !important;
-  padding: 0.35rem 0.9rem;
-  border-radius: 2rem;
-  background: rgba(255, 255, 255, 0.15);
-  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
-  transition: background 0.15s ease;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.topbar__logout-btn:hover {
-  background: rgba(255, 80, 80, 0.55);
+.topbar__chevron {
+  font-size: 0.5rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 0.05rem;
+  transition: transform 0.15s ease;
+  line-height: 1;
+}
+
+.topbar__profile:hover .topbar__chevron,
+.topbar__profile:focus-within .topbar__chevron {
+  transform: rotate(180deg);
+}
+
+/* Dropdown panel */
+.topbar__dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 9999;
+  overflow: hidden;
+  animation: dropdown-in 0.12s ease;
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.topbar__profile:hover .topbar__dropdown,
+.topbar__profile:focus-within .topbar__dropdown {
+  display: block;
+}
+
+.topbar__dropdown-header {
+  padding: 1rem 1.1rem 0.75rem;
+}
+
+.topbar__dropdown-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__dropdown-email {
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__dropdown-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0;
+}
+
+.topbar__dropdown-logout,
+.topbar__dropdown-logout:visited {
+  display: block;
+  padding: 0.7rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #c0392b !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+  background: transparent;
+  transition: background 0.12s ease;
+  cursor: pointer;
+}
+
+.topbar__dropdown-logout:hover {
+  background: #fef2f2;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────────────── */
+.hero {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  color: white;
+  text-align: center;
+  position: relative;
+  overflow: visible;
+  background: linear-gradient(180deg, var(--brand-600) 0%, #4781ec 55%, #ffffff 100%);
+}
+
+.hero--long {
+  padding: 6.5rem 0 7rem;
+}
+
+.hero-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.hero h1 {
+  margin: 0 0 0.65rem;
+  font-weight: 800;
+  font-size: clamp(28px, 4vw, 44px);
+}
+
+.hero .lead {
+  color: #f0f4ff;
+  font-size: clamp(14px, 1.8vw, 18px);
+  margin: 0 auto;
+  max-width: 900px;
+}
+
+/* ── No underlines anywhere in the topbar ──────────────────────────────── */
+.topbar__nav a,   .topbar__nav a:visited,   .topbar__nav a:hover,
+.topbar__nav a:focus,  .topbar__nav a:active,
+.topbar__brand a, .topbar__brand a:visited, .topbar__brand a:hover,
+.topbar__brand a:focus, .topbar__brand a:active,
+.topbar__auth a,  .topbar__auth a:visited,  .topbar__auth a:hover,
+.topbar__auth a:focus,  .topbar__auth a:active {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  color: #fff !important;
+}
+
+/* Override: dropdown logout is NOT white */
+.topbar__dropdown a,
+.topbar__dropdown a:visited,
+.topbar__dropdown a:hover,
+.topbar__dropdown a:focus,
+.topbar__dropdown a:active {
+  color: #c0392b !important;
 }

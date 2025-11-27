@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
 
 
 class UserResponse(BaseModel):
@@ -16,6 +18,8 @@ class UserResponse(BaseModel):
 
     id: uuid.UUID
     email: str
+    first_name: str | None
+    last_name: str | None
     is_active: bool
     is_admin: bool
     created_at: datetime

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from app.client.model_cards import BackendError, get_me
 from app.ui.components.topbar import render_hero, render_topbar
 from app.ui.screens.about import about_page
 from app.ui.screens.load_model_card import load_model_card_page
@@ -106,72 +107,72 @@ def _render_github_repo(repo_url: str) -> None:
 
 def _render_logged_in_home() -> None:
     """Render the action dashboard shown to authenticated users."""
+    first_name: str = st.session_state.get("auth_first_name") or ""
+    last_name: str = st.session_state.get("auth_last_name") or ""
     email: str = st.session_state.get("auth_email", "")
-    name = email.split("@")[0] if email else "there"
 
-    st.markdown(f"## Welcome back, **{name}**!")
-    st.markdown("What would you like to do?")
-    st.markdown("")
+    if first_name and last_name:
+        display_name = f"{first_name} {last_name}"
+    elif first_name:
+        display_name = first_name
+    else:
+        display_name = email.split("@")[0] if email else "there"
 
-    col1, col2 = st.columns(2)
+    # Welcome header — flat string, no indentation (avoids markdown code-block issue)
+    st.markdown(
+        '<div style="padding:1.5rem 0 0.5rem;">'
+        f'<h2 style="margin:0 0 0.25rem;color:var(--ink);font-size:1.6rem;font-weight:700;">'
+        f'Welcome, <span style="color:var(--brand-600)">{display_name}</span>'
+        '</h2>'
+        '<p style="margin:0;color:var(--muted);font-size:0.9rem;">Select an action to get started.</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── 2×2 dashboard grid ────────────────────────────────────────────────
+    col1, col2 = st.columns(2, gap="medium")
 
     with col1:
         with st.container(border=True):
-            st.markdown("#### Create Model Card")
             st.markdown(
-                "Start a new AI model card for your radiotherapy model."
+                '<p class="dash-card__title">Create Model Card</p>'
+                '<p class="dash-card__desc">Build a new AI model card using the standardised RT template.</p>',
+                unsafe_allow_html=True,
             )
-            if st.button(
-                "Create Model Card",
-                use_container_width=True,
-                key="home_create",
-            ):
+            if st.button("Create Model Card", use_container_width=True, key="home_create"):
                 st.query_params["view"] = "create"
                 st.rerun()
 
         with st.container(border=True):
-            st.markdown("#### My Model Cards")
             st.markdown(
-                "View and manage the model card you've saved this session."
+                '<p class="dash-card__title">My Model Cards</p>'
+                '<p class="dash-card__desc">View and submit cards you have saved in this session.</p>',
+                unsafe_allow_html=True,
             )
-            if st.button(
-                "My Model Cards",
-                use_container_width=True,
-                key="home_my_cards",
-            ):
+            if st.button("My Model Cards", use_container_width=True, key="home_my_cards"):
                 st.query_params["view"] = "my_cards"
                 st.rerun()
 
     with col2:
         with st.container(border=True):
-            st.markdown("#### Load Model Card")
-            st.markdown("Load an existing model card from a JSON file.")
-            if st.button(
-                "Load Model Card",
-                use_container_width=True,
-                key="home_load",
-            ):
+            st.markdown(
+                '<p class="dash-card__title">Load Model Card</p>'
+                '<p class="dash-card__desc">Resume editing by uploading an existing card from a JSON file.</p>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Load Model Card", use_container_width=True, key="home_load"):
                 st.query_params["view"] = "load"
                 st.rerun()
 
         with st.container(border=True):
-            st.markdown("#### Published Model Cards")
             st.markdown(
-                "Browse approved model cards in the public catalogue."
+                '<p class="dash-card__title">Published Model Cards</p>'
+                '<p class="dash-card__desc">Browse cards that have been reviewed and approved for publication.</p>',
+                unsafe_allow_html=True,
             )
-            if st.button(
-                "Published Model Cards",
-                use_container_width=True,
-                key="home_published",
-            ):
+            if st.button("Published Model Cards", use_container_width=True, key="home_published"):
                 st.query_params["view"] = "published"
                 st.rerun()
-
-    st.markdown("---")
-    st.link_button(
-        "Open an Issue ↗",
-        "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
-    )
 
 
 def main() -> None:
@@ -193,16 +194,43 @@ def main() -> None:
     restore_auth()
     restore_card_state()
 
+    # If a token was restored but the name cookies were empty (e.g. the
+    # components.html JS that sets cookies ran after the next page load),
+    # fetch the profile once and backfill session state so the display name
+    # is always First + Last, never the email prefix.
+    if (
+        st.session_state.get("auth_token")
+        and not st.session_state.get("auth_first_name")
+        and not st.session_state.get("auth_last_name")
+    ):
+        try:
+            _profile = get_me(st.session_state.auth_token)
+            st.session_state.auth_first_name = _profile.get("first_name") or ""
+            st.session_state.auth_last_name = _profile.get("last_name") or ""
+        except BackendError:
+            pass
+
     # Login/register pages must always be rendered unauthenticated.
     # If stale cookies were restored (race condition: the cookie-clearing JS
     # injected during logout may not have executed before the next full-page
-    # reload), clear them now so the UI and browser cookies stay in sync.
+    # reload), clear session state inline — do NOT call clear_auth() here
+    # because its components.html injection inside the render path can cause
+    # visual artifacts (form appearing twice).
     if view in ("login", "register") and (
         st.session_state.get("auth_token") or st.session_state.get("auth_email")
     ):
-        clear_auth()
+        st.session_state.auth_token = None
+        st.session_state.auth_email = None
+        st.session_state.auth_first_name = None
+        st.session_state.auth_last_name = None
+        st.session_state["_auth_logged_out"] = True
 
-    render_topbar(view, auth_email=st.session_state.get("auth_email"))
+    render_topbar(
+        view,
+        auth_email=st.session_state.get("auth_email"),
+        auth_first_name=st.session_state.get("auth_first_name"),
+        auth_last_name=st.session_state.get("auth_last_name"),
+    )
 
     if view == "create":
         task_selector_page()

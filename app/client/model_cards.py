@@ -71,13 +71,34 @@ def login(email: str, password: str) -> dict:
         raise BackendError("Request timed out. Try again.")
 
 
-def register(email: str, password: str) -> dict:
+def register(email: str, password: str, first_name: str, last_name: str) -> dict:
     """Register a new user account. Returns the UserResponse dict."""
     try:
         with _client() as client:
             response = client.post(
                 "/v1/auth/register",
-                json={"email": email, "password": password},
+                json={
+                    "email": email,
+                    "password": password,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                },
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def get_me(token: str) -> dict:
+    """Return the current user's profile (first_name, last_name, email, …)."""
+    try:
+        with _client() as client:
+            response = client.get(
+                "/v1/auth/me",
+                headers={"Authorization": f"Bearer {token}"},
             )
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]

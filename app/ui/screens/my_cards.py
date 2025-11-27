@@ -111,17 +111,11 @@ def my_cards_page() -> None:
                 )
 
     st.markdown("---")
-    col_back, col_issue = st.columns(2)
+    _, col_back, _ = st.columns([1, 2, 1])
     with col_back:
-        if st.button("← Back to Main Page", key="my_cards_back_home", use_container_width=True):
+        if st.button("← Back to Dashboard", key="my_cards_back_home", use_container_width=True):
             st.query_params["view"] = "home"
             st.rerun()
-    with col_issue:
-        st.link_button(
-            "Open an Issue ↗",
-            "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
-            use_container_width=True,
-        )
 
 
 def _load_into_editor(card_id: int) -> None:

@@ -30,7 +30,13 @@ async def create_user(session: AsyncSession, data: UserCreate) -> User:
             detail="A user with this email already exists.",
         )
     hashed = hash_password(data.password)
-    user = await UserRepository.create(session, normalised_email, hashed)
+    user = await UserRepository.create(
+        session,
+        normalised_email,
+        hashed,
+        first_name=data.first_name,
+        last_name=data.last_name,
+    )
     await session.commit()
     # User has no lazy-loaded relationships — refresh is safe here
     await session.refresh(user)

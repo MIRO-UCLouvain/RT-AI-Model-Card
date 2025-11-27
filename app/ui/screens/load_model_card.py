@@ -87,14 +87,8 @@ def load_model_card_page() -> None:
                 st.rerun()
 
     st.markdown("---")
-    col_back, col_issue = st.columns(2)
+    _, col_back, _ = st.columns([1, 2, 1])
     with col_back:
-        if st.button("← Back to Main Page", key="load_back_home", use_container_width=True):
+        if st.button("← Back to Dashboard", key="load_back_home", use_container_width=True):
             st.query_params["view"] = "home"
             st.rerun()
-    with col_issue:
-        st.link_button(
-            "Open an Issue ↗",
-            "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
-            use_container_width=True,
-        )

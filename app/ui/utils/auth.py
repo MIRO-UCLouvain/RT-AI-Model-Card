@@ -14,6 +14,8 @@ import streamlit.components.v1 as components
 
 _COOKIE_TOKEN = "rtmc_auth_token"
 _COOKIE_EMAIL = "rtmc_auth_email"
+_COOKIE_FIRST_NAME = "rtmc_auth_first_name"
+_COOKIE_LAST_NAME = "rtmc_auth_last_name"
 _COOKIE_CARD_ID = "rtmc_saved_card_id"
 _COOKIE_CARD_VER = "rtmc_saved_version"
 _COOKIE_CARD_SLUG = "rtmc_saved_slug"
@@ -44,69 +46,78 @@ def _inject(js_html: str) -> None:
     components.html(js_html, height=0)
 
 
+def _safe(value: str) -> str:
+    """Strip characters that would break a cookie value."""
+    return value.replace('"', "").replace("'", "").replace(";", "")
+
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
-def save_auth(token: str, email: str) -> None:
-    """Save auth state to session state and browser cookie."""
-    safe_token = token.replace('"', "").replace("'", "").replace(";", "")
-    safe_email = email.replace('"', "").replace("'", "").replace(";", "")
+def save_auth(
+    token: str,
+    email: str,
+    first_name: str | None = None,
+    last_name: str | None = None,
+) -> None:
+    """Save auth state to session state and browser cookies."""
     st.session_state.auth_token = token
     st.session_state.auth_email = email
-    _inject(_js_set((_COOKIE_TOKEN, safe_token), (_COOKIE_EMAIL, safe_email)))
+    st.session_state.auth_first_name = first_name or ""
+    st.session_state.auth_last_name = last_name or ""
+
+    pairs: list[tuple[str, str]] = [
+        (_COOKIE_TOKEN, _safe(token)),
+        (_COOKIE_EMAIL, _safe(email)),
+        (_COOKIE_FIRST_NAME, _safe(first_name or "")),
+        (_COOKIE_LAST_NAME, _safe(last_name or "")),
+    ]
+    _inject(_js_set(*pairs))
 
 
 def restore_auth() -> None:
-    """Restore auth from browser cookie if session state was reset by a page reload.
-
-    Call this at the very top of main() before any rendering.
-    Skipped if the user explicitly logged out this session (_auth_logged_out flag).
-    """
+    """Restore auth from browser cookie if session state was reset by a page reload."""
     if st.session_state.get("auth_token"):
         return
     if st.session_state.get("_auth_logged_out"):
-        return  # User logged out this session — don't re-authenticate
+        return
     try:
-        cookies = st.context.cookies  # available since Streamlit 1.34
+        cookies = st.context.cookies
         token = cookies.get(_COOKIE_TOKEN)
         email = cookies.get(_COOKIE_EMAIL)
         if token and email:
             st.session_state.auth_token = token
             st.session_state.auth_email = email
+            st.session_state.auth_first_name = cookies.get(_COOKIE_FIRST_NAME, "")
+            st.session_state.auth_last_name = cookies.get(_COOKIE_LAST_NAME, "")
     except AttributeError:
-        pass  # older Streamlit version without st.context.cookies
+        pass
 
 
 def clear_auth() -> None:
-    """Clear auth from session state and expire browser cookies.
-
-    Sets _auth_logged_out so restore_auth() won't re-read the cookies
-    during the same WebSocket session (soft reruns). The actual cookie
-    expiry JS runs in the browser asynchronously via a hidden iframe.
-    Callers should follow with st.query_params["view"] = "home" + st.rerun().
-    """
+    """Clear auth from session state and expire browser cookies."""
     st.session_state.auth_token = None
     st.session_state.auth_email = None
+    st.session_state.auth_first_name = None
+    st.session_state.auth_last_name = None
     st.session_state["_auth_logged_out"] = True
-    # Also clear saved card state
     st.session_state.saved_card_id = None
     st.session_state.saved_version = None
     st.session_state.saved_publication_status = None
-    _inject(_js_clear(_COOKIE_TOKEN, _COOKIE_EMAIL,
-                      _COOKIE_CARD_ID, _COOKIE_CARD_VER,
-                      _COOKIE_CARD_SLUG, _COOKIE_CARD_STATUS))
+    _inject(_js_clear(
+        _COOKIE_TOKEN, _COOKIE_EMAIL, _COOKIE_FIRST_NAME, _COOKIE_LAST_NAME,
+        _COOKIE_CARD_ID, _COOKIE_CARD_VER, _COOKIE_CARD_SLUG, _COOKIE_CARD_STATUS,
+    ))
 
 
 # ── Card state ────────────────────────────────────────────────────────────────
 
 def save_card_state(card_id: int, version: int, slug: str, status: str) -> None:
     """Persist saved-card identifiers in browser cookies for cross-reload recovery."""
-    safe_slug = slug.replace('"', "").replace("'", "").replace(";", "")
-    safe_status = status.replace('"', "").replace("'", "").replace(";", "")
     _inject(_js_set(
         (_COOKIE_CARD_ID, str(card_id)),
         (_COOKIE_CARD_VER, str(version)),
-        (_COOKIE_CARD_SLUG, safe_slug),
-        (_COOKIE_CARD_STATUS, safe_status),
+        (_COOKIE_CARD_SLUG, _safe(slug)),
+        (_COOKIE_CARD_STATUS, _safe(status)),
     ))
 
 

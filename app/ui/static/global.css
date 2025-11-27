@@ -1,124 +1,160 @@
 /* =========================================
-   Theme (tweak these to your brand colors)
+   Design System — single source of truth
    ========================================= */
-:root{
-  --brand-600:#184197;        /* primary */
-  --brand-700:#102a63;
-  --brand-50:#e9efff;
-  --ink:#0f172a;              /* text */
-  --muted:#475569;
-  --surface:#ffffff;
-  --accent: #3568c9;         /* color del borde/hover */
-  --accent-600: #0553D1;
+:root {
+  --brand-600: #184197;
+  --brand-700: #102a63;
+  --brand-50:  #e9efff;
+  --ink:       #0f172a;
+  --muted:     #475569;
+  --surface:   #ffffff;
+  --accent:    #3568c9;
+  --accent-600:#0553D1;
+  --radius:    8px;
+  --radius-lg: 12px;
 }
 
 /* =========================================
    App base
    ========================================= */
-.stApp{
+.stApp {
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
   color: var(--ink);
   background: var(--surface);
 }
 
-/* Center content like a site */
-.block-container{
+.block-container {
   max-width: 1100px;
   padding: 1.5rem 2rem 3rem;
 }
 
 /* =========================================
-   Full-width sticky top bar (like the site)
+   Typography
    ========================================= */
-.top-bar{
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-
-  /* stretch edge-to-edge across the viewport */
-  width: 100vw;
-  margin-left: calc(-50vw + 50%);
-  background: var(--brand-600);
-  color: white;
-
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 0 2rem;
-  border-bottom: 2px solid var(--brand-700);
-  box-shadow: 0 4px 14px rgba(0,0,0,.12);
-}
-
-.top-bar .brand{
-  font-weight: 800;
-  letter-spacing: .2px;
-}
-
-.top-bar .nav{
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.top-bar .nav .nav-link{
-  text-decoration: none;
-  color: white;
-  font-weight: 600;
-  padding: .35rem .75rem;
-  border-radius: .5rem;
-  transition: background .15s ease, opacity .15s ease;
-  opacity: .9;
-}
-
-.top-bar .nav .nav-link:hover{
-  opacity: 1;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.top-bar .nav .nav-link.active{
-  background: rgba(255,255,255,.12);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-#btn_create_header, #btn_load_header, #btn_about_header { display: none; }
+h1, h2, h3 { color: var(--brand-600); font-weight: 700; }
+p, li { line-height: 1.65; color: var(--ink); }
+.block-container p, .block-container li { text-align: justify; }
 
 /* =========================================
-   Hero section (screenshot-like banner)
+   Button design system
+   ─────────────────────────────────────────
+   Override ALL Streamlit buttons to brand-600.
+   Streamlit's type="primary" renders red by
+   default — this block corrects that.
    ========================================= */
-.hero{
+
+/* Base reset for every button */
+.stButton > button {
+  border-radius: var(--radius) !important;
+  font-size:     0.9rem !important;
+  font-weight:   500   !important;
+  padding:       0.5rem 1.25rem !important;
+  transition:    background-color 0.15s ease, border-color 0.15s ease !important;
+  line-height:   1.4 !important;
+}
+
+/* Default (secondary) button → outlined brand-600 */
+.stButton > button[kind="secondary"],
+.stFormSubmitButton > button {
+  background-color: transparent            !important;
+  color:            var(--brand-600)       !important;
+  border:           1px solid var(--brand-600) !important;
+}
+.stButton > button[kind="secondary"]:hover,
+.stFormSubmitButton > button:hover {
+  background-color: var(--brand-50)        !important;
+  border-color:     var(--brand-600)       !important;
+  color:            var(--brand-600)       !important;
+}
+
+/* Primary button → same outlined style (kills Streamlit's default red) */
+.stButton > button[kind="primary"] {
+  background-color: transparent            !important;
+  color:            var(--brand-600)       !important;
+  border:           1px solid var(--brand-600) !important;
+}
+.stButton > button[kind="primary"]:hover {
+  background-color: var(--brand-50)        !important;
+  border-color:     var(--brand-600)       !important;
+  color:            var(--brand-600)       !important;
+}
+
+/* Focus / active state */
+.stButton > button:focus:not(:active) {
+  box-shadow: 0 0 0 3px rgba(24, 65, 151, 0.25) !important;
+  outline:    none !important;
+}
+
+/* =========================================
+   Dashboard cards
+   ========================================= */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.dash-card {
+  background:    var(--surface);
+  border:        1px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  padding:       1.5rem 1.5rem 1.25rem;
+  display:       flex;
+  flex-direction: column;
+  min-height:    180px;
+  box-shadow:    0 1px 3px rgba(0, 0, 0, 0.05);
+  transition:    border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dash-card:hover {
+  border-color: var(--accent);
+  box-shadow:   0 4px 12px rgba(24, 65, 151, 0.08);
+}
+
+.dash-card__title {
+  font-size:   1rem;
+  font-weight: 700;
+  color:       var(--ink);
+  margin:      0 0 0.4rem;
+}
+
+.dash-card__desc {
+  font-size:   0.875rem;
+  color:       var(--muted);
+  margin:      0 0 0.75rem;  /* bottom spacing separates desc from button */
+  flex:        1;
+  text-align:  left;
+  line-height: 1.5;
+}
+
+/* =========================================
+   Hero (unauthenticated home)
+   ========================================= */
+.hero {
   width: 100vw;
   margin-left: calc(-50vw + 50%);
   padding: 4.25rem 0 3rem;
-
-  background: linear-gradient(
-    180deg,
-    var(--brand-600) 0%,
-    #3b7bf0 40%,
-    #eaf1ff 100%
-  );
+  background: linear-gradient(180deg, var(--brand-600) 0%, #3b7bf0 40%, #eaf1ff 100%);
   color: white;
   text-align: center;
   position: relative;
   overflow: hidden;
 }
 
-.hero-inner{
+.hero-inner {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 2rem;
 }
 
-.hero h1{
-  margin: 0 0 .5rem;
+.hero h1 {
+  margin: 0 0 0.5rem;
   font-weight: 800;
   font-size: clamp(28px, 4vw, 44px);
 }
 
-.hero .lead{
+.hero .lead {
   color: #f0f4ff;
   font-size: clamp(14px, 1.8vw, 18px);
   margin: 0 auto;
@@ -126,59 +162,74 @@
 }
 
 /* =========================================
-   General typography & buttons
+   Home copy (unauthenticated about block)
    ========================================= */
-h1,h2,h3{ color: var(--brand-600); font-weight: 700; }
-p, li{ line-height: 1.65; color: var(--ink); }
-
-/* Optional: justify long paragraphs */
-.block-container p, .block-container li{ text-align: justify; }
-
-/* ===== Unified Home text style (for ABOUT + repo) ===================== */
-/* Same font as the hero (inherits .stApp’s Inter), a bit larger size.  */
-.home-copy{
+.home-copy {
   max-width: 980px;
   margin: 1.25rem auto 0;
   padding: 0 2rem;
-  font-family: inherit;                /* same as hero/white text */
-  font-size: clamp(16px, 1.2vw, 18px); /* a bit bigger, like repo text */
+  font-size: clamp(16px, 1.2vw, 18px);
   line-height: 1.75;
   color: var(--ink);
 }
 
-.home-copy p{ margin: 0 0 .9rem; }
+.home-copy p { margin: 0 0 0.9rem; }
 
-/* Links inside the block */
-.home-copy a{
+.home-copy a {
   color: var(--brand-600);
   text-decoration: none;
   font-weight: 600;
 }
-.home-copy a:hover{
+
+.home-copy a:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-/* Repo section centered with optional badges */
-.home-actions{
-  text-align: center;
+.home-actions { text-align: center; margin-top: 1rem; }
+.home-actions__copy { margin: .25rem 0 .5rem; }
+.home-actions__badges img { vertical-align: middle; margin: .25rem .15rem 0; }
+
+/* =========================================
+   Published cards grid
+   ========================================= */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
   margin-top: 1rem;
 }
-.home-actions__copy{
-  margin: .25rem 0 .5rem;
+
+.card-item {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* Keep badges tidy and on one line if present */
-.home-actions__badges img{
-  vertical-align: middle;
-  margin: .25rem .15rem 0;
+.card-item__slug {
+  font-weight: 700;
+  color: var(--brand-600);
+  font-size: 1.05rem;
 }
 
-/* Hide the invisible wrapper that components.html() injects at height=0 */
+.card-item__meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.3rem;
+}
+
+/* =========================================
+   Misc
+   ========================================= */
+/* Hide 0-height component iframes (auth cookie injection) */
 iframe[height="0"],
 .element-container:has(> iframe[height="0"]) {
-  display: none !important;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  display:  none   !important;
+  height:   0      !important;
+  margin:   0      !important;
+  padding:  0      !important;
 }
+
+#btn_create_header, #btn_load_header, #btn_about_header { display: none; }
