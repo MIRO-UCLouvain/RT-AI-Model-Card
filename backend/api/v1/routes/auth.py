@@ -38,7 +38,11 @@ async def login(
     """
     user = await authenticate_user(db, form.username, form.password)
     token = create_access_token(user.id)
-    return TokenResponse(access_token=token)
+    return TokenResponse(
+        access_token=token,
+        first_name=user.first_name,
+        last_name=user.last_name,
+    )
 
 
 @router.get("/me", response_model=UserResponse)

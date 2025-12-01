@@ -28,3 +28,5 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    first_name: str | None = None
+    last_name: str | None = None

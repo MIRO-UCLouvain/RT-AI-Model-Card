@@ -45,11 +45,14 @@ def render_topbar(
 
     if auth_email:
         # Authenticated: no discovery nav; show user profile dropdown.
-        display_name = (
-            f"{auth_first_name} {auth_last_name}"
-            if auth_first_name and auth_last_name
-            else auth_email.split("@")[0]
-        )
+        if auth_first_name and auth_last_name:
+            display_name = f"{auth_first_name} {auth_last_name}"
+        elif auth_first_name:
+            display_name = auth_first_name
+        elif auth_last_name:
+            display_name = auth_last_name
+        else:
+            display_name = auth_email.split("@")[0]
         initial = (auth_first_name[0] if auth_first_name else auth_email[0]).upper()
         # Flat string — no indentation so Python-Markdown never treats it as a code block.
         nav_html = ""

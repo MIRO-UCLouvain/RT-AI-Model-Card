@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from app.client.model_cards import BackendError, get_me, login
+from app.client.model_cards import BackendError, login
 from app.ui.utils.auth import save_auth
 
 
@@ -35,16 +35,14 @@ def login_page() -> None:
                 else:
                     try:
                         result = login(email.strip(), password)
-                        token = result["access_token"]
-                        # Fetch profile so we can display the user's real name
-                        try:
-                            profile = get_me(token)
-                            first_name = profile.get("first_name") or ""
-                            last_name = profile.get("last_name") or ""
-                        except BackendError:
-                            first_name = ""
-                            last_name = ""
-                        _auth_result = (token, email.strip(), first_name, last_name)
+                        # first_name / last_name are now returned by the login
+                        # endpoint directly — no second get_me() call needed.
+                        _auth_result = (
+                            result["access_token"],
+                            email.strip(),
+                            result.get("first_name") or "",
+                            result.get("last_name") or "",
+                        )
                         st.query_params["view"] = "home"
                     except BackendError as exc:
                         st.error(str(exc))

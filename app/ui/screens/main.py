@@ -115,6 +115,8 @@ def _render_logged_in_home() -> None:
         display_name = f"{first_name} {last_name}"
     elif first_name:
         display_name = first_name
+    elif last_name:
+        display_name = last_name
     else:
         display_name = email.split("@")[0] if email else "there"
 
@@ -198,10 +200,8 @@ def main() -> None:
     # components.html JS that sets cookies ran after the next page load),
     # fetch the profile once and backfill session state so the display name
     # is always First + Last, never the email prefix.
-    if (
-        st.session_state.get("auth_token")
-        and not st.session_state.get("auth_first_name")
-        and not st.session_state.get("auth_last_name")
+    if st.session_state.get("auth_token") and not (
+        st.session_state.get("auth_first_name") or st.session_state.get("auth_last_name")
     ):
         try:
             _profile = get_me(st.session_state.auth_token)
