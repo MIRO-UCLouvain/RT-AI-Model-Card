@@ -122,11 +122,11 @@ def _render_logged_in_home() -> None:
 
     # Welcome header — flat string, no indentation (avoids markdown code-block issue)
     st.markdown(
-        '<div style="padding:1.5rem 0 0.5rem;">'
-        f'<h2 style="margin:0 0 0.25rem;color:var(--ink);font-size:1.6rem;font-weight:700;">'
-        f'Welcome, <span style="color:var(--brand-600)">{display_name}</span>'
+        '<div style="padding:2rem 0 0.75rem;">'
+        f'<h2 style="margin:0 0 0.35rem;color:var(--ink);font-size:1.9rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">'
+        f'Welcome back, <span style="color:var(--brand-600);">{display_name}</span>'
         '</h2>'
-        '<p style="margin:0;color:var(--muted);font-size:0.9rem;">Select an action to get started.</p>'
+        '<p style="margin:0;color:var(--muted);font-size:0.875rem;font-weight:400;line-height:1.5;">Select an action below to get started.</p>'
         '</div>',
         unsafe_allow_html=True,
     )

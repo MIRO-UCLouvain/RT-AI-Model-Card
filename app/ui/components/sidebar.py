@@ -62,7 +62,9 @@ CSS_PATH = (Path(__file__).resolve().parent.parent / "static" / "sidebar.css")
 
 def _render_menu() -> None:  # noqa: C901
     if st.button("About Model Cards", use_container_width=True):
-        st.session_state.runpage = model_card_info_render
+        # Navigate to the standalone About page so the top bar is preserved.
+        # cli.py will reset runpage to main() for any non-"create" view.
+        st.query_params["view"] = "about"
         st.rerun()
 
     task = st.session_state.get("task", "Image-to-Image translation")

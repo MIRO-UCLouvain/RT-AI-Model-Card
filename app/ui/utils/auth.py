@@ -22,6 +22,12 @@ _COOKIE_CARD_SLUG = "rtmc_saved_slug"
 _COOKIE_CARD_STATUS = "rtmc_saved_status"
 _COOKIE_MAX_AGE = 3600  # 1 hour — matches JWT expiry
 
+# Server-side set of tokens that have been explicitly logged out.
+# Persists across Streamlit reruns and full-page reloads within the same
+# server process, so stale browser cookies can never re-authenticate a
+# logged-out token even before the JS cookie-clearing has executed.
+_logged_out_tokens: set[str] = set()
+
 
 def _js_set(*pairs: tuple[str, str], max_age: int = _COOKIE_MAX_AGE) -> str:
     """Build the JS cookie-setting lines for the given name=value pairs."""
@@ -85,6 +91,11 @@ def restore_auth() -> None:
         token = cookies.get(_COOKIE_TOKEN)
         email = cookies.get(_COOKIE_EMAIL)
         if token and email:
+            # Never restore a token that was explicitly logged out in this
+            # server process — guards against stale browser cookies when the
+            # JS cookie-clearing hasn't fired before the next page reload.
+            if token in _logged_out_tokens:
+                return
             st.session_state.auth_token = token
             st.session_state.auth_email = email
             st.session_state.auth_first_name = cookies.get(_COOKIE_FIRST_NAME, "")
@@ -95,6 +106,17 @@ def restore_auth() -> None:
 
 def clear_auth() -> None:
     """Clear auth from session state and expire browser cookies."""
+    # The logout topbar link is a plain <a href> which causes a full page
+    # reload.  That creates a *new* Streamlit session whose session_state has
+    # no auth_token yet — so we fall back to reading the cookie directly.
+    token = st.session_state.get("auth_token")
+    if not token:
+        try:
+            token = st.context.cookies.get(_COOKIE_TOKEN)
+        except AttributeError:
+            pass
+    if token:
+        _logged_out_tokens.add(token)
     st.session_state.auth_token = None
     st.session_state.auth_email = None
     st.session_state.auth_first_name = None

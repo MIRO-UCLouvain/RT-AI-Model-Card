@@ -49,34 +49,37 @@ p, li { line-height: 1.65; color: var(--ink); }
   font-size:     0.9rem !important;
   font-weight:   500   !important;
   padding:       0.5rem 1.25rem !important;
-  transition:    background-color 0.15s ease, border-color 0.15s ease !important;
+  transition:    background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
   line-height:   1.4 !important;
+  cursor:        pointer !important;
 }
 
 /* Default (secondary) button → outlined brand-600 */
 .stButton > button[kind="secondary"],
 .stFormSubmitButton > button {
-  background-color: transparent            !important;
-  color:            var(--brand-600)       !important;
-  border:           1px solid var(--brand-600) !important;
+  background-color: transparent                  !important;
+  color:            var(--brand-600)             !important;
+  border:           1.5px solid var(--brand-600) !important;
 }
 .stButton > button[kind="secondary"]:hover,
 .stFormSubmitButton > button:hover {
-  background-color: var(--brand-50)        !important;
-  border-color:     var(--brand-600)       !important;
-  color:            var(--brand-600)       !important;
+  background-color: var(--brand-50)              !important;
+  border-color:     var(--brand-600)             !important;
+  color:            var(--brand-600)             !important;
+  box-shadow:       0 2px 8px rgba(24,65,151,0.12) !important;
 }
 
 /* Primary button → same outlined style (kills Streamlit's default red) */
 .stButton > button[kind="primary"] {
-  background-color: transparent            !important;
-  color:            var(--brand-600)       !important;
-  border:           1px solid var(--brand-600) !important;
+  background-color: transparent                  !important;
+  color:            var(--brand-600)             !important;
+  border:           1.5px solid var(--brand-600) !important;
 }
 .stButton > button[kind="primary"]:hover {
-  background-color: var(--brand-50)        !important;
-  border-color:     var(--brand-600)       !important;
-  color:            var(--brand-600)       !important;
+  background-color: var(--brand-50)              !important;
+  border-color:     var(--brand-600)             !important;
+  color:            var(--brand-600)             !important;
+  box-shadow:       0 2px 8px rgba(24,65,151,0.12) !important;
 }
 
 /* Focus / active state */
@@ -95,37 +98,65 @@ p, li { line-height: 1.65; color: var(--ink); }
   margin-top: 1.5rem;
 }
 
+/* Override Streamlit's bordered container for polished cards */
+[data-testid="stVerticalBlockBorderWrapper"] {
+  border:        1px solid #dde3ef           !important;
+  border-radius: 16px                        !important;
+  background:    #ffffff                     !important;
+  box-shadow:    0 1px 3px rgba(0,0,0,0.05),
+                 0 4px 14px rgba(0,0,0,0.04) !important;
+  transition:    border-color 0.2s ease,
+                 box-shadow   0.2s ease,
+                 transform    0.2s ease      !important;
+  overflow:      hidden                      !important;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+  border-color: var(--brand-600)                            !important;
+  box-shadow:   0 6px 24px rgba(24,65,151,0.10),
+                0 1px 4px rgba(0,0,0,0.06)                 !important;
+  transform:    translateY(-2px)                            !important;
+}
+
+/* Extra padding inside the card body */
+[data-testid="stVerticalBlockBorderWrapper"] > [data-testid="stVerticalBlock"] {
+  padding: 1.75rem 1.75rem 1.5rem !important;
+  gap:     0.5rem                 !important;
+}
+
 .dash-card {
   background:    var(--surface);
-  border:        1px solid #e2e8f0;
-  border-radius: var(--radius-lg);
-  padding:       1.5rem 1.5rem 1.25rem;
+  border:        1px solid #dde3ef;
+  border-radius: 16px;
+  padding:       1.75rem 1.75rem 1.5rem;
   display:       flex;
   flex-direction: column;
   min-height:    180px;
-  box-shadow:    0 1px 3px rgba(0, 0, 0, 0.05);
-  transition:    border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow:    0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(0,0,0,0.04);
+  transition:    border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .dash-card:hover {
-  border-color: var(--accent);
-  box-shadow:   0 4px 12px rgba(24, 65, 151, 0.08);
+  border-color: var(--brand-600);
+  box-shadow:   0 6px 24px rgba(24,65,151,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  transform:    translateY(-2px);
 }
 
 .dash-card__title {
-  font-size:   1rem;
+  font-size:   1.05rem;
   font-weight: 700;
   color:       var(--ink);
-  margin:      0 0 0.4rem;
+  margin:      0 0 0.5rem;
+  letter-spacing: -0.01em;
 }
 
 .dash-card__desc {
   font-size:   0.875rem;
   color:       var(--muted);
-  margin:      0 0 0.75rem;  /* bottom spacing separates desc from button */
+  margin:      0 0 1rem;  /* bottom spacing separates desc from button */
   flex:        1;
   text-align:  left;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* =========================================

@@ -19,37 +19,11 @@ def _read_about_md() -> str:
 
 def about_page() -> None:
     """Display the extended 'About Model Cards' content."""
-    st.markdown(
-        """
-        <style>
-        .block-container {
-            max-width: 1100px;
-            padding-left: 5rem;
-            padding-right: 5rem;
-        }
-        .block-container p, .block-container li {
-            text-align: justify;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        """
-        <style>
-        .block-container p, .block-container li {
-            text-align: justify;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
     st.markdown(_read_about_md())
 
     st.markdown("---")
     _, col_back, _ = st.columns([1, 2, 1])
     with col_back:
-        if st.button("← Back to Dashboard", key="about_back_home", use_container_width=True):
+        if st.button("← Back to Main Page", key="about_back_home", use_container_width=True):
             st.query_params["view"] = "home"
             st.rerun()

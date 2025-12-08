@@ -44,7 +44,7 @@ def render_topbar(
         github_url = "https://github.com/MIRO-UCLouvain/RT-Model-Card"
 
     if auth_email:
-        # Authenticated: no discovery nav; show user profile dropdown.
+        # Authenticated: show About link in center nav; profile dropdown on right.
         if auth_first_name and auth_last_name:
             display_name = f"{auth_first_name} {auth_last_name}"
         elif auth_first_name:
@@ -70,7 +70,7 @@ def render_topbar(
             f'<div class="topbar__dropdown-email">{auth_email}</div>'
             "</div>"
             '<div class="topbar__dropdown-divider"></div>'
-            '<a href="?view=logout" target="_self" class="topbar__dropdown-logout">Logout</a>'
+            '<a href="?view=logout" target="_self" class="topbar__dropdown-logout">Sign out</a>'
             "</div>"
             "</div>"
             "</div>"
@@ -80,11 +80,12 @@ def render_topbar(
         nav_html = (
             f'<a class="{cls("create")}" href="?view=create" target="_self">Create Model Card</a>'
             f'<a class="{cls("published")}" href="?view=published" target="_self">Published Model Cards</a>'
+            f'<a class="{cls("about")}" href="?view=about" target="_self">About</a>'
         )
         auth_html = (
             '<div class="topbar__auth">'
-            f'<a class="{cls("login")}" href="?view=login" target="_self">Login</a>'
-            f'<a class="{cls("register")}" href="?view=register" target="_self">Register</a>'
+            f'<a class="{cls("login")}" href="?view=login" target="_self">Sign in</a>'
+            f'<a class="{cls("register")}" href="?view=register" target="_self">Sign up</a>'
             "</div>"
         )
 
@@ -94,7 +95,7 @@ def render_topbar(
         '<div class="topbar">'
         '<div class="topbar__inner">'
         '<div class="topbar__brand">'
-        '<a class="topbar__home" href="?view=home" target="_self">RT AI Model Card Writing Tool</a>'
+        '<a class="topbar__home" href="?view=home" target="_self">RT AI Model Card - Writing Tool</a>'
         "</div>"
         f'<nav class="topbar__nav">{nav_html}</nav>'
         + auth_html

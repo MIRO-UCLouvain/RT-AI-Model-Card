@@ -113,6 +113,6 @@ def published_cards_page() -> None:
     st.markdown("---")
     _, col_back, _ = st.columns([1, 2, 1])
     with col_back:
-        if st.button("← Back to Dashboard", key="published_back_home", use_container_width=True):
+        if st.button("← Back to Main Page", key="published_back_home", use_container_width=True):
             st.query_params["view"] = "home"
             st.rerun()

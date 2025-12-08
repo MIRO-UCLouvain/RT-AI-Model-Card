@@ -57,7 +57,7 @@ def register_page() -> None:
                         st.error(str(exc))
 
             st.markdown(
-                "Already have an account? [Login](?view=login)",
+                "Already have an account? [Sign in](?view=login)",
                 unsafe_allow_html=True,
             )
 
