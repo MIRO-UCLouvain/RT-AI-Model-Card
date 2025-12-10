@@ -34,13 +34,13 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 try:
-    from weasyprint import CSS, HTML  # type: ignore[import-untyped]
+    from xhtml2pdf import pisa  # type: ignore[import-untyped]
 
-    _HAS_WEASYPRINT: bool = True
-    _WEASYPRINT_ERR: Exception | None = None
+    _HAS_PISA: bool = True
+    _PISA_ERR: Exception | None = None
 except (ImportError, OSError) as e:
-    _HAS_WEASYPRINT = False
-    _WEASYPRINT_ERR = e
+    _HAS_PISA = False
+    _PISA_ERR = e
 
 
 @dataclass(frozen=True)
@@ -746,11 +746,43 @@ img, figure img {
 figcaption { font-size: 9pt; color: var(--muted); margin-top: 0.3em; }
 """
 
+# Simplified CSS for xhtml2pdf: no nested @page rules, no CSS variables,
+# no string-set (none of these are supported by xhtml2pdf/ReportLab).
+_XHTML2PDF_CSS = """
+@page { size: A4; margin: 18mm 14mm 20mm 14mm; }
+html, body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 9.6pt;
+  line-height: 1.5;
+  color: #111111;
+}
+p, li { margin: 0.35em 0 0.6em; }
+h1 { font-size: 15.6pt; font-weight: bold; color: #111111; margin: 1em 0 0.6em; }
+h2 { font-size: 13.6pt; font-weight: bold; color: #ffffff; background: #0553D1;
+     padding: 6px 10px; margin: 0.9em 0 0.55em; }
+h3 { font-size: 12.1pt; font-weight: bold; color: #111111; }
+h4 { font-size: 10.9pt; font-weight: bold; color: #374151; }
+h5 { font-size: 10.1pt; font-weight: bold; color: #6b7280; }
+ul { margin: 0.3em 0 0.7em 1.2em; padding-left: 0; }
+ul li { margin: 0.2em 0; padding-left: 1em; }
+table { border-collapse: collapse; width: 100%; margin: 0.5em 0 1em;
+        font-size: 9.8pt; border: 1px solid #e5e7eb; }
+caption { caption-side: top; text-align: left; font-weight: bold;
+          color: #111111; padding: 6px 0; }
+thead th { background: #05B9D1; color: #ffffff; font-weight: bold; text-align: left; }
+th, td { border: 1px solid #e5e7eb; padding: 6px 8px; vertical-align: top; }
+tbody tr:nth-child(even) td { background: #f9fafb; }
+figure { margin: 0.7em auto 1em; text-align: center; }
+img { display: block; max-width: 70%; height: auto; margin: 0.4em auto;
+      border: 1px solid #e5e7eb; }
+figcaption { font-size: 9pt; color: #4b5563; margin-top: 0.3em; }
+"""
 
 
 def render_markdown_to_html(
     md_text: str,
     extra_css: str | None = None,
+    base_css: str | None = None,
 ) -> str:
     """
     Render the given Markdown text to HTML.
@@ -767,7 +799,7 @@ def render_markdown_to_html(
         extensions=_MARKDOWN_EXTENSIONS,
         output_format="html",
     )
-    css_block = f"<style>{DEFAULT_PDF_CSS}</style>"
+    css_block = f"<style>{base_css if base_css is not None else DEFAULT_PDF_CSS}</style>"
     if extra_css:
         css_block += f"<style>{extra_css}</style>"
     return f"""<!doctype html>
@@ -803,37 +835,35 @@ def save_model_card_pdf(
     :param base_url: The base URL for resolving relative paths,
         defaults to None
     :type base_url: str | None, optional
-    :raises RuntimeError: If WeasyPrint is not installed or missing
-        system libraries
+    :raises RuntimeError: If xhtml2pdf is not installed
     :return: The file path to the saved PDF
     :rtype: str
     """
-    if not _HAS_WEASYPRINT:
+    if not _HAS_PISA:
         msg = (
-            "PDF export unavailable: WeasyPrint not installed or "
-            "missing system libraries.\n"
-            f"Underlying error: {_WEASYPRINT_ERR}"
+            "PDF export unavailable: xhtml2pdf not installed.\n"
+            f"Underlying error: {_PISA_ERR}"
         )
         raise RuntimeError(msg)
 
     md = render_full_model_card_md()
-    html = render_markdown_to_html(md, extra_css=css_text)
+    html = render_markdown_to_html(md, base_css=_XHTML2PDF_CSS)
 
-    css_list = []
-    if css_file:
-        css_list.append(CSS(filename=css_file))
-    if css_text:
-        css_list.append(CSS(string=css_text))
+    with open(path, "wb") as pdf_file:
+        result = pisa.CreatePDF(html, dest=pdf_file)
 
-    HTML(string=html, base_url=base_url).write_pdf(path, stylesheets=css_list)
+    if result.err:
+        msg = f"PDF generation failed with {result.err} error(s)."
+        raise RuntimeError(msg)
+
     return path
 
 
 __all__ = [
     # constants
     "DEFAULT_PDF_CSS",
-    "_HAS_WEASYPRINT",
-    "_WEASYPRINT_ERR",
+    "_HAS_PISA",
+    "_PISA_ERR",
     "_collect_hw_sw_from_state",
     "_collect_learning_architectures_from_state",
     "_env",

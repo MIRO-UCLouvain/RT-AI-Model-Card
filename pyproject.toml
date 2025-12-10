@@ -31,8 +31,7 @@ dependencies = [
   "bleach>=6.1.0",
   "cssselect2>=0.7.0",
   "tinycss2>=1.3.0",
-  "WeasyPrint==61.2",
-  "pydyf==0.8.0",
+  "xhtml2pdf>=0.2.11",
 ]
 
 [project.optional-dependencies]

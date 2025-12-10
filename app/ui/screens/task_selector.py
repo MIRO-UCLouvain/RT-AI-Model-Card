@@ -13,7 +13,7 @@ def task_selector_page() -> None:
         st.warning(
             "You can continue creating a model card, but you will not be able "
             "to publish it unless you are logged in. "
-            "[Login](?view=login) or [Register](?view=register)."
+            "[Sign in](?view=login) or [Create an account](?view=register)."
         )
 
     st.markdown(

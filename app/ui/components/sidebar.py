@@ -20,10 +20,6 @@ from app.ui.utils.auth import save_card_state
 from app.services.state_store import clear_form_state
 from app.core.model_card.constants import SCHEMA
 from app.services.markdown.renderer import render_full_model_card_md
-from app.services.readme.builder import (
-    render_hf_readme,
-    upload_readme_to_hub,
-)
 from app.services.schema_loader import get_model_card_schema
 from app.services.serialization import parse_into_json
 from app.services.validation import validate_required_fields
@@ -45,14 +41,12 @@ from app.ui.screens.sections.technical_specifications import (
 from app.ui.screens.sections.training_data import training_data_render
 from app.ui.screens.sections.warnings import warnings_render
 from app.ui.utils.css import inject_css
-from app.ui.utils.typography import enlarge_tab_titles
 
 model_card_schema: dict[str, Any] = get_model_card_schema()
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
 SIDEBAR_WIDTH_PX: int = 500
-REPO_ID_PARTS: int = 2
 
 # Location of the external CSS file
 CSS_PATH = (Path(__file__).resolve().parent.parent / "static" / "sidebar.css")
@@ -62,9 +56,7 @@ CSS_PATH = (Path(__file__).resolve().parent.parent / "static" / "sidebar.css")
 
 def _render_menu() -> None:  # noqa: C901
     if st.button("About Model Cards", use_container_width=True):
-        # Navigate to the standalone About page so the top bar is preserved.
-        # cli.py will reset runpage to main() for any non-"create" view.
-        st.query_params["view"] = "about"
+        st.session_state.runpage = model_card_info_render
         st.rerun()
 
     task = st.session_state.get("task", "Image-to-Image translation")
@@ -346,105 +338,6 @@ def _local_downloads_tab() -> None:
         _download_zip_json_plus_files_ui()
 
 
-# ── README tab ────────────────────────────────────────────────────────────────
-
-def _readme_generate_form() -> None:
-    with st.form("form_generate_readme"):
-        if st.form_submit_button("Generate README.md"):
-            try:
-                _ = parse_into_json(SCHEMA)
-                generated = render_hf_readme()
-                st.session_state.last_readme_text = generated
-                st.success(
-                    "README built successfully. Use the download button "
-                    "below.",
-                )
-            except (
-                ValueError,
-                RuntimeError,
-                OSError,
-                TypeError,
-            ) as e:
-                st.session_state.last_readme_text = None
-                st.error(f"Could not build README: {e}")
-
-
-def _readme_download_preview() -> None:
-    if not st.session_state.last_readme_text:
-        return
-    st.download_button(
-        "Download README.md",
-        data=st.session_state.last_readme_text.encode("utf-8"),
-        file_name="README.md",
-        mime="text/markdown",
-        use_container_width=True,
-        key="btn_download_readme",
-    )
-    with st.expander("Preview README.md", expanded=False):
-        st.text_area(
-            "README.md",
-            value=st.session_state.last_readme_text,
-            height=300,
-            key="ta_readme_preview",
-        )
-
-
-def _hub_push_form() -> None:
-    st.markdown("## Export README.md to Hub")
-    with st.form("form_upload_readme_hub"):
-        st.markdown(
-            "Use a token with write access from "
-            "[here](https://hf.co/settings/tokens)",
-        )
-        token_rm = st.text_input(
-            "Token",
-            type="password",
-            key="token_rm_hub",
-        )
-        repo_id_rm = st.text_input(
-            "Repo ID (e.g. user/repo)",
-            key="repo_id_rm_hub",
-        )
-        push_rm = st.form_submit_button("Upload README.md to Hub")
-
-    if not push_rm:
-        return
-    if len(repo_id_rm.split("/")) != REPO_ID_PARTS:
-        st.error(
-            "Repo ID invalid. It should be username/repo-name. For "
-            "example: nateraw/food",
-        )
-        return
-    try:
-        if not st.session_state.get("last_readme_text"):
-            st.session_state.last_readme_text = render_hf_readme()
-        tmp_path = "README.md"
-        with open(tmp_path, "w", encoding="utf-8") as f:  # noqa: PTH123
-            f.write(st.session_state.last_readme_text)
-        upload_readme_to_hub(
-            repo_id=repo_id_rm,
-            token=token_rm or None,
-            readme_path=tmp_path,
-            create_if_missing=True,
-        )
-        new_url = f"https://huggingface.co/{repo_id_rm}"
-        st.success(
-            f"Pushed the README to the repo [here]({new_url})!",
-        )
-    except (OSError, RuntimeError, ValueError) as e:
-        st.error(f"Error: {e!s}")
-
-
-def _readme_tab() -> None:
-    task = st.session_state.get("task", "Image-to-Image translation")
-    _ = validate_required_fields(model_card_schema, current_task=task)
-    if "last_readme_text" not in st.session_state:
-        st.session_state.last_readme_text = None
-    _readme_generate_form()
-    _readme_download_preview()
-    _hub_push_form()
-
-
 # ── Save section ──────────────────────────────────────────────────────────────
 
 def _derive_slug(name: str) -> str:
@@ -460,7 +353,7 @@ def _save_section() -> None:
     """Auth-gated save controls above the download tabs."""
     token: str | None = st.session_state.get("auth_token")
     if not token:
-        st.info("Log in to save and publish your model card.")
+        st.info("[Sign in](?view=login) to save and publish your model card.")
         return
 
     st.markdown("## Save")
@@ -574,41 +467,19 @@ def sidebar_render() -> None:
     """Render the sidebar for the Streamlit app."""
     with st.sidebar:
         inject_css(CSS_PATH)
-        _render_menu()
-        _save_section()
-        st.markdown("## Model Card Builder")
-        enlarge_tab_titles(16)
-        tab_local, tab_readme = st.tabs(
-            ["Local downloads", "Upload README to Hub"],
-        )
-        with tab_local:
-            _local_downloads_tab()
-        with tab_readme:
-            _readme_tab()
-        st.divider()
-        _render_github_repo(
-            repo_url="https://github.com/MIRO-UCLouvain/RT-Model-Card",
-        )
-        st.divider()
+
+        # ── Back to Main Page (top of sidebar, always visible) ────────────────
         if not st.session_state.get("_sidebar_confirm_back"):
-            col_back, col_issue = st.columns(2)
-            with col_back:
-                if st.button(
-                    "← Main Page",
-                    key="sidebar_back_home",
-                    use_container_width=True,
-                ):
-                    st.session_state["_sidebar_confirm_back"] = True
-                    st.rerun()
-            with col_issue:
-                st.link_button(
-                    "Open an Issue ↗",
-                    "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
-                    use_container_width=True,
-                )
+            if st.button(
+                "← Back to Main Page",
+                key="sidebar_back_home",
+                use_container_width=True,
+            ):
+                st.session_state["_sidebar_confirm_back"] = True
+                st.rerun()
         else:
             st.warning(
-                "⚠️ All unsaved data will be lost. "
+                "All unsaved data will be lost. "
                 "Download your card before leaving."
             )
             col_yes, col_no = st.columns(2)
@@ -622,3 +493,19 @@ def sidebar_render() -> None:
                 if st.button("Stay", key="sidebar_cancel_leave", use_container_width=True):
                     st.session_state.pop("_sidebar_confirm_back", None)
                     st.rerun()
+
+        st.markdown("<div style='margin-bottom: 0.75rem'></div>", unsafe_allow_html=True)
+
+        _render_menu()
+        _save_section()
+        _local_downloads_tab()
+        st.divider()
+        _render_github_repo(
+            repo_url="https://github.com/MIRO-UCLouvain/RT-Model-Card",
+        )
+        st.divider()
+        st.link_button(
+            "Open an Issue ↗",
+            "https://github.com/MIRO-UCLouvain/RT-Model-Card/issues",
+            use_container_width=True,
+        )

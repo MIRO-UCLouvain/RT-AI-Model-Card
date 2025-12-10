@@ -44,3 +44,12 @@ def model_card_info_render() -> None:
         st.markdown(_read_markdown(md_file))
     except UnicodeDecodeError:
         st.error(f"Could not decode '{md_file}' as UTF-8.")
+        return
+
+    st.divider()
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        if st.button("Start filling up →", use_container_width=True, type="primary"):
+            from app.ui.screens.sections.card_metadata import card_metadata_render  # noqa: PLC0415
+            st.session_state.runpage = card_metadata_render
+            st.rerun()
