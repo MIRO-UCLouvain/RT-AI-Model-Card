@@ -35,8 +35,23 @@ APPENDIX_SUBTITLE = (
 )
 APPENDIX_HINT = (
     "You can upload any supporting files such as PDFs, figures, CSVs, "
-    "ZIPs, or notes."
+    "ZIPs, or notes. "
+    "For figure fields that only accept a single image, upload additional "
+    "figures here and reference them in the corresponding field."
 )
+
+# Sections that users can associate an appendix file with.
+APPENDIX_SECTIONS: list[str] = [
+    "— Select a section (optional) —",
+    "Technical Specifications – Model Pipeline",
+    "Technical Specifications – Model Architecture",
+    "Training Methodology – Train/Val Loss Curves",
+    "Evaluation – Image Similarity Metrics",
+    "Evaluation – Dose Metrics",
+    "Evaluation – Segmentation Metrics",
+    "Evaluation – Other Metrics",
+    "Other",
+]
 
 UPLOAD_DIR = Path("uploads/appendix")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -76,13 +91,33 @@ def _render_uploaded_row(
         st.caption(Path(file_path).name)
 
     with col2:
+        section_key = f"section_{original_name}"
+        current_section = file_data.get("section", APPENDIX_SECTIONS[0])
+        section_idx = (
+            APPENDIX_SECTIONS.index(current_section)
+            if current_section in APPENDIX_SECTIONS
+            else 0
+        )
+        section_val = st.selectbox(
+            label="Section",
+            options=APPENDIX_SECTIONS,
+            index=section_idx,
+            key=section_key,
+            label_visibility="collapsed",
+            help="Associate this file with a section of the model card.",
+        )
+        st.session_state.appendix_uploads[original_name]["section"] = (
+            section_val if section_val != APPENDIX_SECTIONS[0] else ""
+        )
+
         label_key = f"label_{original_name}"
         label_val = st.text_input(
             label="Label",
             value=file_data.get("custom_label", ""),
             key=label_key,
-            placeholder="Indicate here the Figure/ File number e.g., Fig 1",
+            placeholder="Figure/file reference, e.g. Fig. A1",
             label_visibility="collapsed",
+            help="Reference used in the model card to cite this file.",
         )
         # Persist label alongside the stored entry
         st.session_state.appendix_uploads[original_name]["custom_label"] = (

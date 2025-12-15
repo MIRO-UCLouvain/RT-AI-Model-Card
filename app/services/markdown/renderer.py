@@ -403,6 +403,16 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
                 if norm:
                     la["architecture_figure"] = norm
         if prefix == PREFIX_TRAINING:
+            # Normalize the train/val loss figure from render_uploads so the
+            # template receives a proper {name, type, url} dict instead of the
+            # raw session-state value (which is either absent or a stale
+            # UploadedFile object without a resolved data URI).
+            norm = _normalize_file_from_key(
+                "training_data_train_and_validation_loss_curves",
+            )
+            if norm:
+                ctx["training_data_train_and_validation_loss_curves"] = norm
+
             ctx["DATA_INPUT_OUTPUT_TS"] = DATA_INPUT_OUTPUT_TS
 
             modality_entries: list[dict[str, str]] = []

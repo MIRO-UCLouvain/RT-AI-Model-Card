@@ -48,6 +48,10 @@ ALLOWED_UPLOAD_EXTS: list[str] = [
     "DICOM",
 ]
 
+# Restricted set for figure/image fields in the model card form.
+# Only raster and vector formats suitable for scientific figures are allowed.
+ALLOWED_IMAGE_EXTS: list[str] = ["png", "jpg", "jpeg", "svg"]
+
 
 class UploadMeta(TypedDict):
     """
@@ -75,6 +79,7 @@ class AppendixMeta(TypedDict, total=False):
     custom_label: str
     path: str
     stored_name: str
+    section: str
 
 
 # Filename sanitization

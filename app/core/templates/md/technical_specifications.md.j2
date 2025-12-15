@@ -10,7 +10,7 @@
 {% set f = technical_specifications_model_pipeline_figure %}
 {% if f %}
 **Figure:** {{ (f.name if f is defined and f.name is defined else (f.get("name") if f.get is defined else "—")) or "—" }}
-{{ C.render_file(f, label="Figure") }}
+{{ C.render_file(f, label="Figure", caption=technical_specifications_model_pipeline_figure_caption | default(None, true)) }}
 {% endif %}
 
 - **Model inputs** **\*** : {{ technical_specifications_model_inputs | default("—", true) }}
@@ -60,7 +60,8 @@ _No learning architectures provided._
 | **Regularisation** | {{ la.regularisation | default("—", true) }} |
 {% set f = la.architecture_figure %}
 {% if f %}
-| **Architecture figure** **\*** | {{ (f.name if f is defined and f.name is defined else (f.get("name") if f.get is defined else "—")) }}<br>{{ C.render_file(f, label="Architecture figure") }} |
+{% set f_name = (f.name if f is defined and f.name is defined else (f.get("name") if f.get is defined else "—")) or "—" %}
+| **Architecture figure** **\*** | {{ f_name }} |
 {% endif %}
 | **Uncertainty quantification techniques** **\*** | {{ la.uncertainty_quantification_techniques | default("NA", true) }} |
 | **Explainability techniques** **\*** | {{ la.explainability_techniques | default("NA", true) }} |
@@ -69,6 +70,10 @@ _No learning architectures provided._
 {% endif %}
 {% if la.citation_details_ts %}
 | **Citation(s)** | {{ la.citation_details_ts | default("—") }} |
+{% endif %}
+
+{% if f %}
+{{ C.render_file(f, label="Architecture figure", caption=la.architecture_figure_caption | default(None, true)) }}
 {% endif %}
 
 {% if not loop.last %}

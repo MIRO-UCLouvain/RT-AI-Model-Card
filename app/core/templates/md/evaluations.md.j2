@@ -7,8 +7,7 @@
     "on_volume_ism": "**On Volume** **\\***",
     "registration_ism": "**Registration** **\\***",
     "sample_data_ism": "**Sample Data**",
-    "mean_data_ism": "**Mean Data** **\\***",
-    "figure_ism_appendix_note": "**Figure Appendix Label**"
+    "mean_data_ism": "**Mean Data** **\\***"
   }
   },
 
@@ -24,8 +23,7 @@
       "dose_grid_resolution_dm": "**Dose Grid Resolution** **\\***",
       "tps_vendor_dm": "**TPS Vendor**",
       "sample_data_dm": "**Sample Data**",
-      "mean_data_dm": "**Mean Data** **\\***",
-      "figure_dm_appendix_note": "**Figure Appendix Label**"
+      "mean_data_dm": "**Mean Data** **\\***"
     }
   },
 
@@ -36,8 +34,7 @@
       "metric_specifications_gm_seg": "**Metric Specifications** **\\***",
       "on_volume_gm_seg": "**On Volume** **\\***",
       "sample_data_gm_seg": "**Sample Data**",
-      "mean_data_gm_seg": "**Mean Data** **\\***",
-      "figure_gm_seg_appendix_note": "**Figure Appendix Label**"
+      "mean_data_gm_seg": "**Mean Data** **\\***"
     }
   },
 
@@ -52,8 +49,7 @@
       "dose_grid_resolution_dm_seg": "**Dose Grid Resolution** **\\***",
       "tps_vendor_dm_seg": "**TPS Vendor**",
       "sample_data_dm_seg": "**Sample Data**",
-      "mean_data_dm_seg": "**Mean Data** **\\***",
-      "figure_dm_seg_appendix_note": "**Figure DM Seg Appendix Label**"
+      "mean_data_dm_seg": "**Mean Data** **\\***"
     }
   },
 
@@ -65,8 +61,7 @@
       "on_volume_dm_dp": "**On Volume** **\\***",
       "dose_grid_resolution_dm_dp": "**Dose Grid Resolution** **\\***",
       "sample_data_dm_dp": "**Sample Data**",
-      "mean_data_dm_dp": "**Mean Data** **\\***",
-      "figure_dm_dp_appendix_note": "**Figure DM DP Appendix Label**"
+      "mean_data_dm_dp": "**Mean Data** **\\***"
     }
   },
   "type_metrics_other": {
@@ -75,8 +70,7 @@
       "name": "Type",
       "additional_info_other": "Additional information",
       "sample_data_other": "Sample Data",
-      "mean_data_other": "Mean Data",
-      "figure_other_appendix_note": "Figure Other Appendix Label"
+      "mean_data_other": "Mean Data"
     }
   }
 } %}
@@ -237,10 +231,8 @@ _No input/output technical specifications provided._
         {% set file = (normalized_uploads[full_key] if normalized_uploads is defined and full_key in normalized_uploads else none) %}
         {% if file %}
 **Figure {{ r.name | default("—", true) }}**
-{{ C.render_file(file, label=((schema.title ~ " Figure") if schema else "Figure")) }}
-          {% if r[fig_field ~ '_appendix_note'] is defined %}
-*Appendix label:* {{ r[fig_field ~ '_appendix_note'] | default("—", true) }}
-          {% endif %}
+          {% set fig_caption = r.get(fig_field ~ '_caption') %}
+{{ C.render_file(file, label=((schema.title ~ " Figure") if schema else "Figure"), caption=(fig_caption if fig_caption else None)) }}
         {% endif %}
       {% endfor %}
     {% endif %}

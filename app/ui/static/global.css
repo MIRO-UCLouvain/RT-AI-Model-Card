@@ -264,3 +264,32 @@ iframe[height="0"],
 }
 
 #btn_create_header, #btn_load_header, #btn_about_header { display: none; }
+
+/* =========================================
+   Scrollable tab navigation
+   ========================================= */
+[data-testid="stTabs"] > div:first-child,
+[data-baseweb="tab-list"] {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  flex-wrap: nowrap !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-600) transparent;
+}
+
+[data-testid="stTabs"] > div:first-child::-webkit-scrollbar,
+[data-baseweb="tab-list"]::-webkit-scrollbar {
+  height: 4px;
+}
+
+[data-testid="stTabs"] > div:first-child::-webkit-scrollbar-thumb,
+[data-baseweb="tab-list"]::-webkit-scrollbar-thumb {
+  background: var(--brand-600);
+  border-radius: 2px;
+}
+
+[data-testid="stTabs"] > div:first-child::-webkit-scrollbar-track,
+[data-baseweb="tab-list"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+

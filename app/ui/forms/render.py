@@ -24,6 +24,7 @@ import streamlit as st
 from app.core.standards.tg263 import RTSTRUCT_SUBTYPES
 from app.services.state_store import load_value, store_value
 from app.services.uploads import (
+    ALLOWED_IMAGE_EXTS,
     ALLOWED_UPLOAD_EXTS,
     bump_uploader,
     ensure_upload_state,
@@ -235,25 +236,24 @@ def render_image_field(
 
     create_helpicon(label, description, field_type, example, required)
 
-    st.markdown(
-        "<i>If too big or not readable, please indicate the figure number "
-        "and attach it to the appendix</i>",
-        unsafe_allow_html=True,
+    st.caption(
+        "Accepted formats: PNG, JPG, JPEG, SVG. "
+        "If you have multiple figures, upload the additional ones in the Appendix."
     )
 
     col1, col2 = st.columns([1, 2])
     with col1:
         st.text_input(
-            label=".",
-            placeholder="e.g., Fig. 1",
-            key=f"{full_key}_appendix_note",
-            label_visibility="collapsed",
+            label="Image caption",
+            placeholder="e.g., Train/val loss after 100 epochs",
+            key=f"{full_key}_caption",
+            help="This caption will appear below the image in the PDF export.",
         )
 
     with col2:
         uploaded = st.file_uploader(
             label=".",
-            type=ALLOWED_UPLOAD_EXTS,
+            type=ALLOWED_IMAGE_EXTS,
             key=uploader_key_for(full_key),  # key tied to a nonce
             label_visibility="collapsed",
         )
@@ -820,7 +820,7 @@ def _render_metric_select_list(full_key: str, props: FieldProps) -> None:
     load_value(type_key)
     load_value(type_list_key, default=[])
 
-    col1, col2, col3 = st.columns([3.5, 0.5, 1])
+    col1, col2 = st.columns([3.5, 0.5])
     with col1:
         st.selectbox(
             label=props.get("label", full_key),
@@ -859,18 +859,6 @@ def _render_metric_select_list(full_key: str, props: FieldProps) -> None:
                 entries.append(internal_name)
                 st.session_state[type_list_key] = entries
                 st.session_state[full_key] = entries
-
-    with col3:
-        if st.session_state[type_list_key]:
-            st.markdown(
-                "<div style='margin-top: 26px;'>",
-                unsafe_allow_html=True,
-            )
-            if st.button("Clear", key=f"{full_key}_clear_button"):
-                st.session_state[type_list_key] = []
-                st.session_state[full_key] = []
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912, PLR0915
@@ -911,7 +899,7 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
     )
     load_value(dm_other_key, default="")
 
-    col1, col2, col3, col4 = st.columns([2, 2, 0.5, 0.5])
+    col1, col2, col3 = st.columns([2, 2, 0.5])
 
     with col1:
         st.selectbox(
@@ -1039,21 +1027,6 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
             st.session_state[dm_list_key] = entries
             st.session_state[dm_key] = entries
 
-    with col4:
-        if st.session_state[dm_list_key]:
-            st.markdown(
-                "<div style='margin-top: 26px;'>",
-                unsafe_allow_html=True,
-            )
-            if st.button(
-                "Clear",
-                key=f"{dm_key}_clear_button",
-            ):
-                st.session_state[dm_list_key] = []
-                st.session_state[dm_key] = []
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
 
 def _render_type_metrics_other(full_key: str) -> None:
     """
@@ -1070,7 +1043,7 @@ def _render_type_metrics_other(full_key: str) -> None:
 
     show_warning = False
 
-    col1, col2, col3 = st.columns([3, 0.5, 1])
+    col1, col2 = st.columns([3, 0.5])
     with col1:
         st.text_input(
             label=".",
@@ -1102,13 +1075,6 @@ def _render_type_metrics_other(full_key: str) -> None:
                 st.session_state[full_key] = entries
             else:
                 show_warning = True
-        st.markdown("</div>", unsafe_allow_html=True)
-    with col3:
-        st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
-        if st.button("Clear", key=f"{full_key}_clear_button"):
-            st.session_state[metrics_list_key] = []
-            st.session_state[full_key] = []
-            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     if show_warning:

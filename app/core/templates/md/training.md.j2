@@ -102,7 +102,7 @@ _No input/output technical specifications provided._
 
 {% if training_data_train_and_validation_loss_curves %}
 **Train & validation loss curves** **\*** :
-{{ C.render_file(training_data_train_and_validation_loss_curves, label="Loss curves") }}
+{{ C.render_file(training_data_train_and_validation_loss_curves, label="Loss curves", caption=training_data_train_and_validation_loss_curves_caption | default(None, true)) }}
 {% endif %}
 
 **Model choice criteria** **\*** : {{ training_data_model_choice_criteria | default("—", true) }}
