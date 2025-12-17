@@ -225,6 +225,44 @@ def _get_uploaded_paths() -> list[str]:
     return [p for p in list(paths) if isinstance(p, str) and Path(p).exists()]
 
 
+def _build_original_name_map() -> dict[str, str]:
+    """Return a mapping of stored file path → original file name.
+
+    Sources:
+    - ``render_uploads``: per-field uploads; ``meta["name"]`` is the
+      sanitized original filename.
+    - ``appendix_uploads``: the dict key IS the sanitized original filename.
+
+    Duplicate original names are disambiguated by inserting a counter before
+    the extension: ``figure.png``, ``figure (1).png``, ``figure (2).png``.
+    """
+    path_to_name: dict[str, str] = {}
+    seen: dict[str, int] = {}
+
+    def _unique(name: str) -> str:
+        if name not in seen:
+            seen[name] = 0
+            return name
+        seen[name] += 1
+        stem, suffix = Path(name).stem, Path(name).suffix
+        return f"{stem} ({seen[name]}){suffix}"
+
+    # Field uploads
+    for meta in st.session_state.get("render_uploads", {}).values():
+        path = meta.get("path", "")
+        name = meta.get("name", "")
+        if path and name:
+            path_to_name[path] = _unique(name)
+
+    # Appendix uploads (key = sanitized original name)
+    for original_name, data in st.session_state.get("appendix_uploads", {}).items():
+        path = data.get("path", "")
+        if path and original_name:
+            path_to_name[path] = _unique(original_name)
+
+    return path_to_name
+
+
 def _download_files_zip_only_ui() -> None:
     with st.form("form_download_files"):
         if st.form_submit_button("Download files (`.zip`)"):
@@ -254,13 +292,14 @@ def _download_files_zip_only_ui() -> None:
                     "No valid uploaded files to include in the ZIP.",
                 )
             else:
+                name_map = _build_original_name_map()
                 with zipfile.ZipFile(
                     buffer,
                     "w",
                     compression=zipfile.ZIP_DEFLATED,
                 ) as zf:
                     for fpath in valid_files:
-                        arcname = Path(fpath).name
+                        arcname = name_map.get(fpath, Path(fpath).name)
                         zf.write(fpath, arcname=arcname)
                 buffer.seek(0)
                 st.download_button(
@@ -305,6 +344,7 @@ def _download_zip_json_plus_files_ui() -> None:
                         f"Could not add (missing or not a file): {fpath}",
                     )
             try:
+                name_map = _build_original_name_map()
                 with zipfile.ZipFile(
                     buffer,
                     "w",
@@ -312,7 +352,8 @@ def _download_zip_json_plus_files_ui() -> None:
                 ) as zf:
                     zf.writestr("model_card.json", card_content)
                     for fpath in valid_files_zip:
-                        arcname = f"files/{Path(fpath).name}"
+                        original = name_map.get(fpath, Path(fpath).name)
+                        arcname = f"files/{original}"
                         zf.write(fpath, arcname=arcname)
                 buffer.seek(0)
                 st.download_button(

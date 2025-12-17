@@ -263,6 +263,16 @@ iframe[height="0"],
   padding:  0      !important;
 }
 
+/* Hide Streamlit's native dismiss (X) button on uploaded-file chips.
+   The app provides its own Delete button for each field.
+   Multiple selectors for cross-version compatibility. */
+button[data-testid="stFileUploaderDeleteBtn"],
+[data-testid="stFileUploaderFile"] button,
+[data-testid="stFileUploaderFileData"] button,
+[data-testid="stFileUploaderFileName"] ~ button {
+  display: none !important;
+}
+
 #btn_create_header, #btn_load_header, #btn_about_header { display: none; }
 
 /* =========================================

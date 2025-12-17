@@ -80,6 +80,8 @@ class AppendixMeta(TypedDict, total=False):
     path: str
     stored_name: str
     section: str
+    subsection: str
+    subsection_custom: str
 
 
 # Filename sanitization

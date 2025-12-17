@@ -103,9 +103,17 @@ def build_appendix_files_context() -> list[dict[str, Any]]:
         )
         mime = (norm or {}).get("type")
         is_image = bool(mime and str(mime).lower().startswith("image/"))
+        section = (data.get("section") or "").strip()
+        subsection = (data.get("subsection") or "").strip()
+        subsection_custom = (data.get("subsection_custom") or "").strip()
+        # Resolve "Other" subsection to the free-text value typed by the user
+        subsection_display = subsection_custom if subsection == "Other" else subsection
+
         items.append(
             {
                 "label": (data.get("custom_label") or "").strip(),
+                "section": section,
+                "subsection_display": subsection_display,
                 "file": {
                     "name": original_name,
                     "key": stored_key,

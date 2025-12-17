@@ -36,10 +36,6 @@ from app.services.uploads import (
 from app.ui.utils.typography import create_helpicon, strip_brackets
 
 DEFAULT_SELECT = "-Select an option-"
-DELETE_HINT = (
-    "To remove the current file, use the **Delete** button below. "
-    "The 'X' in the uploader is disabled."
-)
 
 # Named constant for the expected length of a YYYYMMDD date string.
 DATE_STR_LEN = 8
@@ -241,12 +237,18 @@ def render_image_field(
         "If you have multiple figures, upload the additional ones in the Appendix."
     )
 
+    # ── Caption field (persistent via shadow-key pattern) ──────────────────
+    caption_key = f"{full_key}_caption"
+    load_value(caption_key, "")  # seeds shadow key from the persistent store
+
     col1, col2 = st.columns([1, 2])
     with col1:
         st.text_input(
             label="Image caption",
-            placeholder="e.g., Train/val loss after 100 epochs",
-            key=f"{full_key}_caption",
+            placeholder="Enter image description (optional)",
+            key=f"_{caption_key}",        # shadow widget key (Streamlit-managed)
+            on_change=store_value,
+            args=(caption_key,),          # writes to the persistent logical key
             help="This caption will appear below the image in the PDF export.",
         )
 
@@ -254,12 +256,11 @@ def render_image_field(
         uploaded = st.file_uploader(
             label=".",
             type=ALLOWED_IMAGE_EXTS,
-            key=uploader_key_for(full_key),  # key tied to a nonce
+            key=uploader_key_for(full_key),
             label_visibility="collapsed",
         )
 
-        # Save once per selection to keep uploader selection visible
-        # (this preserves the uploader 'x' button)
+        # Save once per selection (fingerprint guards against duplicate saves)
         fp = _fingerprint_uploaded(uploaded)
         prev_fp = st.session_state.get(token_key)
         if uploaded is not None and fp is not None and fp != prev_fp:
@@ -269,18 +270,23 @@ def render_image_field(
             st.session_state[token_key] = fp
             st.rerun()
 
-        existing = field_current(full_key)
-        if existing:
-            st.caption(f"Current file: **{existing['name']}**")
-            st.info(DELETE_HINT)
-            if st.button("Delete", key=f"{full_key}__remove_btn"):
-                field_delete(full_key)
-                # allow re-uploading same file
-                st.session_state.pop(token_key, None)
-                bump_uploader(full_key)  # remount clears the uploader safely
-                st.rerun()
+    # ── Status + Delete (below columns, full width) ───────────────────────
+    existing = field_current(full_key)
+    if existing:
+        # Show field label + description instead of the raw filename
+        caption_val = st.session_state.get(caption_key, "")
+        if caption_val:
+            st.caption(f"{label}: {caption_val}")
         else:
-            st.caption("No file selected yet.")
+            st.caption(f"{label}: file uploaded ✓")
+
+        if st.button("Delete", key=f"{full_key}__remove_btn"):
+            field_delete(full_key)
+            st.session_state.pop(token_key, None)
+            bump_uploader(full_key)
+            st.rerun()
+    else:
+        st.caption("No file selected yet.")
 
 
 Handler = Callable[[str, FieldProps, str], None]
