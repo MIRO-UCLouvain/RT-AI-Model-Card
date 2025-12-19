@@ -20,6 +20,7 @@ from app.core.model_card.constants import (
 from app.services.evaluations_extractor import (
     extract_evaluations_from_state,
 )
+from app.ui.utils.typography import strip_brackets
 
 _METRIC_SUFFIX_RE = re.compile(r"(?: \d+)$")
 
@@ -78,6 +79,7 @@ def _iter_modalities() -> list[dict[str, str]]:
             out.extend(
                 {"modality": item, "source": "model_outputs"} for item in v
             )
+    out.sort(key=lambda x: 0 if x["source"] == "model_inputs" else 1)
     return out
 
 
@@ -118,10 +120,12 @@ def _build_learning_architectures() -> list[dict[str, Any]]:
     :return: A list of learning architecture dictionaries.
     :rtype: list[dict[str, Any]]
     """
-    la_forms = st.session_state.get("learning_architecture_forms", {})
+    la_forms: dict[str, str] = st.session_state.get(
+        "learning_architecture_forms", {}
+    )
     out: list[dict[str, Any]] = []
-    for i in range(len(la_forms)):
-        prefix = f"learning_architecture_{i}_"
+    for i, uid in enumerate(la_forms):
+        prefix = f"learning_architecture_{uid}_"
         arch = deepcopy(LEARNING_ARCHITECTURE)
         for field in arch:
             arch[field] = st.session_state.get(f"{prefix}{field}", arch[field])
@@ -188,13 +192,14 @@ def _inject_training_iots(
     counts: dict[tuple[str, str], int] = {}
 
     for entry in _iter_modalities():
-        clean = entry["modality"].strip().replace(" ", "_").lower()
+        clean = strip_brackets(entry["modality"]).strip().replace(" ", "_").lower()
         src = entry["source"]
         pair = (clean, src)
         idx_for_pair = counts.get(pair, 0)
         counts[pair] = idx_for_pair + 1
 
-        detail: dict[str, Any] = {"entry": entry["modality"], "source": src}
+        source_label = "Model input" if src == "model_inputs" else "Model output"
+        detail: dict[str, Any] = {"entry": entry["modality"], "source": src, "source_label": source_label}
         for field in DATA_INPUT_OUTPUT_TS:
             detail[field] = _get_with_fallback(
                 f"training_data_{clean}_{src}_{idx_for_pair}_{field}",

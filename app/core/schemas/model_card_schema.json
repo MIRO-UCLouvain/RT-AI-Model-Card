@@ -113,9 +113,7 @@
       "type": "String, Free text format",
       "label": "Contact Email(s)",
       "description": "Contact email(s) for the department, team or persons. If several, separate them by commas.",
-      "required": false,
-      "format": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(\\s*,\\s*[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})*$",
-      "format_description": "Must be one or more valid email addresses separated by commas, e.g. user@example.com or user1@example.com, user2@example.org"
+      "required": false
     },
     "clearance_additional_information": {
       "type": "String, Free text format",
@@ -169,9 +167,7 @@
       "type": "String, Free text format",
       "label": "Contact Email(s)",
       "description": "Contact email for the development department, team or persons. If several, separate them by commas.",
-      "required": false,
-      "format": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(\\s*,\\s*[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})*$",
-      "format_description": "Must be one or more valid email addresses separated by commas, e.g. user@example.com or user1@example.com, user2@example.org"
+      "required": false
     },
     "conflict_of_interest": {
       "type": "String, Free text format",
@@ -930,9 +926,7 @@
       "type": "String, Free text format",
       "label": "Contact Email",
       "description": "Contact email(s) for the team or persons. If several, separate them by commas.",
-      "required": true,
-      "format": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}(\\s*,\\s*[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})*$",
-      "format_description": "Must be one or more valid email addresses separated by commas, e.g. user@example.com or user1@example.com, user2@example.org"
+      "required": true
     },
     "evaluation_frame": {
       "type": "String, Free text format",

@@ -29,6 +29,7 @@ from app.core.templates.registry import (
 from app.services.evaluations_extractor import (
     extract_evaluations_from_state,
 )
+from app.ui.utils.typography import strip_brackets
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -435,11 +436,14 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
                         {"modality": item, "source": "model_outputs"}
                         for item in value
                     )
+            modality_entries.sort(
+                key=lambda x: 0 if x["source"] == "model_inputs" else 1
+            )
             counts: dict[tuple[str, str], int] = {}
             io_details: list[dict[str, Any]] = []
 
             for entry in modality_entries:
-                clean = entry["modality"].strip().replace(" ", "_").lower()
+                clean = strip_brackets(entry["modality"]).strip().replace(" ", "_").lower()
                 source = entry["source"]
                 pair = (clean, source)
                 idx = counts.get(pair, 0)
@@ -447,7 +451,8 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
 
                 suffix = f"{clean}_{source}_{idx}"
 
-                detail = {"entry": entry["modality"], "source": source}
+                source_label = "Model input" if source == "model_inputs" else "Model output"
+                detail = {"entry": entry["modality"], "source": source, "source_label": source_label}
 
                 for field_key in DATA_INPUT_OUTPUT_TS:
                     k = f"training_data_{suffix}_{field_key}"

@@ -606,8 +606,15 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                         "or enter a custom name.",
                     )
                 else:
-                    label = "RTSTRUCT: " + ", ".join(display_parts)
-                    st.session_state[content_list_key].append(label)
+                    existing = st.session_state.get(content_list_key, [])
+                    n = sum(
+                        1 for x in existing
+                        if isinstance(x, str) and x.startswith("RTSTRUCT ")
+                    ) + 1
+                    inline_label = (
+                        f"RTSTRUCT {n} ({', '.join(display_parts)})"
+                    )
+                    st.session_state[content_list_key].append(inline_label)
                     st.session_state[full_key] = st.session_state[
                         content_list_key
                     ]
@@ -668,7 +675,7 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                 st.session_state[content_list_key].append(entry)
                 st.session_state[full_key] = st.session_state[content_list_key]
 
-    _render_inline_tag_list(full_key, content_list_key)
+    _render_inline_tag_list(full_key, content_list_key, strip=False)
 
 
 def _render_treatment_modality_select(
@@ -1092,6 +1099,8 @@ def _render_inline_tag_list(
     list_state_key: str,
     *,
     clear_key: str | None = None,
+    show_clear: bool = True,
+    strip: bool = True,
 ) -> None:
     """
     Render an inline tag list.
@@ -1102,6 +1111,11 @@ def _render_inline_tag_list(
     :type list_state_key: str
     :param clear_key: The state key for the clear button, defaults to None
     :type clear_key: Optional[str], optional
+    :param show_clear: Whether to render the Clear button, defaults to True
+    :type show_clear: bool, optional
+    :param strip: Whether to strip parenthetical content from display labels,
+        defaults to True
+    :type strip: bool, optional
     """
     entries: list[str] = st.session_state.get(list_state_key, [])
     if not entries:
@@ -1110,15 +1124,15 @@ def _render_inline_tag_list(
     tooltip_items = [
         (
             f"<span title='{html.escape(item)}' "
-            "style='margin-right: 6px; font-weight: 500; color: #333;'>"
-            f"{html.escape(strip_brackets(item))}</span>"
+            "style='font-weight: 500; color: #333;'>"
+            f"{html.escape(strip_brackets(item) if strip else item)}</span>"
         )
         for item in entries
     ]
     line = ", ".join(tooltip_items)
     st.markdown(f"<span>{line}</span>", unsafe_allow_html=True)
 
-    if st.button("Clear", key=(clear_key or f"{full_key}_clear_all")):
+    if show_clear and st.button("Clear", key=(clear_key or f"{full_key}_clear_all")):
         st.session_state[list_state_key] = []
         st.session_state[full_key] = []
         st.rerun()

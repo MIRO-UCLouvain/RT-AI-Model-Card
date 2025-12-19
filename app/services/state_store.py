@@ -1,6 +1,7 @@
 """Module for managing Streamlit session state, and extracting information from it."""  # noqa: E501
 from __future__ import annotations
 
+import uuid as _uuid
 from datetime import date, datetime
 from typing import Any
 
@@ -27,7 +28,9 @@ def clear_form_state() -> None:
 
     Safe to call at any time — auth state is left untouched.
     """
-    for nav_key in ("task", "task_temp", "runpage", "last_readme_text", "format_error"):
+    for nav_key in (
+        "task", "task_temp", "runpage", "last_readme_text", "format_error",
+    ):
         st.session_state.pop(nav_key, None)
 
     to_remove = [
@@ -254,15 +257,14 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
         elif section == "technical_specifications":
             for k, v in content.items():
                 if k == "learning_architectures" and isinstance(v, list):
-                    st.session_state["learning_architecture_forms"] = {
-                        f"Learning Architecture {i + 1}": {}
-                        for i in range(len(v))
-                    }
+                    la_forms: dict[str, str] = {}
                     for i, arch in enumerate(v):
-                        prefix = f"learning_architecture_{i}_"
+                        uid = _uuid.uuid4().hex[:8]
+                        la_forms[uid] = f"Learning Architecture {i + 1}"
+                        prefix = f"learning_architecture_{uid}_"
                         for key, value in arch.items():
-                            full_key = f"{prefix}{key}"
-                            st.session_state[full_key] = value
+                            st.session_state[f"{prefix}{key}"] = value
+                    st.session_state["learning_architecture_forms"] = la_forms
                     continue
 
                 if k == "hw_and_sw" and isinstance(v, dict):

@@ -39,9 +39,6 @@ SUBTITLE = (
     "that are specifically evaluated within a clinical environment with "
     "clinic-specific data."
 )
-SAME_AS_APPROVED_BY_INFO = (
-    "Evaluation team is the same as the approval team. Fields auto-filled."
-)
 EVALUATION_DATASET_INFO = (
     "Note that all fields refer to the raw evaluation data used in 'Model "
     "inputs' (i.e. before  pre-processing steps) and raw 'Model outputs' for "
@@ -268,36 +265,53 @@ def _render_header_and_evaluated_by(
         args=(same_key,),
     )
 
-    if not same:
-        if all(
-            k in section
-            for k in (
-                "evaluated_by_name",
-                "evaluated_by_institution",
-                "evaluated_by_contact_email",
-            )
-        ):
-            col1, col2, col3 = st.columns([1, 1.5, 1.5])
-            with col1:
-                render_field(
+    if all(
+        k in section
+        for k in (
+            "evaluated_by_name",
+            "evaluated_by_institution",
+            "evaluated_by_contact_email",
+        )
+    ):
+        if same:
+            for ev_field, approved_key in (
+                (
                     "evaluated_by_name",
-                    section["evaluated_by_name"],
-                    section_prefix,
-                )
-            with col2:
-                render_field(
+                    "model_basic_information_clearance_approved_by_name",
+                ),
+                (
                     "evaluated_by_institution",
-                    section["evaluated_by_institution"],
-                    section_prefix,
-                )
-            with col3:
-                render_field(
+                    "model_basic_information_clearance_approved_by_institution",
+                ),
+                (
                     "evaluated_by_contact_email",
-                    section["evaluated_by_contact_email"],
-                    section_prefix,
-                )
-    else:
-        st.info(SAME_AS_APPROVED_BY_INFO)
+                    "model_basic_information_clearance_approved_by_contact_email",
+                ),
+            ):
+                val = st.session_state.get(approved_key, "")
+                full_key = f"{section_prefix}_{ev_field}"
+                st.session_state[full_key] = val
+                st.session_state[f"_{full_key}"] = val
+
+        col1, col2, col3 = st.columns([1, 1.5, 1.5])
+        with col1:
+            render_field(
+                "evaluated_by_name",
+                cast("FieldProps", {**section["evaluated_by_name"], "disabled": same}),
+                section_prefix,
+            )
+        with col2:
+            render_field(
+                "evaluated_by_institution",
+                cast("FieldProps", {**section["evaluated_by_institution"], "disabled": same}),
+                section_prefix,
+            )
+        with col3:
+            render_field(
+                "evaluated_by_contact_email",
+                cast("FieldProps", {**section["evaluated_by_contact_email"], "disabled": same}),
+                section_prefix,
+            )
 
     section_divider()
     render_fields(
@@ -465,9 +479,11 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
     for tab_idx, entry in enumerate(modality_entries):
         modality, source = entry["modality"], entry["source"]
         with tabs[tab_idx]:
-            clean_modality = modality.strip().replace(" ", "_").lower()
+            clean_modality = (
+                strip_brackets(modality).strip().replace(" ", "_").lower()
+            )
             heading = (
-                f"{strip_brackets(modality)} — "
+                f"{modality} — "
                 f"{source.replace('_', ' ').capitalize()}"
             )
             title_header(heading, size="1rem")

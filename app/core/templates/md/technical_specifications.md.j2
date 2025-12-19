@@ -13,11 +13,11 @@
 {{ C.render_file(f, label="Figure", caption=technical_specifications_model_pipeline_figure_caption | default(None, true)) }}
 {% endif %}
 
-- **Model inputs** **\*** : {{ technical_specifications_model_inputs | default("—", true) }}
+- **Model inputs** **\*** : {{ technical_specifications_model_inputs | join(", ") if technical_specifications_model_inputs is iterable and technical_specifications_model_inputs is not string else technical_specifications_model_inputs | default("—", true) }}
 
 - **Additional information**: {{ technical_specifications_additional_information_model_inputs | default("—", true) }}
 
-- **Model outputs** **\*** : {{ technical_specifications_model_outputs | default("—", true) }}
+- **Model outputs** **\*** : {{ technical_specifications_model_outputs | join(", ") if technical_specifications_model_outputs is iterable and technical_specifications_model_outputs is not string else technical_specifications_model_outputs | default("—", true) }}
 
 - **Additional information**: {{ technical_specifications_additional_information_model_outputs | default("—", true) }}
 

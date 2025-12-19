@@ -116,7 +116,7 @@ _No evaluations provided._
 {% set io_list = ev.inputs_outputs_technical_specifications | default([], true) %}
 {% if io_list and io_list | length > 0 %}
 {% for item in io_list %}
-**{{ item.entry | default("—", true) }}** ({{ item.source | default("—", true) }})
+**{{ item.source_label | default("Model input", true) }}:** {{ item.entry | default("—", true) }}
 
 | Field | Value |
 |-------|-------|

@@ -14,6 +14,7 @@ from app.core.model_card.constants import (
     SCHEMA,
     TASK_METRIC_MAP,
 )
+from app.ui.utils.typography import strip_brackets
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -57,28 +58,18 @@ def extract_evaluations_from_state() -> list[dict[str, Any]]:  # noqa: C901, PLR
 
         for field in iter_fields:
             key = prefix + field
-            if field.startswith("evaluated_by_") and field in evaluation:
-                continue
             evaluation[field] = st.session_state.get(key, "")
-            if evaluation.get("evaluated_same_as_approved", False):
-                evaluation["evaluated_by_name"] = (
-                    st.session_state.get(
-                        "model_basic_information_clearance_approved_by_name",
-                        "",
-                    )
-                )
-                evaluation["evaluated_by_institution"] = (
-                    st.session_state.get(
-                        "model_basic_information_clearance_approved_by_institution",
-                        "",
-                    )
-                )
-                evaluation["evaluated_by_contact_email"] = (
-                    st.session_state.get(
-                        "model_basic_information_clearance_approved_by_contact_email",
-                        "",
-                    )
-                )
+
+        if evaluation.get("evaluated_same_as_approved", False):
+            evaluation["evaluated_by_name"] = st.session_state.get(
+                "model_basic_information_clearance_approved_by_name", ""
+            )
+            evaluation["evaluated_by_institution"] = st.session_state.get(
+                "model_basic_information_clearance_approved_by_institution", ""
+            )
+            evaluation["evaluated_by_contact_email"] = st.session_state.get(
+                "model_basic_information_clearance_approved_by_contact_email", ""
+            )
 
         modality_entries: list[dict[str, str]] = []
         state = cast("Mapping[str, Any]", st.session_state)
@@ -98,19 +89,24 @@ def extract_evaluations_from_state() -> list[dict[str, Any]]:  # noqa: C901, PLR
                         for item in value
                     ],
                 )
+        modality_entries.sort(
+            key=lambda x: 0 if x["source"] == "model_inputs" else 1
+        )
 
         io_details: list[dict[str, Any]] = []
         counts: dict[tuple[str, str], int] = {}
         for entry in modality_entries:
-            clean = entry["modality"].strip().replace(" ", "_").lower()
+            clean = strip_brackets(entry["modality"]).strip().replace(" ", "_").lower()
             source = entry["source"]
             pair = (clean, source)
             idx_for_pair = counts.get(pair, 0)
             counts[pair] = idx_for_pair + 1
 
+            source_label = "Model input" if source == "model_inputs" else "Model output"
             detail: dict[str, Any] = {
                 "entry": entry["modality"],
                 "source": source,
+                "source_label": source_label,
             }
             for field in DATA_INPUT_OUTPUT_TS:
                 k = f"{prefix}{clean}_{source}_{idx_for_pair}_{field}"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid as _uuid
 from typing import Any, TypedDict, cast
 
 import streamlit as st
@@ -173,101 +174,73 @@ def _render_learning_architectures(
     title_header(TITLE_SUBSECTION_LA, size="1.35rem")
     light_header_italics(LEARNING_ARCHITECTURE_INFO)
 
-    with st.container():
-        col1, col2, col3 = st.columns([1.8, 2, 1.2])
+    # learning_architecture_forms: {uid: display_name}
+    la_forms: dict[str, str] = st.session_state.learning_architecture_forms
 
-        with col1:
-            st.markdown(
-                "<div style='margin-top: 6px;'>",
-                unsafe_allow_html=True,
-            )
-            st.button("Add Learning Architecture", key="add_learning_arch")
-            st.markdown("</div>", unsafe_allow_html=True)
+    st.button("Add Learning Architecture", key="add_learning_arch")
 
-        with col2:
-            forms: list[str] = [
-                str(k)
-                for k in st.session_state.learning_architecture_forms
-            ]
-            st.markdown(
-                "<div style='height: 1px; margin-top: -28px;'></div>",
-                unsafe_allow_html=True,
-            )
-            delete_index: str = st.selectbox(
-                label=".",
-                options=forms,
-                index=0,
-                key="learning_architecture_delete_select_clean",
-                label_visibility="collapsed",
-            )
+    if st.session_state.get("add_learning_arch", False):
+        n = len(la_forms)
+        new_uid = _uuid.uuid4().hex[:8]
+        st.session_state.learning_architecture_forms[new_uid] = (
+            f"Learning Architecture {n + 1}"
+        )
+        st.rerun()
 
-        with col3:
-            st.markdown(
-                "<div style='margin-top: 6px;'>",
-                unsafe_allow_html=True,
-            )
-            if st.button("Delete", key="delete_learning_arch_clean"):
-                if not delete_index:
-                    st.warning("Please select a model to delete.")
-                else:
-                    selected_key: str = str(delete_index)
-                    selected_index = int(selected_key.split()[-1])
-
-                    st.session_state.learning_architecture_forms.pop(
-                        selected_key,
-                    )
-
-                    keys_to_remove = [
-                        k
-                        for k in list(st.session_state.keys())
-                        if isinstance(k, str) and k.startswith(
-                            f"learning_architecture_{selected_index}_",
-                        )
-                    ]
-                    for k in keys_to_remove:
-                        del st.session_state[k]
-
-                    # Reindex state keys to close gaps (preserved behavior)
-                    for i in range(selected_index + 1, len(forms) + 1):
-                        old_prefix = f"learning_architecture_{i}_"
-                        new_prefix = f"learning_architecture_{i - 1}_"
-                        for k in map(str, st.session_state.keys()):
-                            if isinstance(k, str) and k.startswith(old_prefix):
-                                new_key = str(k).replace(
-                                    old_prefix,
-                                    new_prefix,
-                                )
-                                st.session_state[new_key] = (
-                                    st.session_state.pop(k)
-                                )
-
-                    st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        if st.session_state.get("add_learning_arch", False):
-            n = len(st.session_state.learning_architecture_forms)
-            st.session_state.learning_architecture_forms[
-                f"Learning Architecture {n + 1}"
-            ] = {}
-            st.rerun()
-
-    tab_labels = list(st.session_state.learning_architecture_forms.keys())
-    if not tab_labels:
+    if not la_forms:
         st.warning(LEARNING_ARCHITECTURE_WARNING)
         return
 
+    tab_labels = list(la_forms.values())
+    uids = list(la_forms.keys())
     tabs = st.tabs(tab_labels)
-    for i, tab in enumerate(tabs):
+    for uid, tab in zip(uids, tabs):
         with tab:
-            _render_learning_architecture_tab(la_section, index=i)
+            _render_learning_architecture_tab(la_section, uid=uid)
+
+
+def _delete_learning_architecture(uid: str) -> None:
+    """Remove a learning architecture by uid and renumber the remaining ones."""
+    la_forms: dict[str, str] = st.session_state.learning_architecture_forms
+    la_forms.pop(uid, None)
+    prefix_to_remove = f"learning_architecture_{uid}_"
+    for k in list(st.session_state.keys()):
+        if isinstance(k, str) and k.startswith(prefix_to_remove):
+            st.session_state.pop(k, None)
+    st.session_state.learning_architecture_forms = {
+        u: f"Learning Architecture {i + 1}"
+        for i, u in enumerate(la_forms)
+    }
+    st.rerun()
 
 
 def _render_learning_architecture_tab(
     la_section: LearningArchitecture,
     *,
-    index: int,
+    uid: str,
 ) -> None:
-    prefix = f"learning_architecture_{index}"
+    prefix = f"learning_architecture_{uid}"
+    la_forms: dict[str, str] = st.session_state.learning_architecture_forms
+    display_name = la_forms.get(uid, "")
+
+    st.markdown(
+        """<style>
+        button[data-testid="stBaseButton-secondary"] {
+            padding-top: 0.15rem;
+            padding-bottom: 0.15rem;
+            white-space: nowrap;
+        }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    _, col_del = st.columns([3, 2])
+    with col_del:
+        if st.button(
+            f"Delete {display_name}",
+            key=f"delete_la_{uid}",
+            use_container_width=True,
+        ):
+            _delete_learning_architecture(uid)
 
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -479,8 +452,9 @@ def technical_specifications_render() -> None:
     subtitle(SUBTITLE)
 
     if "learning_architecture_forms" not in st.session_state:
+        initial_uid = _uuid.uuid4().hex[:8]
         st.session_state.learning_architecture_forms = {
-            "Learning Architecture 1": {},
+            initial_uid: "Learning Architecture 1",
         }
     if "selected_learning_arch_to_delete" not in st.session_state:
         st.session_state.selected_learning_arch_to_delete = None
