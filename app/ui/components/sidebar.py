@@ -515,6 +515,7 @@ def sidebar_render() -> None:
                 "← Back to Main Page",
                 key="sidebar_back_home",
                 use_container_width=True,
+                type="primary",
             ):
                 st.session_state["_sidebar_confirm_back"] = True
                 st.rerun()
@@ -535,7 +536,7 @@ def sidebar_render() -> None:
                     st.session_state.pop("_sidebar_confirm_back", None)
                     st.rerun()
 
-        st.markdown("<div style='margin-bottom: 0.75rem'></div>", unsafe_allow_html=True)
+        st.divider()
 
         _render_menu()
         _save_section()

@@ -26,7 +26,7 @@
 [data-testid="stSidebar"] h2{font-size:1.15rem!important;}
 [data-testid="stSidebar"] h3{font-size:1rem!important;color:var(--sb-muted)!important;}
 [data-testid="stSidebar"] hr,[data-testid="stSidebar"] .stDivider{
-  border:none!important;border-top:1px solid var(--sb-border)!important;margin:16px 0!important;opacity:.9;
+  border:none!important;border-top:1px solid var(--sb-border)!important;
 }
 
 /* Scrollbar */
@@ -44,6 +44,32 @@
   padding: 12px 12px 10px;          /* inner spacing for the button */
   box-shadow: 0 2px 8px rgba(0,0,0,.04);
   margin: 8px 0 16px;
+}
+
+/* ── Back to Main Page – subtle, Option-A style ──────────────────────────── */
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
+  background-color: #f0f4ff !important;
+  border: 1.5px solid #5b6fa8 !important;
+  color: #3d4f7c !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"]:hover {
+  background-color: #dde5f8 !important;
+  border-color: #3d4f7c !important;
+  color: #2d3a5e !important;
+}
+
+/* ── Balanced vertical spacing ───────────────────────────────────────────── */
+/* Remove Streamlit's default flex gap so divider margins are the sole source
+   of space around dividers — guarantees equal space above and below each one */
+[data-testid="stSidebar"] .block-container > div > [data-testid="stVerticalBlock"] {
+  gap: 4px !important;
+}
+[data-testid="stSidebar"] hr,
+[data-testid="stSidebar"] .stDivider {
+  margin: 14px 0 !important;
+  opacity: 1 !important;
 }
 
 /* Mobile width */
