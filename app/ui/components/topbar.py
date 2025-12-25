@@ -52,7 +52,7 @@ def render_topbar(active: str, github_url: str | None = None) -> None:
     if icon_b64:
         icon_html = (
             f'<a class="topbar__iconlink" href="{github_url}" '
-            f'target="_self" aria-label="GitHub">'
+            f'target="_blank" rel="noopener noreferrer" aria-label="GitHub">'
             f'<img class="topbar__icon" '
             f'src="data:image/png;base64,{icon_b64}" alt="GitHub"/></a>'
         )
