@@ -1984,8 +1984,8 @@
         "GPR (Gamma Passing Rate)",
         "MAE (Mean Absolute Error)",
         "MSE (Mean Squared Error)",
-        "D",
-        "V",
+        "D (Dose histogram metric)",
+        "V (Volume histogram metric)",
         "Other"
       ],
       "label": "Type",

@@ -872,7 +872,7 @@ def _render_metric_select_list(full_key: str, props: FieldProps) -> None:
 
 def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912, PLR0915
     """
-    Render a dose metric select input.
+    Render a dose metric selector.
 
     :param full_key: The full key of the field.
     :type full_key: str
@@ -883,7 +883,16 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
         "MSE (Mean Squared Error)",
         "Other",
     ]
-    parametric_options = ["D", "V"]
+
+    parametric_options = [
+        "D (Dose histogram metric)",
+        "V (Volume histogram metric)",
+    ]
+
+    parametric_code_map = {
+        "D (Dose histogram metric)": "D",
+        "V (Volume histogram metric)": "V",
+    }
 
     dm_key = full_key
     dm_list_key = f"{dm_key}_list"
@@ -893,10 +902,14 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
 
     load_value(dm_list_key, default=[])
     load_value(dm_select_key)
-    load_value(dm_dynamic_key, default={"prefix": "D", "value": 95})
+    load_value(
+        dm_dynamic_key,
+        default={"prefix": "D", "value": 95},
+    )
     load_value(dm_other_key, default="")
 
     col1, col2, col3, col4 = st.columns([2, 2, 0.5, 0.5])
+
     with col1:
         st.selectbox(
             "Select dose metric",
@@ -911,28 +924,41 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
 
     with col2:
         val: int | str | None = None
-        if dm_type in parametric_options:
-            val_key = f"{dm_dynamic_key}_{dm_type}_value"
-            if val_key not in st.session_state:
-                st.session_state[val_key] = st.session_state[dm_dynamic_key]["value"]
+        dm_param_code = parametric_code_map.get(dm_type)
 
-            st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
+        if dm_param_code:
+            val_key = f"{dm_dynamic_key}_{dm_param_code}_value"
+
+            if val_key not in st.session_state:
+                st.session_state[val_key] = (
+                    st.session_state[dm_dynamic_key]["value"]
+                )
+
+            st.markdown(
+                "<div style='margin-top: 26px;'>",
+                unsafe_allow_html=True,
+            )
             val = st.number_input(
-                f"{dm_type} value",
+                f"{dm_param_code} value",
                 min_value=1,
                 max_value=100,
                 value=st.session_state[val_key],
                 key=val_key,
                 label_visibility="collapsed",
-                placeholder=f"Enter {dm_type} value",
+                placeholder=f"Enter {dm_param_code} value",
             )
             st.markdown("</div>", unsafe_allow_html=True)
 
-            st.session_state[dm_dynamic_key] = {"prefix": dm_type, "value": val}
+            st.session_state[dm_dynamic_key] = {
+                "prefix": dm_param_code,
+                "value": val,
+            }
 
-        # --- Show free text input ONLY when "Other" is selected ---
         if dm_type == "Other":
-            st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='margin-top: 26px;'>",
+                unsafe_allow_html=True,
+            )
             st.text_input(
                 label="Custom metric name",
                 label_visibility="collapsed",
@@ -948,31 +974,52 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
             "<div style='margin-top: 26px;'>",
             unsafe_allow_html=True,
         )
-        add_clicked = st.button("Add", key=f"{dm_key}_add_button")
+        add_clicked = st.button(
+            "Add",
+            key=f"{dm_key}_add_button",
+        )
         st.markdown("</div>", unsafe_allow_html=True)
 
     if add_clicked:
         metric: str | None = None
+        dm_param_code = parametric_code_map.get(dm_type)
+
         if not dm_type:
             st.markdown(" ")
-            st.error("Please choose a dose metric type before adding.")
+            st.error(
+                "Please choose a dose metric type before adding."
+            )
         elif dm_type in static_options and dm_type != "Other":
             metric = dm_type
         elif dm_type == "Other":
-            metric = (st.session_state.get(dm_other_key, "") or "").strip()
+            metric = (
+                st.session_state.get(dm_other_key, "") or ""
+            ).strip()
             if not metric:
                 st.markdown(" ")
-                st.error("Please enter a custom name for the dose metric.")
-        elif dm_type in parametric_options:
-            val_struct = st.session_state.get(dm_dynamic_key, {})
+                st.error(
+                    "Please enter a custom name for the dose metric."
+                )
+        elif dm_param_code:
+            val_struct = st.session_state.get(
+                dm_dynamic_key,
+                {},
+            )
             if not val_struct:
                 st.markdown(" ")
-                st.error("Please enter a value for the dose metric.")
+                st.error(
+                    "Please enter a value for the dose metric."
+                )
             else:
-                metric = f"{dm_type}{val_struct.get('value', '')}"
+                metric = (
+                    f"{dm_param_code}"
+                    f"{val_struct.get('value', '')}"
+                )
 
         if metric:
-            entries: list[str] = st.session_state[dm_list_key]
+            entries: list[str] = st.session_state[
+                dm_list_key
+            ]
             base = metric
             same_count = sum(
                 1
@@ -984,14 +1031,21 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
                 if same_count == 0
                 else f"{base} {same_count + 1}"
             )
+
             entries.append(internal_name)
             st.session_state[dm_list_key] = entries
             st.session_state[dm_key] = entries
 
     with col4:
         if st.session_state[dm_list_key]:
-            st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
-            if st.button("Clear", key=f"{dm_key}_clear_button"):
+            st.markdown(
+                "<div style='margin-top: 26px;'>",
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                "Clear",
+                key=f"{dm_key}_clear_button",
+            ):
                 st.session_state[dm_list_key] = []
                 st.session_state[dm_key] = []
                 st.rerun()

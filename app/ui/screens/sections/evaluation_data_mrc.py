@@ -181,6 +181,7 @@ class Evaluation(TypedDict, total=False):
     type_dose_dm_dp: FieldProps
     metric_specifications_dm_dp: FieldProps
     on_volume_dm_dp: FieldProps
+    dose_grid_resolution_dm_dp: FieldProps
     sample_data_dm_dp: FieldProps
     mean_data_dm_dp: FieldProps
     figure_dm_dp: FieldProps
@@ -1116,6 +1117,7 @@ def _render_dose_prediction_dose_block(
     dose_prediction_dose_metrics_fields = [
         "metric_specifications_dm_dp",
         "on_volume_dm_dp",
+        "dose_grid_resolution_dm_dp",
         "sample_data_dm_dp",
         "mean_data_dm_dp",
         "figure_dm_dp",
@@ -1156,6 +1158,15 @@ def _render_dose_prediction_dose_block(
                 render_field(
                     "on_volume_dm_dp",
                     section["on_volume_dm_dp"],
+                    sub_prefix,
+                )
+            if should_render(
+                section["dose_grid_resolution_dm_dp"],
+                current_task,
+            ):
+                render_field(
+                    "dose_grid_resolution_dm_dp",
+                    section["dose_grid_resolution_dm_dp"],
                     sub_prefix,
                 )
             if should_render(section["sample_data_dm_dp"], current_task):

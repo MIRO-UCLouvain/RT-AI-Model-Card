@@ -213,6 +213,7 @@ EVALUATION_METRIC_FIELDS = {
     "type_dose_dm_dp": [
         "metric_specifications_dm_dp",
         "on_volume_dm_dp",
+        "dose_grid_resolution_dm_dp",
         "sample_data_dm_dp",
         "mean_data_dm_dp",
         "figure_dm_dp_appendix_note",
