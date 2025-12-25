@@ -773,7 +773,10 @@ def _render_dose_engine_select(full_key: str, props: FieldProps) -> None:
 
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
-        add_clicked = st.button("Add", key=f"{full_key}_dose_engine_add_button")
+        add_clicked = st.button(
+            "Add",
+            key=f"{full_key}_dose_engine_add_button",
+        )
         st.markdown("</div>", unsafe_allow_html=True)
 
     raw_value = st.session_state.get(type_key)
@@ -987,7 +990,7 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
         if not dm_type:
             st.markdown(" ")
             st.error(
-                "Please choose a dose metric type before adding."
+                "Please choose a dose metric type before adding.",
             )
         elif dm_type in static_options and dm_type != "Other":
             metric = dm_type
@@ -998,7 +1001,7 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
             if not metric:
                 st.markdown(" ")
                 st.error(
-                    "Please enter a custom name for the dose metric."
+                    "Please enter a custom name for the dose metric.",
                 )
         elif dm_param_code:
             val_struct = st.session_state.get(
@@ -1008,7 +1011,7 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
             if not val_struct:
                 st.markdown(" ")
                 st.error(
-                    "Please enter a value for the dose metric."
+                    "Please enter a value for the dose metric.",
                 )
             else:
                 metric = (
@@ -1080,7 +1083,8 @@ def _render_type_metrics_other(full_key: str) -> None:
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
         if st.button("Add", key=f"{full_key}_add_button"):
-            value = (st.session_state.get(metrics_selected_key, "") or "").strip()
+            raw_value = st.session_state.get(metrics_selected_key, "") or ""
+            value = raw_value.strip()
             if value:
                 entries: list[str] = st.session_state[metrics_list_key]
                 base = value
