@@ -30,10 +30,10 @@ def task_selector_page() -> None:
 
         /* Caja de opciones centrada */
         div[role="radiogroup"] {
-            background-color: #f9f9f9;
-            padding: 2rem 3rem;   /* Más grande */
-            border-radius: 20px;
-            border: 2px solid #0553D1;  /* Borde azul */
+            background-color: #f8f9fa;
+            padding: 2rem 3rem;
+            border-radius: 8px;
+            border: 1.5px solid #184197;
             display: inline-block;
             text-align: left;
             margin: auto;
@@ -43,7 +43,7 @@ def task_selector_page() -> None:
 
         /* Texto de las opciones */
         label[data-baseweb="radio"] > div:first-child {
-            font-size: 22px !important;
+            font-size: 1.15rem !important;
             padding: 6px 0;
         }
 
