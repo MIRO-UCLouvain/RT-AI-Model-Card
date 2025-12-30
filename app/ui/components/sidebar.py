@@ -115,6 +115,8 @@ def _render_menu() -> None:  # noqa: C901
         st.session_state.runpage = appendix_render
         st.rerun()
 
+    st.divider()
+
 
 # ── Local downloads tab ────────────────────────────────────────────────────────
 
