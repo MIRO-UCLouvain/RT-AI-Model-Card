@@ -10,12 +10,14 @@ import streamlit as st
 from app.client.model_cards import BackendError, get_me
 from app.ui.components.topbar import render_hero, render_topbar
 from app.ui.screens.about import about_page
+from app.ui.screens.forgot_password import forgot_password_page
 from app.ui.screens.load_model_card import load_model_card_page
 from app.ui.screens.login import login_page
 from app.ui.screens.my_cards import my_cards_page
 from app.ui.screens.profile import profile_page
 from app.ui.screens.published_cards import published_cards_page
 from app.ui.screens.register import register_page
+from app.ui.screens.reset_password import reset_password_page
 from app.ui.screens.task_selector import task_selector_page
 from app.ui.utils.auth import clear_auth, restore_auth, restore_card_state
 from app.ui.utils.css import inject_css
@@ -210,13 +212,13 @@ def main() -> None:
         except BackendError:
             pass
 
-    # Login/register pages must always be rendered unauthenticated.
+    # Login/register/password-reset pages must always be rendered unauthenticated.
     # If stale cookies were restored (race condition: the cookie-clearing JS
     # injected during logout may not have executed before the next full-page
     # reload), clear session state inline — do NOT call clear_auth() here
     # because its components.html injection inside the render path can cause
     # visual artifacts (form appearing twice).
-    if view in ("login", "register") and (
+    if view in ("login", "register", "forgot_password", "reset_password") and (
         st.session_state.get("auth_token") or st.session_state.get("auth_email")
     ):
         st.session_state.auth_token = None
@@ -254,6 +256,14 @@ def main() -> None:
 
     if view == "register":
         register_page()
+        return
+
+    if view == "forgot_password":
+        forgot_password_page()
+        return
+
+    if view == "reset_password":
+        reset_password_page()
         return
 
     if view in ("my_cards", "requests"):

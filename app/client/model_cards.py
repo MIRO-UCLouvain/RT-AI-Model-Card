@@ -92,6 +92,47 @@ def register(email: str, password: str, first_name: str, last_name: str) -> dict
         raise BackendError("Request timed out. Try again.")
 
 
+def forgot_password(email: str) -> dict:
+    """Request a password reset link for *email*.
+
+    Always returns a dict with a ``message`` key.
+    The same response is returned whether or not the email is registered,
+    so callers must display the message verbatim without interpreting it.
+    """
+    try:
+        with _client() as client:
+            response = client.post(
+                "/v1/auth/forgot-password",
+                json={"email": email},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def reset_password(token: str, new_password: str) -> dict:
+    """Submit a password reset using *token* from the reset email.
+
+    Returns a dict with a ``message`` key on success.
+    Raises BackendError with a user-friendly message on any failure.
+    """
+    try:
+        with _client() as client:
+            response = client.post(
+                "/v1/auth/reset-password",
+                json={"token": token, "new_password": new_password},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
 def get_me(token: str) -> dict:
     """Return the current user's profile (first_name, last_name, email, …)."""
     try:
