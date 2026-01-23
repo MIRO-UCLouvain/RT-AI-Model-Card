@@ -14,7 +14,20 @@ import os
 
 import httpx
 
-BACKEND_URL: str = os.environ.get("BACKEND_URL", "http://localhost:8000")
+try:
+    import streamlit as st
+    _streamlit_url: str = st.secrets.get("BACKEND_URL", "")
+except Exception:
+    _streamlit_url = ""
+
+_env_url: str = os.environ.get("BACKEND_URL", "")
+_raw_url: str = _streamlit_url or _env_url or "http://localhost:8000"
+
+# Ensure the URL always has a protocol prefix
+if _raw_url and not _raw_url.startswith(("http://", "https://")):
+    _raw_url = "https://" + _raw_url
+
+BACKEND_URL: str = _raw_url
 _TIMEOUT: float = 10.0
 
 
