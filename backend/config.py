@@ -47,5 +47,9 @@ class Settings(BaseSettings):
 
     EMAIL_FROM: str = "noreply@rt-modelcard.local"
 
+    # ── Resend (preferred over SMTP — works on Railway) ───────────────────────
+    # Set RESEND_API_KEY to send via Resend's HTTP API instead of raw SMTP.
+    RESEND_API_KEY: str = ""
+
 
 settings = Settings()

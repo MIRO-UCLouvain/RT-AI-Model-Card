@@ -11,8 +11,10 @@ Development shortcut:
 """
 
 import asyncio
+import json
 import logging
 import smtplib
+import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from functools import partial
@@ -83,6 +85,35 @@ def _build_message(
     return msg
 
 
+def _send_via_resend(
+    recipient_email: str,
+    subject: str,
+    body_plain: str,
+    body_html: str,
+) -> None:
+    """Send email via Resend HTTP API (blocking — run inside a thread executor)."""
+    payload = json.dumps({
+        "from": settings.EMAIL_FROM,
+        "to": [recipient_email],
+        "subject": subject,
+        "text": body_plain,
+        "html": body_html,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        if resp.status not in (200, 201):
+            raise RuntimeError(f"Resend API returned {resp.status}")
+
+
 def _send_sync(msg: MIMEMultipart, recipient_email: str) -> None:
     """Send *msg* via SMTP (blocking — run inside a thread executor)."""
     host = settings.SMTP_HOST
@@ -119,10 +150,8 @@ async def send_password_reset_email(
     Any SMTP error is re-raised so the caller can decide whether to
     propagate it or swallow it.
     """
-    if not settings.SMTP_HOST:
+    if not settings.RESEND_API_KEY and not settings.SMTP_HOST:
         if settings.DEBUG:
-            # Use WARNING so the URL is always visible in docker logs
-            # regardless of how uvicorn configures the root logger level.
             logger.warning(
                 "SMTP not configured — DEV reset URL for %s: %s",
                 recipient_email,
@@ -130,13 +159,29 @@ async def send_password_reset_email(
             )
         else:
             logger.warning(
-                "SMTP_HOST not configured; reset email not sent to %s",
+                "No email provider configured; reset email not sent to %s",
                 recipient_email,
             )
         return
 
     msg = _build_message(recipient_email, reset_url, expiry_minutes)
     loop = asyncio.get_event_loop()
-    # Run blocking smtplib in a thread so we don't block the event loop.
-    await loop.run_in_executor(None, partial(_send_sync, msg, recipient_email))
+
+    if settings.RESEND_API_KEY:
+        # Extract parts from the already-built message for Resend API
+        subject = msg["Subject"]
+        parts = {p.get_content_type(): p.get_payload(decode=True).decode("utf-8") for p in msg.get_payload()}  # type: ignore[union-attr]
+        await loop.run_in_executor(
+            None,
+            partial(
+                _send_via_resend,
+                recipient_email,
+                subject,
+                parts.get("text/plain", ""),
+                parts.get("text/html", ""),
+            ),
+        )
+    else:
+        await loop.run_in_executor(None, partial(_send_sync, msg, recipient_email))
+
     logger.info("Password reset email sent to %s", recipient_email)
