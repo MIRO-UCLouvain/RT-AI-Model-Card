@@ -54,11 +54,6 @@ def login_page() -> None:
                         st.error(str(exc))
 
             st.markdown(
-                "Forgot your password? "
-                "[Reset it here](?view=forgot_password)",
-                unsafe_allow_html=True,
-            )
-            st.markdown(
                 "No account? [Sign up](?view=register)", unsafe_allow_html=True
             )
 
