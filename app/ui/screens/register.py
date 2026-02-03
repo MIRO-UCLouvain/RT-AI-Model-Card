@@ -57,7 +57,7 @@ def register_page() -> None:
                         st.error(str(exc))
 
             st.markdown(
-                "Already have an account? [Sign in](?view=login)",
+                "<div style='text-align:center; padding: 16px 0 28px 0'>Already have an account? <a href='?view=login'>Sign in</a></div>",
                 unsafe_allow_html=True,
             )
 

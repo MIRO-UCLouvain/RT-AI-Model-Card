@@ -54,7 +54,8 @@ def login_page() -> None:
                         st.error(str(exc))
 
             st.markdown(
-                "No account? [Sign up](?view=register)", unsafe_allow_html=True
+                "<div style='text-align:center; padding: 16px 0 28px 0'>No account? <a href='?view=register'>Sign up</a></div>",
+                unsafe_allow_html=True,
             )
 
     # Inject auth cookies outside any container — prevents rendering artifacts.
