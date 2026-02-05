@@ -1,41 +1,41 @@
-"""Admin routes for model card moderation."""
+"""Admin routes for model card version moderation."""
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies import get_current_user, get_db
 from models.user import User
-from schemas.model_card import ModelCardRead
-from services.publication import approve_card, reject_card
+from schemas.model_card import ModelCardVersionRead
+from services.publication import approve_version, reject_version
 
-router = APIRouter(prefix="/admin/model-cards", tags=["admin"])
+router = APIRouter(prefix="/admin/model-card-versions", tags=["admin"])
 
 
 @router.put(
-    "/{card_id}/approve",
-    response_model=ModelCardRead,
+    "/{version_id}/approve",
+    response_model=ModelCardVersionRead,
     status_code=status.HTTP_200_OK,
-    summary="Approve a model card for publication",
+    summary="Approve a model card version for publication",
 )
 async def approve(
-    card_id: int,
+    version_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ModelCardRead:
-    card = await approve_card(db, card_id, current_user)
-    return ModelCardRead.model_validate(card)
+) -> ModelCardVersionRead:
+    ver = await approve_version(db, version_id, current_user)
+    return ModelCardVersionRead.model_validate(ver)
 
 
 @router.put(
-    "/{card_id}/reject",
-    response_model=ModelCardRead,
+    "/{version_id}/reject",
+    response_model=ModelCardVersionRead,
     status_code=status.HTTP_200_OK,
-    summary="Reject a model card publication request",
+    summary="Reject a model card version publication request",
 )
 async def reject(
-    card_id: int,
+    version_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> ModelCardRead:
-    card = await reject_card(db, card_id, current_user)
-    return ModelCardRead.model_validate(card)
+) -> ModelCardVersionRead:
+    ver = await reject_version(db, version_id, current_user)
+    return ModelCardVersionRead.model_validate(ver)

@@ -1,115 +1,137 @@
-"""Service layer for the model card publication workflow.
+"""Service layer for the per-version publication workflow.
 
-State machine:
-  draft ──request──▶ pending ──approve──▶ approved
-                         └────reject────▶ rejected
+Each ModelCardVersion owns its own status.  The card itself has no status;
+only its individual versions do.
+
+State machine (per version):
+    draft ──submit──▶ in_review ──approve──▶ published
+      ▲                   └──────reject────▶ rejected
+      └──────────────────────────────────────────┘
+                   (re-submit after rejection)
 """
+
+import uuid
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.model_card import ModelCard
+from models.model_card import ModelCardVersion
 from models.user import User
-from repositories.model_card import ModelCardRepository
+from repositories.model_card import ModelCardVersionRepository
+
+# Statuses from which a user may submit/re-submit for review.
+_SUBMITTABLE = {"draft", "rejected"}
 
 
-async def _get_card_or_404(session: AsyncSession, card_id: int) -> ModelCard:
-    card = await ModelCardRepository.get_by_id(session, card_id)
-    if card is None:
+async def _get_version_or_404(
+    session: AsyncSession, version_id: int
+) -> ModelCardVersion:
+    ver = await ModelCardVersionRepository.get_by_id(session, version_id)
+    if ver is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model card with id={card_id} not found.",
+            detail=f"Model card version with id={version_id} not found.",
         )
-    return card
+    return ver
 
 
 async def request_publication(
     session: AsyncSession,
-    card_id: int,
+    version_id: int,
     current_user: User,
-) -> ModelCard:
-    """Move a card from draft → pending.
+) -> ModelCardVersion:
+    """Move a version from draft|rejected → in_review.
+
+    Once in_review the version is immutable: no new saves to this version entry.
+    The user is still free to create a new version entry on the same card.
 
     Raises:
-        403 if the caller is not the card owner.
-        409 if the card is not currently in draft status.
+        403 if the caller is not the owner of the parent card.
+        409 if the version is not in a submittable status.
     """
-    card = await _get_card_or_404(session, card_id)
+    ver = await _get_version_or_404(session, version_id)
 
-    if card.owner_id is None or card.owner_id != current_user.id:
+    owner_id: uuid.UUID | None = ver.model_card.owner_id  # type: ignore[union-attr]
+    if owner_id is None or owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not the owner of this model card.",
         )
-    if card.publication_status != "draft":
+    if ver.status not in _SUBMITTABLE:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Cannot request publication: card is '{card.publication_status}', expected 'draft'.",
+            detail=(
+                f"Cannot submit version '{ver.version}' for review: "
+                f"current status is '{ver.status}'. "
+                "Only versions with status 'draft' or 'rejected' can be submitted."
+            ),
         )
 
-    card.publication_status = "pending"
+    ver.status = "in_review"
     await session.commit()
-    return await ModelCardRepository.get_by_id(session, card_id)  # type: ignore[return-value]
+    return await _get_version_or_404(session, version_id)
 
 
-async def approve_card(
+async def approve_version(
     session: AsyncSession,
-    card_id: int,
+    version_id: int,
     current_user: User,
-) -> ModelCard:
-    """Move a card from pending → approved.
+) -> ModelCardVersion:
+    """Move a version from in_review → published.
 
     Raises:
         403 if the caller is not an admin.
-        409 if the card is not currently pending.
+        409 if the version is not currently in_review.
     """
     if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
         )
-    card = await _get_card_or_404(session, card_id)
+    ver = await _get_version_or_404(session, version_id)
 
-    if card.publication_status != "pending":
+    if ver.status != "in_review":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Cannot approve: card is '{card.publication_status}', expected 'pending'.",
+            detail=f"Cannot approve: version is '{ver.status}', expected 'in_review'.",
         )
 
-    card.publication_status = "approved"
+    ver.status = "published"
     await session.commit()
-    return await ModelCardRepository.get_by_id(session, card_id)  # type: ignore[return-value]
+    return await _get_version_or_404(session, version_id)
 
 
-async def reject_card(
+async def reject_version(
     session: AsyncSession,
-    card_id: int,
+    version_id: int,
     current_user: User,
-) -> ModelCard:
-    """Move a card from pending → rejected.
+) -> ModelCardVersion:
+    """Move a version from in_review → rejected.
 
     Raises:
         403 if the caller is not an admin.
-        409 if the card is not currently pending.
+        409 if the version is not currently in_review.
     """
     if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
         )
-    card = await _get_card_or_404(session, card_id)
+    ver = await _get_version_or_404(session, version_id)
 
-    if card.publication_status != "pending":
+    if ver.status != "in_review":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Cannot reject: card is '{card.publication_status}', expected 'pending'.",
+            detail=f"Cannot reject: version is '{ver.status}', expected 'in_review'.",
         )
 
-    card.publication_status = "rejected"
+    ver.status = "rejected"
     await session.commit()
-    return await ModelCardRepository.get_by_id(session, card_id)  # type: ignore[return-value]
+    return await _get_version_or_404(session, version_id)
 
 
-async def list_approved_cards(session: AsyncSession) -> list[ModelCard]:
-    """Return all approved model cards (public catalogue)."""
-    return await ModelCardRepository.list_approved(session)
+async def list_published_versions(
+    session: AsyncSession,
+) -> list[ModelCardVersion]:
+    """Return all published versions (public catalogue), newest first."""
+    return await ModelCardVersionRepository.list_published(session)

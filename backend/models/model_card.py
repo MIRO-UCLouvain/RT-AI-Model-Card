@@ -21,13 +21,16 @@ if TYPE_CHECKING:
 
 
 class ModelCard(Base, TimestampMixin):
-    """Logical identity of a model card, independent of its content.
+    """Stable identity container for a model card.
 
-    Content is stored in :class:`ModelCardVersion`.  A model card can have
-    many versions; the active snapshot is the one where ``is_latest=True``.
+    Content and status live in :class:`ModelCardVersion`.
+    A card can accumulate many versions over time; each version is immutable
+    once submitted for review.
 
-    ``publication_status`` drives the moderation workflow:
-    draft → pending → approved | rejected.
+    Workflow per version:
+        draft ──submit──▶ in_review ──approve──▶ published
+          ▲                   └──────reject────▶ rejected
+          └──────────────────────────────────────────┘
     """
 
     __tablename__ = "model_card"
@@ -35,15 +38,6 @@ class ModelCard(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     task_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    is_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-
-    # Moderation workflow
-    publication_status: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        default="draft",
-        server_default="draft",
-    )
 
     # Ownership — nullable so cards created before auth was added still work.
     owner_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -57,7 +51,7 @@ class ModelCard(Base, TimestampMixin):
         "ModelCardVersion",
         back_populates="model_card",
         cascade="all, delete-orphan",
-        order_by="ModelCardVersion.version_number",
+        order_by="ModelCardVersion.created_at",
     )
 
     def __repr__(self) -> str:
@@ -65,30 +59,44 @@ class ModelCard(Base, TimestampMixin):
 
 
 class ModelCardVersion(Base, TimestampMixin):
-    """Immutable snapshot of a model card at a specific version.
+    """Immutable snapshot of a model card at a specific user-defined version.
 
-    ``content_json`` stores the full model card dict as a MySQL JSON column.
-    ``title`` is denormalised from the JSON payload to allow fast listing
-    without deserialising the full document.
-
-    ``version_number`` starts at 1 and is incremented by the service layer
-    on each new save.  ``is_latest`` is flipped to ``False`` on the previous
-    version whenever a new version is created.
+    ``content`` stores the full model card dict as a MySQL JSON column.
+    ``title`` is denormalised from the JSON payload for fast listing.
+    ``version`` is a user-defined string (e.g. "v1.0") taken from the
+    ``card_metadata.version_number`` form field; unique per card.
+    ``status`` owns the moderation lifecycle for this version.
+    ``created_by`` records which user created this version.
     """
 
     __tablename__ = "model_card_version"
     __table_args__ = (
-        UniqueConstraint("model_card_id", "version_number", name="uq_card_version"),
+        UniqueConstraint("model_card_id", "version", name="uq_card_version"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     model_card_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("model_card.id", ondelete="CASCADE"), nullable=False
     )
-    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    version: Mapped[str] = mapped_column(String(50), nullable=False)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
-    content_json: Mapped[dict] = mapped_column(JSON, nullable=False)
-    is_latest: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    content: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    # Per-version moderation status
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="draft",
+        server_default="draft",
+    )
+
+    # Who created this version (nullable for rows pre-dating auth)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(native_uuid=False),
+        ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     model_card: Mapped["ModelCard"] = relationship(
         "ModelCard",
@@ -98,5 +106,5 @@ class ModelCardVersion(Base, TimestampMixin):
     def __repr__(self) -> str:
         return (
             f"<ModelCardVersion id={self.id} "
-            f"card_id={self.model_card_id} v={self.version_number}>"
+            f"card_id={self.model_card_id} v={self.version!r} status={self.status!r}>"
         )

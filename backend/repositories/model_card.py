@@ -4,7 +4,9 @@ Responsibilities: async SQLAlchemy queries only.
 No business logic, no HTTP exceptions, no commits.
 """
 
-from sqlalchemy import func, select, update
+import uuid
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -35,18 +37,14 @@ class ModelCardRepository:
         return result.scalars().first()
 
     @staticmethod
-    async def list_all(session: AsyncSession) -> list[ModelCard]:
-        result = await session.execute(
-            select(ModelCard).order_by(ModelCard.created_at.desc())
-        )
-        return list(result.scalars().all())
-
-    @staticmethod
-    async def list_approved(session: AsyncSession) -> list[ModelCard]:
-        """Return all cards with publication_status == 'approved'."""
+    async def list_for_owner(
+        session: AsyncSession, owner_id: uuid.UUID
+    ) -> list[ModelCard]:
+        """Return all cards owned by *owner_id*, newest first."""
         result = await session.execute(
             select(ModelCard)
-            .where(ModelCard.publication_status == "approved")
+            .where(ModelCard.owner_id == owner_id)
+            .options(selectinload(ModelCard.versions))
             .order_by(ModelCard.created_at.desc())
         )
         return list(result.scalars().all())
@@ -56,8 +54,9 @@ class ModelCardRepository:
         session: AsyncSession,
         slug: str,
         task_type: str,
+        owner_id: uuid.UUID | None = None,
     ) -> ModelCard:
-        card = ModelCard(slug=slug, task_type=task_type)
+        card = ModelCard(slug=slug, task_type=task_type, owner_id=owner_id)
         session.add(card)
         await session.flush()  # populate card.id without committing
         return card
@@ -67,55 +66,71 @@ class ModelCardVersionRepository:
     """Data-access methods for the ModelCardVersion table."""
 
     @staticmethod
+    async def get_by_id(
+        session: AsyncSession, version_id: int
+    ) -> ModelCardVersion | None:
+        """Return a single version with its parent card loaded."""
+        result = await session.execute(
+            select(ModelCardVersion)
+            .where(ModelCardVersion.id == version_id)
+            .options(selectinload(ModelCardVersion.model_card))
+        )
+        return result.scalars().first()
+
+    @staticmethod
     async def get_all_for_card(
         session: AsyncSession, card_id: int
     ) -> list[ModelCardVersion]:
         result = await session.execute(
             select(ModelCardVersion)
             .where(ModelCardVersion.model_card_id == card_id)
-            .order_by(ModelCardVersion.version_number.asc())
+            .order_by(ModelCardVersion.created_at.asc())
         )
         return list(result.scalars().all())
 
     @staticmethod
-    async def get_max_version_number(
-        session: AsyncSession, card_id: int
-    ) -> int:
-        """Return the highest existing version_number for a card, or 0 if none."""
+    async def version_exists(
+        session: AsyncSession, card_id: int, version: str
+    ) -> bool:
+        """Return True if a version with the given string already exists for this card."""
         result = await session.execute(
-            select(func.max(ModelCardVersion.version_number)).where(
-                ModelCardVersion.model_card_id == card_id
+            select(ModelCardVersion.id).where(
+                ModelCardVersion.model_card_id == card_id,
+                ModelCardVersion.version == version,
             )
         )
-        value = result.scalar()
-        return value if value is not None else 0
+        return result.scalar() is not None
 
     @staticmethod
-    async def unset_latest(
-        session: AsyncSession, card_id: int
-    ) -> None:
-        """Set is_latest=False on all versions of a card."""
-        await session.execute(
-            update(ModelCardVersion)
-            .where(ModelCardVersion.model_card_id == card_id)
-            .values(is_latest=False)
+    async def list_published(
+        session: AsyncSession,
+    ) -> list[ModelCardVersion]:
+        """Return all versions with status 'published', with parent card loaded."""
+        result = await session.execute(
+            select(ModelCardVersion)
+            .where(ModelCardVersion.status == "published")
+            .options(selectinload(ModelCardVersion.model_card))
+            .order_by(ModelCardVersion.created_at.desc())
         )
+        return list(result.scalars().all())
 
     @staticmethod
     async def create(
         session: AsyncSession,
         card_id: int,
-        version_number: int,
+        version: str,
         title: str,
-        content_json: dict,
+        content: dict,
+        created_by: uuid.UUID | None = None,
     ) -> ModelCardVersion:
-        version = ModelCardVersion(
+        ver = ModelCardVersion(
             model_card_id=card_id,
-            version_number=version_number,
+            version=version,
             title=title,
-            content_json=content_json,
-            is_latest=True,
+            content=content,
+            status="draft",
+            created_by=created_by,
         )
-        session.add(version)
+        session.add(ver)
         await session.flush()
-        return version
+        return ver
