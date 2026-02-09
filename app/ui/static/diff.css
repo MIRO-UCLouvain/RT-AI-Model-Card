@@ -1,0 +1,178 @@
+/* ===== Version diff display =============================================== */
+
+/* ── Summary bar ──────────────────────────────────────────────────────────── */
+
+.diff-summary {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1.25rem;
+  flex-wrap: wrap;
+}
+
+.diff-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.diff-pill--added   { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+.diff-pill--removed { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+.diff-pill--changed { background: #fff8e1; color: #e65100; border: 1px solid #ffe082; }
+.diff-pill--none    { background: #f5f5f5; color: #555;    border: 1px solid #ddd; }
+
+/* ── Section header ───────────────────────────────────────────────────────── */
+
+.diff-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.diff-badge {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.diff-badge__item {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.diff-badge__item--added   { background: #c8e6c9; color: #1b5e20; }
+.diff-badge__item--removed { background: #ffcdd2; color: #b71c1c; }
+.diff-badge__item--changed { background: #fff9c4; color: #e65100; }
+
+/* ── Bucket headings ──────────────────────────────────────────────────────── */
+
+.diff-bucket-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0.9rem 0 0.45rem;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.diff-bucket-heading--added   { color: #2e7d32; }
+.diff-bucket-heading--removed { color: #c62828; }
+.diff-bucket-heading--changed { color: #e65100; }
+
+/* ── Single-side row (added / removed) ────────────────────────────────────── */
+
+.diff-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 28%) 1fr;
+  align-items: baseline;
+  gap: 0 0.75rem;
+  padding: 5px 10px;
+  margin: 3px 0;
+  border-radius: 4px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.82em;
+  line-height: 1.5;
+}
+
+.diff-row--added   { background: #e8f5e9; border-left: 3px solid #43a047; }
+.diff-row--removed { background: #ffebee; border-left: 3px solid #e53935; }
+
+.diff-row__field {
+  font-weight: 600;
+  color: #37474f;
+  overflow-wrap: anywhere;
+}
+
+.diff-row__value {
+  color: #263238;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.diff-row__value--empty {
+  color: #9e9e9e;
+  font-style: italic;
+  font-family: inherit;
+}
+
+/* ── Side-by-side row (changed) ───────────────────────────────────────────── */
+
+.diff-sbs {
+  display: grid;
+  grid-template-columns: minmax(120px, 22%) 1fr 1fr;
+  align-items: baseline;
+  gap: 0 0.5rem;
+  padding: 5px 10px;
+  margin: 3px 0;
+  border-radius: 4px;
+  background: #fffde7;
+  border-left: 3px solid #fb8c00;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.82em;
+  line-height: 1.5;
+}
+
+.diff-sbs__field {
+  font-weight: 600;
+  color: #37474f;
+  overflow-wrap: anywhere;
+}
+
+.diff-sbs__old {
+  background: #ffebee;
+  color: #b71c1c;
+  padding: 2px 6px;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.diff-sbs__new {
+  background: #e8f5e9;
+  color: #1b5e20;
+  padding: 2px 6px;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* prefix symbols */
+.diff-sbs__old::before { content: "− "; font-weight: 700; }
+.diff-sbs__new::before { content: "+ "; font-weight: 700; }
+
+/* ── Column labels above side-by-side sections ───────────────────────────── */
+
+.diff-sbs-labels {
+  display: grid;
+  grid-template-columns: minmax(120px, 22%) 1fr 1fr;
+  gap: 0 0.5rem;
+  padding: 0 10px;
+  margin-bottom: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #78909c;
+}
+
+/* ── "No changes" message ────────────────────────────────────────────────── */
+
+.diff-no-changes {
+  padding: 1.25rem;
+  text-align: center;
+  background: #f1f8e9;
+  border: 1px solid #c5e1a5;
+  border-radius: 8px;
+  color: #33691e;
+  font-size: 0.92rem;
+}

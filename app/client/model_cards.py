@@ -168,10 +168,13 @@ def create_model_card(
     slug: str,
     task_type: str,
     title: str,
+    user_version: str,
     content: dict,
+    token: str = "",
 ) -> dict:
     """Create a new model card with its first version.
 
+    ``user_version`` is the version string from the card form (e.g. "v1.0").
     Returns the full model card dict (id, slug, versions, …).
     Raises BackendError if the request fails or the backend is unreachable.
     """
@@ -180,12 +183,14 @@ def create_model_card(
         "task_type": task_type,
         "first_version": {
             "title": title,
-            "content_json": content,
+            "user_version": user_version,
+            "content": content,
         },
     }
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         with _client() as client:
-            response = client.post("/v1/model-cards", json=payload)
+            response = client.post("/v1/model-cards", json=payload, headers=headers)
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
     except httpx.ConnectError:
@@ -194,14 +199,15 @@ def create_model_card(
         raise BackendError("Request timed out. Try again.")
 
 
-def list_model_cards() -> list[dict]:
-    """Return all model card summaries.
+def list_model_cards(token: str = "") -> list[dict]:
+    """Return all model cards (with versions) owned by the authenticated user.
 
     Raises BackendError if the request fails.
     """
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         with _client() as client:
-            response = client.get("/v1/model-cards")
+            response = client.get("/v1/model-cards", headers=headers)
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
     except httpx.ConnectError:
@@ -226,17 +232,21 @@ def get_versions(card_id: int) -> list[dict]:
         raise BackendError("Request timed out. Try again.")
 
 
-def create_version(card_id: int, title: str, content: dict) -> dict:
+def create_version(
+    card_id: int, title: str, user_version: str, content: dict, token: str = ""
+) -> dict:
     """Save a new version of an existing model card.
 
+    ``user_version`` is the version string from the card form (e.g. "v1.0").
     Returns the new version dict (id, version_number, is_latest, …).
     Raises BackendError if the request fails or the card does not exist.
     """
-    payload = {"title": title, "content_json": content}
+    payload = {"title": title, "user_version": user_version, "content": content}
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         with _client() as client:
             response = client.post(
-                f"/v1/model-cards/{card_id}/versions", json=payload
+                f"/v1/model-cards/{card_id}/versions", json=payload, headers=headers
             )
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
@@ -246,18 +256,75 @@ def create_version(card_id: int, title: str, content: dict) -> dict:
         raise BackendError("Request timed out. Try again.")
 
 
-def request_publication(card_id: int, token: str) -> dict:
-    """Submit a model card for publication review.
+def compare_versions(card_id: int, old_id: int, new_id: int) -> dict:
+    """Compare two versions of a model card.
+
+    Returns a DiffResponse dict with keys:
+      old_version_id, new_version_id, old_version, new_version, sections.
+    Each section has: added, removed, changed lists.
+    """
+    try:
+        with _client() as client:
+            response = client.get(
+                f"/v1/model-cards/{card_id}/versions/compare",
+                params={"old_id": old_id, "new_id": new_id},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def request_publication(card_id: int, version_id: int, token: str) -> dict:
+    """Submit a specific version for publication review.
 
     Requires a valid Bearer token for the card owner.
-    Returns the updated model card dict with publication_status = 'pending'.
+    Returns the updated ModelCardVersionRead dict with status = 'in_review'.
     """
     try:
         with _client() as client:
             response = client.post(
-                f"/v1/model-cards/{card_id}/request-publication",
+                f"/v1/model-cards/{card_id}/versions/{version_id}/submit",
                 headers={"Authorization": f"Bearer {token}"},
             )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def delete_model_card(card_id: int, token: str) -> None:
+    """Delete a model card and all its versions.
+
+    Raises BackendError if the card is not found, the caller is not the owner,
+    or the backend is unreachable.
+    """
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        with _client() as client:
+            response = client.delete(
+                f"/v1/model-cards/{card_id}",
+                headers=headers,
+            )
+        _raise_for_status(response)
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def get_public_version(version_id: int) -> dict:
+    """Return full content of a published model card version.
+
+    Raises BackendError if the version does not exist or is not published.
+    """
+    try:
+        with _client() as client:
+            response = client.get(f"/v1/public-model-cards/{version_id}")
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
     except httpx.ConnectError:

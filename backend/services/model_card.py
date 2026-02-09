@@ -121,6 +121,30 @@ async def create_new_version(
     return version
 
 
+async def delete_model_card(
+    session: AsyncSession,
+    card_id: int,
+    owner_id: uuid.UUID,
+) -> None:
+    """Delete a model card owned by owner_id.
+
+    Raises 404 if not found, 403 if the caller is not the owner.
+    """
+    card = await ModelCardRepository.get_by_id(session, card_id)
+    if card is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Model card with id={card_id} not found.",
+        )
+    if card.owner_id != owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not own this model card.",
+        )
+    await ModelCardRepository.delete(session, card_id)
+    await session.commit()
+
+
 async def list_model_cards_for_user(
     session: AsyncSession, owner_id: uuid.UUID
 ) -> list[ModelCard]:

@@ -401,78 +401,119 @@ def _save_section() -> None:
 
     st.markdown("## Save")
     card_id: int | None = st.session_state.get("saved_card_id")
-    version: int | None = st.session_state.get("saved_version")
-
-    if card_id is not None:
-        st.caption(f"Saved · ID {card_id} · version {version}")
-    else:
-        st.caption("Not yet saved.")
+    version: str | None = st.session_state.get("saved_version")
 
     model_name: str = st.session_state.get(
         "model_basic_information_name", ""
     ) or ""
     task_type: str = st.session_state.get("task", "Other") or "Other"
 
-    slug = st.text_input(
-        "Slug (unique identifier)",
-        value=_derive_slug(model_name),
-        key="saved_slug",
-        disabled=card_id is not None,
-        help="URL-safe name, e.g. my-segmentation-model. Cannot change after first save.",
-    )
-    title = st.text_input(
-        "Version title",
-        value=model_name,
-        key="saved_title",
-        help="Short description for this version.",
-    )
+    if card_id is not None:
+        st.caption(
+            f"Model: **{model_name or '(unnamed)'}**  \n"
+            f"Version: **{version or '?'}**"
+        )
+    else:
+        if model_name:
+            st.caption(f"Model: **{model_name}**  \nNot yet saved.")
+        else:
+            st.caption("Not yet saved.")
 
-    clean_slug = _derive_slug(slug)
-    if clean_slug != slug and slug:
-        st.caption(f"Slug will be saved as: **{clean_slug}**")
+    # Slug is derived from model name automatically; not shown in the UI.
+    clean_slug = _derive_slug(model_name)
+
+    # Version number (source of truth: Card Metadata section).
+    user_version_display: str = str(
+        st.session_state.get("card_metadata_version_number") or ""
+    ).strip()
+    if user_version_display:
+        st.caption(f"Version number: **{user_version_display}**")
+    else:
+        st.caption("Version number: *(set in Card Metadata)*")
+
+    current_status: str = st.session_state.get("saved_version_status") or "draft"
+
+    # ── Published versions are immutable ─────────────────────────────────────
+    if current_status == "published" and card_id is not None:
+        st.warning(
+            f"Version **{version}** is published and cannot be modified directly. "
+            "Create a new version to make changes."
+        )
+        if st.button("Create new version", use_container_width=True, key="btn_new_from_published"):
+            # Clear the version number so the user must choose a new one.
+            st.session_state["card_metadata_version_number"] = ""
+            # Detach from the current published version (keep card association).
+            st.session_state.saved_version_id = None
+            st.session_state.saved_version_status = "draft"
+            st.rerun()
+        return
 
     label = "Save new version" if card_id is not None else "Save"
     if st.button(label, use_container_width=True, key="btn_save"):
+        user_version: str = str(
+            st.session_state.get("card_metadata_version_number") or ""
+        ).strip()
+        if not model_name:
+            st.error(
+                "Model name is required. "
+                "Fill in the 'Model Name' field in the Model Basic Information section before saving."
+            )
+            st.stop()
+        if not user_version:
+            st.error(
+                "Version number is required. "
+                "Fill in the 'Version Number' field in the Card Metadata section before saving."
+            )
+            st.stop()
         try:
             content: dict = json.loads(parse_into_json(SCHEMA))
             if card_id is None:
                 result = create_model_card(
                     slug=clean_slug,
                     task_type=task_type,
-                    title=title or clean_slug,
+                    title=model_name,
+                    user_version=user_version,
                     content=content,
+                    token=token or "",
                 )
                 st.session_state.saved_card_id = result["id"]
-                st.session_state.saved_publication_status = result.get(
-                    "publication_status", "draft"
-                )
-                saved_version = result["versions"][0]["version_number"]
+                first_ver = result["versions"][0]
+                saved_version = first_ver["version"]
+                st.session_state.saved_version_id = first_ver["id"]
+                st.session_state.saved_version_status = first_ver.get("status", "draft")
             else:
                 result = create_version(
                     card_id=card_id,
-                    title=title or clean_slug,
+                    title=model_name,
+                    user_version=user_version,
                     content=content,
+                    token=token or "",
                 )
-                saved_version = result["version_number"]
+                saved_version = result["version"]
+                st.session_state.saved_version_id = result["id"]
+                st.session_state.saved_version_status = result.get("status", "draft")
             st.session_state.saved_version = saved_version
             # Persist card identifiers to browser cookies so they survive page reloads
             save_card_state(
                 card_id=st.session_state.saved_card_id,
                 version=saved_version,
                 slug=clean_slug,
-                status=st.session_state.get("saved_publication_status", "draft"),
+                status=st.session_state.saved_version_status,
             )
-            st.success(f"Saved as version {saved_version}.")
+            # Toast survives st.rerun(); st.success() would be wiped before the user sees it.
+            st.toast(f"Saved successfully — version {saved_version}.", icon="✅")
             st.rerun()
         except BackendError as exc:
             msg = str(exc)
             st.error(msg)
-            if "already exists" in msg:
-                st.info(
-                    "A card with this slug was saved in a previous session. "
-                    "Change the slug to create a new card, or reload the page "
-                    "if you want to add a new version to the existing one."
-                )
+            if "not found" in msg.lower() and card_id is not None:
+                # The card referenced by the cookie no longer exists (e.g. after a
+                # DB reset). Clear stale card state so the next save creates a new card.
+                st.session_state.saved_card_id = None
+                st.session_state.saved_version = None
+                st.session_state.saved_version_id = None
+                st.session_state.saved_version_status = None
+                st.info("Stale card reference cleared — click Save again to create a new card.")
         except (ValueError, KeyError, TypeError) as exc:
             st.error(f"Unexpected error: {exc}")
 

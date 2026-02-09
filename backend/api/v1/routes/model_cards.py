@@ -45,16 +45,16 @@ async def create_model_card(
 
 @router.get(
     "",
-    response_model=list[ModelCardSummary],
+    response_model=list[ModelCardRead],
     status_code=status.HTTP_200_OK,
     summary="List model cards owned by the authenticated user",
 )
 async def list_model_cards(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[ModelCardSummary]:
+) -> list[ModelCardRead]:
     cards = await model_card_service.list_model_cards_for_user(db, current_user.id)
-    return [ModelCardSummary.model_validate(c) for c in cards]
+    return [ModelCardRead.model_validate(c) for c in cards]
 
 
 @router.get(
@@ -69,6 +69,19 @@ async def get_versions(
 ) -> list[ModelCardVersionRead]:
     versions = await model_card_service.get_versions(db, card_id)
     return [ModelCardVersionRead.model_validate(v) for v in versions]
+
+
+@router.delete(
+    "/{card_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a model card and all its versions",
+)
+async def delete_model_card(
+    card_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    await model_card_service.delete_model_card(db, card_id, owner_id=current_user.id)
 
 
 @router.post(

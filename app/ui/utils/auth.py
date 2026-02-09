@@ -12,6 +12,8 @@ from __future__ import annotations
 import streamlit as st
 import streamlit.components.v1 as components
 
+from app.services.state_store import clear_form_state
+
 _COOKIE_TOKEN = "rtmc_auth_token"
 _COOKIE_EMAIL = "rtmc_auth_email"
 _COOKIE_FIRST_NAME = "rtmc_auth_first_name"
@@ -124,7 +126,9 @@ def clear_auth() -> None:
     st.session_state["_auth_logged_out"] = True
     st.session_state.saved_card_id = None
     st.session_state.saved_version = None
-    st.session_state.saved_publication_status = None
+    st.session_state.saved_version_id = None
+    st.session_state.saved_version_status = None
+    clear_form_state()
     _inject(_js_clear(
         _COOKIE_TOKEN, _COOKIE_EMAIL, _COOKIE_FIRST_NAME, _COOKIE_LAST_NAME,
         _COOKIE_CARD_ID, _COOKIE_CARD_VER, _COOKIE_CARD_SLUG, _COOKIE_CARD_STATUS,
@@ -133,7 +137,7 @@ def clear_auth() -> None:
 
 # ── Card state ────────────────────────────────────────────────────────────────
 
-def save_card_state(card_id: int, version: int, slug: str, status: str) -> None:
+def save_card_state(card_id: int, version: str, slug: str, status: str) -> None:
     """Persist saved-card identifiers in browser cookies for cross-reload recovery."""
     _inject(_js_set(
         (_COOKIE_CARD_ID, str(card_id)),
@@ -143,9 +147,35 @@ def save_card_state(card_id: int, version: int, slug: str, status: str) -> None:
     ))
 
 
+def clear_card_state() -> None:
+    """Clear card-related session state and expire the card browser cookies.
+
+    Also sets a one-shot guard flag so that the very next call to
+    restore_card_state() skips cookie restoration, preventing stale cookies
+    from immediately re-hydrating the state we just cleared (which would
+    happen because JS cookie-clearing is asynchronous with respect to the
+    next Streamlit rerun).
+    """
+    for key in ("saved_card_id", "saved_version", "saved_version_id",
+                "saved_version_status", "saved_slug"):
+        st.session_state.pop(key, None)
+    st.session_state["_new_card_mode"] = True
+    _inject(_js_clear(
+        _COOKIE_CARD_ID, _COOKIE_CARD_VER, _COOKIE_CARD_SLUG, _COOKIE_CARD_STATUS,
+    ))
+
+
 def restore_card_state() -> None:
-    """Restore saved-card state from browser cookies after a page reload."""
+    """Restore saved-card state from browser cookies after a page reload.
+
+    Skips restoration if ``saved_card_id`` is already in session state, or if
+    ``_new_card_mode`` is set (consumed on first check so it fires exactly once).
+    """
     if st.session_state.get("saved_card_id"):
+        return
+    # One-shot guard: clear_card_state() sets this to prevent the very next
+    # restore from re-reading stale cookies before the JS clearing has fired.
+    if st.session_state.pop("_new_card_mode", False):
         return
     try:
         cookies = st.context.cookies
@@ -155,7 +185,7 @@ def restore_card_state() -> None:
         status = cookies.get(_COOKIE_CARD_STATUS)
         if card_id_str and version_str:
             st.session_state.saved_card_id = int(card_id_str)
-            st.session_state.saved_version = int(version_str)
+            st.session_state.saved_version = version_str
             if slug:
                 st.session_state.saved_slug = slug
             if status:

@@ -22,7 +22,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Drop the unique constraint before changing the column type.
+    # MySQL cannot drop an index that is the sole backing index for a FK.
+    # Drop the FK first, then the unique index, alter the column, and restore both.
+    op.drop_constraint(
+        'model_card_version_ibfk_1', 'model_card_version', type_='foreignkey'
+    )
     op.drop_constraint('uq_card_version', 'model_card_version', type_='unique')
 
     # Convert INTEGER → VARCHAR(50).
@@ -35,15 +39,27 @@ def upgrade() -> None:
         existing_nullable=False,
     )
 
-    # Recreate the uniqueness constraint on the new string column.
+    # Recreate the unique constraint on the new string column.
     op.create_unique_constraint(
         'uq_card_version',
         'model_card_version',
         ['model_card_id', 'version_number'],
     )
+    # Restore the foreign key (uq_card_version now backs it again).
+    op.create_foreign_key(
+        'model_card_version_ibfk_1',
+        'model_card_version',
+        'model_card',
+        ['model_card_id'],
+        ['id'],
+        ondelete='CASCADE',
+    )
 
 
 def downgrade() -> None:
+    op.drop_constraint(
+        'model_card_version_ibfk_1', 'model_card_version', type_='foreignkey'
+    )
     op.drop_constraint('uq_card_version', 'model_card_version', type_='unique')
 
     op.alter_column(
@@ -58,4 +74,12 @@ def downgrade() -> None:
         'uq_card_version',
         'model_card_version',
         ['model_card_id', 'version_number'],
+    )
+    op.create_foreign_key(
+        'model_card_version_ibfk_1',
+        'model_card_version',
+        'model_card',
+        ['model_card_id'],
+        ['id'],
+        ondelete='CASCADE',
     )

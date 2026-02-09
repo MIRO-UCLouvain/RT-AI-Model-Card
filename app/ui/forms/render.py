@@ -424,19 +424,35 @@ def _render_date_input(
 
 def _render_version_number(full_key: str) -> None:
     """
-    Renders a specialized number input for card_metadata.version_number.
+    Renders a number input (with up/down arrows) for card_metadata.version_number.
+
+    The widget stores a float internally but the canonical value in
+    ``full_key`` is always a clean string (e.g. "0.3", "1.1") produced via
+    ``:.10g`` formatting, which strips the float-precision noise that
+    ``st.number_input`` would otherwise introduce.
 
     :param full_key: The full key of the field.
     :type full_key: str
     """
-    load_value(full_key, default=0.0)
-
     widget_key = "_" + full_key
-    current = st.session_state.get(
-        widget_key,
-        st.session_state.get(full_key, 0.0),
-    )
-    st.session_state[widget_key] = _coerce_float_np(current, 0.0)
+
+    # Convert whatever is stored (float, string, None) to a float for the widget.
+    raw = st.session_state.get(full_key, 0.0)
+    if isinstance(raw, str):
+        try:
+            widget_val = float(raw) if raw.strip() else 0.0
+        except ValueError:
+            widget_val = 0.0
+    else:
+        widget_val = _coerce_float_np(raw, 0.0)
+
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = widget_val
+
+    def _on_change() -> None:
+        fval: float = _coerce_float_np(st.session_state.get(widget_key, 0.0), 0.0)
+        # Store as a clean string: "0.3" not "0.30000000000000004"
+        st.session_state[full_key] = f"{fval:.10g}"
 
     st.number_input(
         label=".",
@@ -445,8 +461,7 @@ def _render_version_number(full_key: str) -> None:
         step=0.1,
         format="%.1f",
         key=widget_key,
-        on_change=store_value,
-        args=(full_key,),
+        on_change=_on_change,
         label_visibility="hidden",
     )
 

@@ -838,6 +838,128 @@ def render_markdown_to_html(
 </html>"""
 
 
+# ── Cover-page CSS (xhtml2pdf compatible) ─────────────────────────────────────
+
+_COVER_CSS = """
+.cover-logo-bar { background: #0553D1; height: 6pt; margin-bottom: 24pt; }
+.cover-title     { font-size: 22pt; font-weight: bold; color: #0553D1; margin: 0 0 6pt; }
+.cover-subtitle  { font-size: 13pt; color: #4b5563; margin: 0 0 0; }
+.cover-divider   { border-top: 1pt solid #e5e7eb; margin: 18pt 0; }
+.cover-meta      { width: 100%; border: none; margin: 0; }
+.cover-meta td   { border: none; padding: 3pt 6pt; font-size: 11pt; }
+.cover-lbl       { font-weight: bold; color: #374151; width: 36%; }
+.cover-break     { page-break-after: always; }
+"""
+
+
+def _html_esc(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _build_cover_html(
+    model_name: str,
+    version: str,
+    author: str,
+    contact_email: str,
+    published_date: str,
+) -> str:
+    contact_row = (
+        f"<tr><td class='cover-lbl'>Contact</td>"
+        f"<td>{_html_esc(contact_email)}</td></tr>"
+        if contact_email else ""
+    )
+    return (
+        '<div class="cover-break">'
+        '<div class="cover-logo-bar"></div>'
+        f'<div class="cover-title">{_html_esc(model_name)}</div>'
+        f'<div class="cover-subtitle">AI Model Card &mdash; Version {_html_esc(version)}</div>'
+        '<div class="cover-divider"></div>'
+        '<table class="cover-meta">'
+        f'<tr><td class="cover-lbl">Author</td><td>{_html_esc(author)}</td></tr>'
+        f'{contact_row}'
+        f'<tr><td class="cover-lbl">Published</td><td>{_html_esc(published_date)}</td></tr>'
+        "</table>"
+        '<div class="cover-divider"></div>'
+        "</div>"
+    )
+
+
+def _build_version_history_md(versions: list[dict]) -> str:  # type: ignore[type-arg]
+    lines = [
+        "## Version History",
+        "",
+        "| Version | Date | Status |",
+        "|---------|------|--------|",
+    ]
+    for v in sorted(versions, key=lambda x: str(x.get("version", ""))):
+        ver = v.get("version", "—")
+        date = str(v.get("created_at", ""))[:10]
+        st_label = str(v.get("status", "")).replace("_", " ").title()
+        lines.append(f"| {ver} | {date} | {st_label} |")
+    return "\n".join(lines)
+
+
+def render_version_pdf_bytes(
+    content: dict,  # type: ignore[type-arg]
+    *,
+    model_name: str,
+    version: str,
+    author: str,
+    contact_email: str = "",
+    published_date: str = "",
+    version_history: list[dict] | None = None,  # type: ignore[type-arg]
+) -> bytes:
+    """Generate PDF bytes for a specific published version with a cover page.
+
+    Temporarily loads *content* into Streamlit session state to render the
+    model card markdown, then restores the original session state.
+    """
+    import io  # noqa: PLC0415
+
+    from app.services.state_store import (  # noqa: PLC0415
+        populate_session_state_from_json,
+    )
+
+    if not _HAS_PISA:
+        raise RuntimeError(
+            f"PDF export unavailable: xhtml2pdf not installed.\n"
+            f"Underlying error: {_PISA_ERR}"
+        )
+
+    # Save session state, load version content, render, then restore.
+    _backup = dict(st.session_state)
+    try:
+        populate_session_state_from_json(content)
+        md_body = render_full_model_card_md()
+    finally:
+        for k in list(st.session_state.keys()):
+            if k not in _backup:
+                try:
+                    del st.session_state[k]
+                except Exception:  # noqa: BLE001
+                    pass
+        for k, v in _backup.items():
+            try:
+                st.session_state[k] = v
+            except Exception:  # noqa: BLE001
+                pass
+
+    full_md = md_body
+    if version_history:
+        full_md += "\n\n" + _build_version_history_md(version_history)
+
+    combined_css = _XHTML2PDF_CSS + _COVER_CSS
+    cover_html = _build_cover_html(model_name, version, author, contact_email, published_date)
+    html = render_markdown_to_html(full_md, base_css=combined_css)
+    html = html.replace("<body>", f"<body>{cover_html}", 1)
+
+    buf = io.BytesIO()
+    result = pisa.CreatePDF(html, dest=buf)
+    if result.err:
+        raise RuntimeError(f"PDF generation failed with {result.err} error(s).")
+    return buf.getvalue()
+
+
 def save_model_card_pdf(
     path: str = "model_card.pdf",
     *,
@@ -903,5 +1025,6 @@ __all__ = [
     "render_full_model_card_md",
     "render_markdown_to_html",
     "render_section_md",
+    "render_version_pdf_bytes",
     "save_model_card_pdf",
 ]

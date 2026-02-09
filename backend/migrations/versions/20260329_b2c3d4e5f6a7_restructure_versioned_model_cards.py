@@ -38,7 +38,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # ── model_card_version ────────────────────────────────────────────────────
 
-    # 1. Drop unique constraint that references the old column name.
+    # 1. MySQL won't drop an index that backs a FK — drop FK first.
+    op.drop_constraint(
+        'model_card_version_ibfk_1', 'model_card_version', type_='foreignkey'
+    )
     op.drop_constraint('uq_card_version', 'model_card_version', type_='unique')
 
     # 2. Rename version_number → version (already VARCHAR 50 from prev migration).
@@ -85,15 +88,20 @@ def upgrade() -> None:
         server_default='draft',
     )
 
-    # 8. Add created_by FK (nullable — existing rows have no creator recorded).
+    # 8. Add created_by column (nullable — existing rows have no creator recorded).
+    #    Do NOT use an inline ForeignKey here — MySQL would auto-name the FK and
+    #    collide with the name we restore later.  Create the FK explicitly instead.
     op.add_column(
         'model_card_version',
-        sa.Column(
-            'created_by',
-            sa.String(36),   # UUID stored as string; matches Uuid(native_uuid=False)
-            sa.ForeignKey('user.id', ondelete='SET NULL'),
-            nullable=True,
-        ),
+        sa.Column('created_by', sa.String(36), nullable=True),
+    )
+    op.create_foreign_key(
+        'fk_mcv_created_by',
+        'model_card_version',
+        'user',
+        ['created_by'],
+        ['id'],
+        ondelete='SET NULL',
     )
     op.create_index(
         'ix_model_card_version_created_by',
@@ -109,6 +117,15 @@ def upgrade() -> None:
         'uq_card_version',
         'model_card_version',
         ['model_card_id', 'version'],
+    )
+    # Restore the FK (now backed by the recreated uq_card_version index).
+    op.create_foreign_key(
+        'model_card_version_ibfk_1',
+        'model_card_version',
+        'model_card',
+        ['model_card_id'],
+        ['id'],
+        ondelete='CASCADE',
     )
 
     # ── model_card ────────────────────────────────────────────────────────────
@@ -161,7 +178,11 @@ def downgrade() -> None:
 
     # ── model_card_version ────────────────────────────────────────────────────
 
+    op.drop_constraint(
+        'model_card_version_ibfk_1', 'model_card_version', type_='foreignkey'
+    )
     op.drop_constraint('uq_card_version', 'model_card_version', type_='unique')
+    op.drop_constraint('fk_mcv_created_by', 'model_card_version', type_='foreignkey')
     op.drop_index('ix_model_card_version_created_by', 'model_card_version')
     op.drop_column('model_card_version', 'created_by')
     op.drop_column('model_card_version', 'status')
@@ -188,4 +209,12 @@ def downgrade() -> None:
         'uq_card_version',
         'model_card_version',
         ['model_card_id', 'version_number'],
+    )
+    op.create_foreign_key(
+        'model_card_version_ibfk_1',
+        'model_card_version',
+        'model_card',
+        ['model_card_id'],
+        ['id'],
+        ondelete='CASCADE',
     )

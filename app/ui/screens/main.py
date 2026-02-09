@@ -19,7 +19,8 @@ from app.ui.screens.published_cards import published_cards_page
 from app.ui.screens.register import register_page
 from app.ui.screens.reset_password import reset_password_page
 from app.ui.screens.task_selector import task_selector_page
-from app.ui.utils.auth import clear_auth, restore_auth, restore_card_state
+from app.services.state_store import clear_form_state
+from app.ui.utils.auth import clear_auth, clear_card_state, restore_auth, restore_card_state
 from app.ui.utils.css import inject_css
 
 CSS_PATH = Path(__file__).resolve().parent.parent / "static" / "global.css"
@@ -144,6 +145,8 @@ def _render_logged_in_home() -> None:
                 unsafe_allow_html=True,
             )
             if st.button("Create Model Card", use_container_width=True, key="home_create"):
+                clear_form_state()
+                clear_card_state()  # clears session + cookies + sets guard flag
                 st.query_params["view"] = "create"
                 st.rerun()
 

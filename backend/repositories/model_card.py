@@ -50,6 +50,15 @@ class ModelCardRepository:
         return list(result.scalars().all())
 
     @staticmethod
+    async def delete(session: AsyncSession, card_id: int) -> bool:
+        """Delete a model card and cascade to its versions. Returns True if found."""
+        card = await session.get(ModelCard, card_id)
+        if card is None:
+            return False
+        await session.delete(card)
+        return True
+
+    @staticmethod
     async def create(
         session: AsyncSession,
         slug: str,
