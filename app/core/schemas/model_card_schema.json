@@ -189,13 +189,13 @@
     "code_source": {
       "type": "String, Free text format",
       "label": "Code Source",
-      "description": "Link(s) to repository (e.g. github/gitlab) or website where the code source of the learning architecture and inference pipeline is located. If the code source is not made available, indicate “NA” (Not applicable), or eventually, you might use this field to indicate the location / path in your internal computers.",
+      "description": "Link(s) to repository (e.g. github/gitlab) or website where the code source of the learning architecture and inference pipeline is located. Eventually, you might use this field to indicate the location / path in your internal computers.",
       "required": false
     },
     "model_source": {
       "type": "String, Free text format",
       "label": "Model source",
-      "description": "Link to the trained learning model (i.e. weights) to run inference (e.g. HuggingFace, website, …). If the trained model is not made available, indicate “NA” (Not applicable), or eventually, you might use this field to indicate the path / location in your internal computers.",
+      "description": "Link to the trained learning model (i.e. weights) to run inference (e.g. HuggingFace, website, …). Eventually, you might use this field to indicate the path / location in your internal computers.",
       "required": false
     },
     "citation_details": {
@@ -397,7 +397,7 @@
     "input_size": {
       "type": "list[float] or list[list[float]]",
       "label": "Input Size",
-      "description": "Size of each input, separated by commas. If only one entry while the number of inputs> 1, all inputs have the same size. If the size of the learning model inputs is not known or may vary according to the input data (e.g. it is extracted after an AutoML pre-process like in nnUnet), indicate “NA” (not applicable)",
+      "description": " Size of each input, separated by commas. If only one entry while the number of inputs> 1,  all inputs have the same size.",
       "required": false,
       "example": "[[128], [128, 128, 128], [64, 64, 64]]",
       "format": "^(?i:N/?A|\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\]|\\[\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\](?:\\s*,\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\])*\\s*\\]|\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\](?:\\s*,\\s*\\[\\s*\\d+(?:\\.\\d+)?(?:\\s*,\\s*\\d+(?:\\.\\d+)?)*\\s*\\])*)$",
