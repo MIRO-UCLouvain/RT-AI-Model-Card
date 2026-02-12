@@ -217,18 +217,36 @@ def _normalize_upload_entry(
     if not info:
         return None
 
-    path = info.get("path")
-    name = info.get("name") or (Path(path).name if path else None)
+    name: str | None = info.get("name")
 
-    mime, _ = mimetypes.guess_type(name or "")
+    # Inline data URI — present when the image was restored from persisted JSON
+    # (i.e. the original local file no longer exists in this process).
+    # Use it directly; no disk access needed.
+    data_uri: str | None = info.get("data_uri")
+    if data_uri:
+        mime: str | None = None
+        if name:
+            mime, _ = mimetypes.guess_type(name)
+        if not mime and data_uri.startswith("data:"):
+            try:
+                mime = data_uri.split(";")[0][5:]  # "data:<mime>;base64,..."
+            except (IndexError, ValueError):
+                pass
+        return FileObj(name=name, type=mime, url=data_uri)
+
+    path = info.get("path")
+    if not name:
+        name = Path(path).name if path else None
+
+    mime_from_name, _ = mimetypes.guess_type(name or "")
 
     url = (
-        _file_to_data_uri(path, fallback_mime=mime)
+        _file_to_data_uri(path, fallback_mime=mime_from_name)
         if path and Path(path).exists()
         else None
     )
 
-    return FileObj(name=name, type=mime, url=url)
+    return FileObj(name=name, type=mime_from_name, url=url)
 
 
 def _normalize_file_from_key(
@@ -838,78 +856,45 @@ def render_markdown_to_html(
 </html>"""
 
 
-# ── Cover-page CSS (xhtml2pdf compatible) ─────────────────────────────────────
-
-_COVER_CSS = """
-.cover-logo-bar { background: #0553D1; height: 6pt; margin-bottom: 24pt; }
-.cover-title     { font-size: 22pt; font-weight: bold; color: #0553D1; margin: 0 0 6pt; }
-.cover-subtitle  { font-size: 13pt; color: #4b5563; margin: 0 0 0; }
-.cover-divider   { border-top: 1pt solid #e5e7eb; margin: 18pt 0; }
-.cover-meta      { width: 100%; border: none; margin: 0; }
-.cover-meta td   { border: none; padding: 3pt 6pt; font-size: 11pt; }
-.cover-lbl       { font-weight: bold; color: #374151; width: 36%; }
-.cover-break     { page-break-after: always; }
-"""
-
-
 def _html_esc(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _build_cover_html(
-    model_name: str,
-    version: str,
-    author: str,
-    contact_email: str,
-    published_date: str,
-) -> str:
-    contact_row = (
-        f"<tr><td class='cover-lbl'>Contact</td>"
-        f"<td>{_html_esc(contact_email)}</td></tr>"
-        if contact_email else ""
-    )
+_FOOTER_CSS = """
+.pdf-footer { border-top: 1pt solid #e5e7eb; margin-top: 24pt; padding-top: 8pt; font-size: 9pt; color: #6b7280; }
+.pdf-footer td { border: none; padding: 1pt 4pt; font-size: 9pt; color: #6b7280; }
+.pdf-footer .lbl { font-weight: bold; width: 80pt; }
+"""
+
+
+def _build_footer_html(author: str, contact_email: str) -> str:
+    """Return a minimal HTML footer with author / contact (both optional)."""
+    rows = ""
+    if author:
+        rows += f"<tr><td class='lbl'>Author</td><td>{_html_esc(author)}</td></tr>"
+    if contact_email:
+        rows += f"<tr><td class='lbl'>Contact</td><td>{_html_esc(contact_email)}</td></tr>"
+    if not rows:
+        return ""
     return (
-        '<div class="cover-break">'
-        '<div class="cover-logo-bar"></div>'
-        f'<div class="cover-title">{_html_esc(model_name)}</div>'
-        f'<div class="cover-subtitle">AI Model Card &mdash; Version {_html_esc(version)}</div>'
-        '<div class="cover-divider"></div>'
-        '<table class="cover-meta">'
-        f'<tr><td class="cover-lbl">Author</td><td>{_html_esc(author)}</td></tr>'
-        f'{contact_row}'
-        f'<tr><td class="cover-lbl">Published</td><td>{_html_esc(published_date)}</td></tr>'
-        "</table>"
-        '<div class="cover-divider"></div>'
+        '<div class="pdf-footer">'
+        f'<table>{rows}</table>'
         "</div>"
     )
-
-
-def _build_version_history_md(versions: list[dict]) -> str:  # type: ignore[type-arg]
-    lines = [
-        "## Version History",
-        "",
-        "| Version | Date | Status |",
-        "|---------|------|--------|",
-    ]
-    for v in sorted(versions, key=lambda x: str(x.get("version", ""))):
-        ver = v.get("version", "—")
-        date = str(v.get("created_at", ""))[:10]
-        st_label = str(v.get("status", "")).replace("_", " ").title()
-        lines.append(f"| {ver} | {date} | {st_label} |")
-    return "\n".join(lines)
 
 
 def render_version_pdf_bytes(
     content: dict,  # type: ignore[type-arg]
     *,
-    model_name: str,
-    version: str,
-    author: str,
+    author: str = "",
     contact_email: str = "",
-    published_date: str = "",
-    version_history: list[dict] | None = None,  # type: ignore[type-arg]
+    is_anonymous: bool = False,
 ) -> bytes:
-    """Generate PDF bytes for a specific published version with a cover page.
+    """Generate PDF bytes for a specific published version.
+
+    No cover page or version history is included.  A minimal footer with
+    author name and contact email is appended at the end, but only when the
+    card was *not* published anonymously.
 
     Temporarily loads *content* into Streamlit session state to render the
     model card markdown, then restores the original session state.
@@ -926,32 +911,70 @@ def render_version_pdf_bytes(
             f"Underlying error: {_PISA_ERR}"
         )
 
-    # Save session state, load version content, render, then restore.
-    _backup = dict(st.session_state)
+    # Only back up form-state keys that populate_session_state_from_json writes.
+    # Widget keys (st.button, st.download_button, etc.) must NOT be restored via
+    # st.session_state assignment — Streamlit rejects that and, even when the
+    # exception is caught, marks the key as "user-written", which causes
+    # StreamlitValueAssignmentNotAllowedError on the next render.
+    _FORM_KEY_PREFIXES: tuple[str, ...] = (
+        "card_metadata_",           "_card_metadata_",
+        "model_basic_information_", "_model_basic_information_",
+        "technical_specifications_","_technical_specifications_",
+        "learning_architecture_",   "_learning_architecture_",
+        "hw_and_sw_",               "_hw_and_sw_",
+        "training_data_",           "_training_data_",
+        "evaluation_",              "_evaluation_",
+        "other_considerations_",    "_other_considerations_",
+        "appendix_",                "_appendix_",
+    )
+    _FORM_SINGLETON_KEYS = {"task", "learning_architecture_forms", "evaluation_forms"}
+
+    def _is_form_key(k: object) -> bool:
+        if not isinstance(k, str):
+            return False
+        return k in _FORM_SINGLETON_KEYS or any(k.startswith(p) for p in _FORM_KEY_PREFIXES)
+
+    _backup = {k: v for k, v in st.session_state.items() if _is_form_key(k)}
+    # Upload registries are not covered by _is_form_key but populate_session_state_from_json
+    # now writes into them (image data URIs). Back them up so PDF generation never
+    # pollutes the caller's active card state.
+    _ru_backup: dict[str, Any] = dict(st.session_state.get("render_uploads") or {})
+    _au_backup: dict[str, Any] = dict(st.session_state.get("appendix_uploads") or {})
     try:
         populate_session_state_from_json(content)
         md_body = render_full_model_card_md()
     finally:
+        # Remove form keys added during rendering that were not there before.
         for k in list(st.session_state.keys()):
-            if k not in _backup:
+            if _is_form_key(k) and k not in _backup:
                 try:
                     del st.session_state[k]
                 except Exception:  # noqa: BLE001
                     pass
+        # Restore the original form state.
         for k, v in _backup.items():
             try:
                 st.session_state[k] = v
             except Exception:  # noqa: BLE001
                 pass
+        # Restore upload registries.
+        for _reg_key, _reg_val in (
+            ("render_uploads", _ru_backup),
+            ("appendix_uploads", _au_backup),
+        ):
+            try:
+                st.session_state[_reg_key] = _reg_val
+            except Exception:  # noqa: BLE001
+                pass
 
-    full_md = md_body
-    if version_history:
-        full_md += "\n\n" + _build_version_history_md(version_history)
+    combined_css = _XHTML2PDF_CSS + _FOOTER_CSS
+    html = render_markdown_to_html(md_body, base_css=combined_css)
 
-    combined_css = _XHTML2PDF_CSS + _COVER_CSS
-    cover_html = _build_cover_html(model_name, version, author, contact_email, published_date)
-    html = render_markdown_to_html(full_md, base_css=combined_css)
-    html = html.replace("<body>", f"<body>{cover_html}", 1)
+    # Append footer (non-anonymous cards only)
+    if not is_anonymous:
+        footer_html = _build_footer_html(author, contact_email)
+        if footer_html:
+            html = html.replace("</body>", f"{footer_html}</body>", 1)
 
     buf = io.BytesIO()
     result = pisa.CreatePDF(html, dest=buf)

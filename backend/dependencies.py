@@ -51,3 +51,23 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+async def require_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Ensure the authenticated user has administrator privileges.
+
+    Use as a drop-in replacement for ``get_current_user`` on any route
+    that must be restricted to admins::
+
+        @router.get("/admin-only")
+        async def secret(admin: User = Depends(require_admin)):
+            ...
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+    return current_user

@@ -43,6 +43,26 @@ async def create_user(session: AsyncSession, data: UserCreate) -> User:
     return user
 
 
+async def change_password(
+    session: AsyncSession,
+    user: User,
+    current_password: str,
+    new_password: str,
+) -> None:
+    """Change the password for an authenticated user.
+
+    Raises 400 if *current_password* does not match the stored hash.
+    """
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+    user.hashed_password = hash_password(new_password)
+    session.add(user)
+    await session.commit()
+
+
 async def authenticate_user(
     session: AsyncSession,
     email: str,

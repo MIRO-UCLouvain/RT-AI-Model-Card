@@ -549,40 +549,57 @@ def _render_github_repo(repo_url: str) -> None:
 
 def sidebar_render() -> None:
     """Render the sidebar for the Streamlit app."""
+    view_mode: bool = bool(st.session_state.get("_view_mode", False))
+
     with st.sidebar:
         inject_css(CSS_PATH)
 
-        # ── Back to Main Page (top of sidebar, always visible) ────────────────
-        if not st.session_state.get("_sidebar_confirm_back"):
+        if view_mode:
+            # ── Read-only viewer: single back button, no confirmation needed ──
+            st.info("📄 **Viewing a published card — read only.**")
             if st.button(
-                "← Back to Main Page",
-                key="sidebar_back_home",
+                "← Back to Published Cards",
+                key="sidebar_back_published",
                 use_container_width=True,
                 type="primary",
             ):
-                st.session_state["_sidebar_confirm_back"] = True
+                st.session_state.pop("_view_mode", None)
+                clear_form_state()
+                st.query_params["view"] = "published"
                 st.rerun()
         else:
-            st.warning(
-                "All unsaved data will be lost. "
-                "Download your card before leaving."
-            )
-            col_yes, col_no = st.columns(2)
-            with col_yes:
-                if st.button("Leave", key="sidebar_confirm_leave", use_container_width=True):
-                    st.session_state.pop("_sidebar_confirm_back", None)
-                    clear_form_state()
-                    st.query_params["view"] = "home"
+            # ── Back to Main Page (top of sidebar, always visible) ─────────────
+            if not st.session_state.get("_sidebar_confirm_back"):
+                if st.button(
+                    "← Back to Main Page",
+                    key="sidebar_back_home",
+                    use_container_width=True,
+                    type="primary",
+                ):
+                    st.session_state["_sidebar_confirm_back"] = True
                     st.rerun()
-            with col_no:
-                if st.button("Stay", key="sidebar_cancel_leave", use_container_width=True):
-                    st.session_state.pop("_sidebar_confirm_back", None)
-                    st.rerun()
+            else:
+                st.warning(
+                    "All unsaved data will be lost. "
+                    "Download your card before leaving."
+                )
+                col_yes, col_no = st.columns(2)
+                with col_yes:
+                    if st.button("Leave", key="sidebar_confirm_leave", use_container_width=True):
+                        st.session_state.pop("_sidebar_confirm_back", None)
+                        clear_form_state()
+                        st.query_params["view"] = "home"
+                        st.rerun()
+                with col_no:
+                    if st.button("Stay", key="sidebar_cancel_leave", use_container_width=True):
+                        st.session_state.pop("_sidebar_confirm_back", None)
+                        st.rerun()
 
         st.divider()
 
         _render_menu()
-        _save_section()
+        if not view_mode:
+            _save_section()
         _local_downloads_tab()
         st.divider()
         _render_github_repo(

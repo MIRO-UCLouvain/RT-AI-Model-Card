@@ -51,5 +51,9 @@ class Settings(BaseSettings):
     # Set RESEND_API_KEY to send via Resend's HTTP API instead of raw SMTP.
     RESEND_API_KEY: str = ""
 
+    # ── Feedback ──────────────────────────────────────────────────────────────
+    # Email address that receives user feedback submissions.
+    FEEDBACK_EMAIL: str = "silviamariaherranz@gmail.com"
+
 
 settings = Settings()

@@ -224,6 +224,8 @@ def render_image_field(
 
     ensure_upload_state()
 
+    _view_mode = bool(st.session_state.get("_view_mode", False))
+
     label = props.get("label") or key or "Field"
     description = props.get("description", "")
     example = props.get("example", "")
@@ -232,10 +234,11 @@ def render_image_field(
 
     create_helpicon(label, description, field_type, example, required)
 
-    st.caption(
-        "Accepted formats: PNG, JPG, JPEG, SVG. "
-        "If you have multiple figures, upload the additional ones in the Appendix."
-    )
+    if not _view_mode:
+        st.caption(
+            "Accepted formats: PNG, JPG, JPEG, SVG. "
+            "If you have multiple figures, upload the additional ones in the Appendix."
+        )
 
     # ── Caption field (persistent via shadow-key pattern) ──────────────────
     caption_key = f"{full_key}_caption"
@@ -250,6 +253,7 @@ def render_image_field(
             on_change=store_value,
             args=(caption_key,),          # writes to the persistent logical key
             help="This caption will appear below the image in the PDF export.",
+            disabled=_view_mode,
         )
 
     with col2:
@@ -258,17 +262,19 @@ def render_image_field(
             type=ALLOWED_IMAGE_EXTS,
             key=uploader_key_for(full_key),
             label_visibility="collapsed",
+            disabled=_view_mode,
         )
 
         # Save once per selection (fingerprint guards against duplicate saves)
-        fp = _fingerprint_uploaded(uploaded)
-        prev_fp = st.session_state.get(token_key)
-        if uploaded is not None and fp is not None and fp != prev_fp:
-            field_delete(full_key)
-            field_overwrite(full_key, uploaded, "uploads")
-            st.session_state[f"{full_key}_image"] = uploaded  # back-compat
-            st.session_state[token_key] = fp
-            st.rerun()
+        if not _view_mode:
+            fp = _fingerprint_uploaded(uploaded)
+            prev_fp = st.session_state.get(token_key)
+            if uploaded is not None and fp is not None and fp != prev_fp:
+                field_delete(full_key)
+                field_overwrite(full_key, uploaded, "uploads")
+                st.session_state[f"{full_key}_image"] = uploaded  # back-compat
+                st.session_state[token_key] = fp
+                st.rerun()
 
     # ── Status + Delete (below columns, full width) ───────────────────────
     existing = field_current(full_key)
@@ -280,7 +286,7 @@ def render_image_field(
         else:
             st.caption(f"{label}: file uploaded ✓")
 
-        if st.button("Delete", key=f"{full_key}__remove_btn"):
+        if not _view_mode and st.button("Delete", key=f"{full_key}__remove_btn"):
             field_delete(full_key)
             st.session_state.pop(token_key, None)
             bump_uploader(full_key)
@@ -303,6 +309,10 @@ def render_field(key: str, props: FieldProps, section_prefix: str) -> None:  # n
     :param section_prefix: The prefix to use for the field keys.
     :type section_prefix: str
     """
+    # In read-only / view mode every field is disabled regardless of schema.
+    if st.session_state.get("_view_mode"):
+        props = {**props, "disabled": True}
+
     full_key = f"{section_prefix}_{key}"
 
     # 1) help icon
@@ -463,6 +473,7 @@ def _render_version_number(full_key: str) -> None:
         key=widget_key,
         on_change=_on_change,
         label_visibility="hidden",
+        disabled=bool(st.session_state.get("_view_mode", False)),
     )
 
 
@@ -511,6 +522,7 @@ def _render_simple_select(full_key: str, props: FieldProps) -> None:
         help=props.get("description", ""),
         label_visibility="hidden",
         placeholder=DEFAULT_SELECT,
+        disabled=bool(props.get("disabled", False)),
     )
 
 
@@ -549,6 +561,7 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
     content_list_key = f"{full_key}_list"
     type_key = f"{full_key}_new_type"
     subtype_key = f"{full_key}_new_subtype"
+    _disabled = bool(props.get("disabled", False))
 
     load_value(content_list_key, default=[])
     load_value(type_key)
@@ -566,6 +579,7 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                 args=(type_key,),
                 label_visibility="hidden",
                 placeholder=DEFAULT_SELECT,
+                disabled=_disabled,
             )
 
         load_value(subtype_key, default=[])
@@ -576,13 +590,15 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                 key="_" + subtype_key,
                 help=props.get("description", ""),
                 label_visibility="hidden",
+                disabled=_disabled,
             )
             st.session_state[subtype_key] = selected_subtypes
 
-            st.info(
-                "If the structure name isn't in the dropdown menu, select "
-                "**Other** and introduce the name manually.",
-            )
+            if not _disabled:
+                st.info(
+                    "If the structure name isn't in the dropdown menu, select "
+                    "**Other** and introduce the name manually.",
+                )
 
             custom_key = f"{subtype_key}_custom"
             load_value(custom_key, default="")
@@ -592,48 +608,50 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                     value=st.session_state.get(custom_key, ""),
                     key=custom_key,
                     placeholder="Introduce custom value",
+                    disabled=_disabled,
                 )
 
         with col3:
-            st.markdown(
-                "<div style='margin-top: 26px;'>",
-                unsafe_allow_html=True,
-            )
-            if st.button("Add", key=f"{full_key}_add_button"):
-                selected: list[str] = (
-                    st.session_state.get(subtype_key, []) or []
+            if not _disabled:
+                st.markdown(
+                    "<div style='margin-top: 26px;'>",
+                    unsafe_allow_html=True,
                 )
-                display_parts: list[str] = []
+                if st.button("Add", key=f"{full_key}_add_button"):
+                    selected: list[str] = (
+                        st.session_state.get(subtype_key, []) or []
+                    )
+                    display_parts: list[str] = []
 
-                for subtype in selected:
-                    if subtype == "Other":
-                        custom = (
-                            st.session_state.get(custom_key, "") or ""
-                        ).strip()
-                        if custom:
-                            display_parts.append(custom)
+                    for subtype in selected:
+                        if subtype == "Other":
+                            custom = (
+                                st.session_state.get(custom_key, "") or ""
+                            ).strip()
+                            if custom:
+                                display_parts.append(custom)
+                        else:
+                            display_parts.append(subtype)
+
+                    if not display_parts:
+                        st.error(
+                            "Please select at least one structure "
+                            "or enter a custom name.",
+                        )
                     else:
-                        display_parts.append(subtype)
-
-                if not display_parts:
-                    st.error(
-                        "Please select at least one structure "
-                        "or enter a custom name.",
-                    )
-                else:
-                    existing = st.session_state.get(content_list_key, [])
-                    n = sum(
-                        1 for x in existing
-                        if isinstance(x, str) and x.startswith("RTSTRUCT ")
-                    ) + 1
-                    inline_label = (
-                        f"RTSTRUCT {n} ({', '.join(display_parts)})"
-                    )
-                    st.session_state[content_list_key].append(inline_label)
-                    st.session_state[full_key] = st.session_state[
-                        content_list_key
-                    ]
-            st.markdown("</div>", unsafe_allow_html=True)
+                        existing = st.session_state.get(content_list_key, [])
+                        n = sum(
+                            1 for x in existing
+                            if isinstance(x, str) and x.startswith("RTSTRUCT ")
+                        ) + 1
+                        inline_label = (
+                            f"RTSTRUCT {n} ({', '.join(display_parts)})"
+                        )
+                        st.session_state[content_list_key].append(inline_label)
+                        st.session_state[full_key] = st.session_state[
+                            content_list_key
+                        ]
+                st.markdown("</div>", unsafe_allow_html=True)
 
     else:
         col1, col2, col3 = st.columns([2, 1, 0.5])
@@ -646,6 +664,7 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                 args=(type_key,),
                 label_visibility="hidden",
                 placeholder=DEFAULT_SELECT,
+                disabled=_disabled,
             )
         selected_type = st.session_state.get(type_key)
         custom_key = f"{full_key}_custom_text"
@@ -662,33 +681,35 @@ def _render_content_list_select(full_key: str, props: FieldProps) -> None:  # no
                     key=custom_key,
                     label_visibility="collapsed",
                     placeholder="Introduce custom value",
+                    disabled=_disabled,
                 )
                 st.markdown("</div>", unsafe_allow_html=True)
             else:
                 st.markdown("&nbsp;", unsafe_allow_html=True)
         with col3:
-            st.markdown(
-                "<div style='margin-top: 26px;'>",
-                unsafe_allow_html=True,
-            )
-            add_clicked = st.button("Add", key=f"{full_key}_add_button")
-            st.markdown("</div>", unsafe_allow_html=True)
-        if add_clicked:
-            if selected_type in [None, "", DEFAULT_SELECT]:
-                st.error("Please select an option before adding.")
-            elif selected_type == "OT (Other)":
-                custom_text = st.session_state.get(custom_key, "").strip()
-                if not custom_text:
-                    st.error("Please enter a custom name before adding.")
-                else:
-                    st.session_state[content_list_key].append(custom_text)
-                    st.session_state[full_key] = st.session_state[
-                        content_list_key
-                    ]
-            else:
-                entry = strip_brackets(str(selected_type))
-                st.session_state[content_list_key].append(entry)
-                st.session_state[full_key] = st.session_state[content_list_key]
+            if not _disabled:
+                st.markdown(
+                    "<div style='margin-top: 26px;'>",
+                    unsafe_allow_html=True,
+                )
+                add_clicked = st.button("Add", key=f"{full_key}_add_button")
+                st.markdown("</div>", unsafe_allow_html=True)
+                if add_clicked:
+                    if selected_type in [None, "", DEFAULT_SELECT]:
+                        st.error("Please select an option before adding.")
+                    elif selected_type == "OT (Other)":
+                        custom_text = st.session_state.get(custom_key, "").strip()
+                        if not custom_text:
+                            st.error("Please enter a custom name before adding.")
+                        else:
+                            st.session_state[content_list_key].append(custom_text)
+                            st.session_state[full_key] = st.session_state[
+                                content_list_key
+                            ]
+                    else:
+                        entry = strip_brackets(str(selected_type))
+                        st.session_state[content_list_key].append(entry)
+                        st.session_state[full_key] = st.session_state[content_list_key]
 
     _render_inline_tag_list(full_key, content_list_key, strip=False)
 
@@ -713,6 +734,8 @@ def _render_treatment_modality_select(
     load_value(type_key2)
     load_value(custom_key2, default="")
 
+    _disabled = bool(props.get("disabled", False))
+
     col1, col2 = st.columns([4, 0.5])
     with col1:
         st.selectbox(
@@ -723,6 +746,7 @@ def _render_treatment_modality_select(
             args=(type_key2,),
             label_visibility="hidden",
             placeholder=DEFAULT_SELECT,
+            disabled=_disabled,
         )
 
         if st.session_state.get(type_key2) == "Other":
@@ -730,11 +754,15 @@ def _render_treatment_modality_select(
                 "Enter the name of the Treatment Modality",
                 key=custom_key2,
                 placeholder="Introduce the Treatment Modality",
+                disabled=_disabled,
             )
 
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
-        add_clicked = st.button("Add", key=f"{full_key}_modality_add_button")
+        if not _disabled:
+            add_clicked = st.button("Add", key=f"{full_key}_modality_add_button")
+        else:
+            add_clicked = False
         st.markdown("</div>", unsafe_allow_html=True)
 
     raw_value2 = st.session_state.get(type_key2)
@@ -778,6 +806,8 @@ def _render_dose_engine_select(full_key: str, props: FieldProps) -> None:
     load_value(type_key)
     load_value(custom_key, default="")
 
+    _disabled = bool(props.get("disabled", False))
+
     col1, col2 = st.columns([4, 0.5])
 
     with col1:
@@ -789,6 +819,7 @@ def _render_dose_engine_select(full_key: str, props: FieldProps) -> None:
             args=(type_key,),
             label_visibility="hidden",
             placeholder=DEFAULT_SELECT,
+            disabled=_disabled,
         )
 
         # --- Show free text input ONLY when "Other" is selected ---
@@ -797,14 +828,18 @@ def _render_dose_engine_select(full_key: str, props: FieldProps) -> None:
                 "Enter custom Dose Engine",
                 key=custom_key,
                 placeholder="Introduce the Dose Engine",
+                disabled=_disabled,
             )
 
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
-        add_clicked = st.button(
-            "Add",
-            key=f"{full_key}_dose_engine_add_button",
-        )
+        if not _disabled:
+            add_clicked = st.button(
+                "Add",
+                key=f"{full_key}_dose_engine_add_button",
+            )
+        else:
+            add_clicked = False
         st.markdown("</div>", unsafe_allow_html=True)
 
     raw_value = st.session_state.get(type_key)
@@ -848,6 +883,8 @@ def _render_metric_select_list(full_key: str, props: FieldProps) -> None:
     load_value(type_key)
     load_value(type_list_key, default=[])
 
+    _disabled = bool(props.get("disabled", False))
+
     col1, col2 = st.columns([3.5, 0.5])
     with col1:
         st.selectbox(
@@ -858,10 +895,14 @@ def _render_metric_select_list(full_key: str, props: FieldProps) -> None:
             args=(type_key,),
             label_visibility="hidden",
             placeholder=DEFAULT_SELECT,
+            disabled=_disabled,
         )
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
-        add_clicked = st.button("Add", key=f"{full_key}_add_button")
+        if not _disabled:
+            add_clicked = st.button("Add", key=f"{full_key}_add_button")
+        else:
+            add_clicked = False
         st.markdown("</div>", unsafe_allow_html=True)
 
     if add_clicked:
@@ -927,6 +968,8 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
     )
     load_value(dm_other_key, default="")
 
+    _disabled = bool(st.session_state.get("_view_mode", False))
+
     col1, col2, col3 = st.columns([2, 2, 0.5])
 
     with col1:
@@ -938,6 +981,7 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
             args=(dm_select_key,),
             label_visibility="hidden",
             placeholder=DEFAULT_SELECT,
+            disabled=_disabled,
         )
         dm_type = st.session_state[dm_select_key]
 
@@ -965,6 +1009,7 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
                 key=val_key,
                 label_visibility="collapsed",
                 placeholder=f"Enter {dm_param_code} value",
+                disabled=_disabled,
             )
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -985,6 +1030,7 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
                 key="_" + dm_other_key,
                 on_change=store_value,
                 args=(dm_other_key,),
+                disabled=_disabled,
             )
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -993,10 +1039,13 @@ def _render_dose_metric_selector(full_key: str) -> None:  # noqa: C901, PLR0912,
             "<div style='margin-top: 26px;'>",
             unsafe_allow_html=True,
         )
-        add_clicked = st.button(
-            "Add",
-            key=f"{dm_key}_add_button",
-        )
+        if not _disabled:
+            add_clicked = st.button(
+                "Add",
+                key=f"{dm_key}_add_button",
+            )
+        else:
+            add_clicked = False
         st.markdown("</div>", unsafe_allow_html=True)
 
     if add_clicked:
@@ -1069,6 +1118,7 @@ def _render_type_metrics_other(full_key: str) -> None:
     load_value(metrics_list_key, default=[])
     load_value(metrics_selected_key)
 
+    _disabled = bool(st.session_state.get("_view_mode", False))
     show_warning = False
 
     col1, col2 = st.columns([3, 0.5])
@@ -1080,10 +1130,11 @@ def _render_type_metrics_other(full_key: str) -> None:
             args=(metrics_selected_key,),
             placeholder="Enter metric name (e.g. MSE)",
             label_visibility="hidden",
+            disabled=_disabled,
         )
     with col2:
         st.markdown("<div style='margin-top: 26px;'>", unsafe_allow_html=True)
-        if st.button("Add", key=f"{full_key}_add_button"):
+        if not _disabled and st.button("Add", key=f"{full_key}_add_button"):
             raw_value = st.session_state.get(metrics_selected_key, "") or ""
             value = raw_value.strip()
             if value:
@@ -1147,7 +1198,8 @@ def _render_inline_tag_list(
     line = ", ".join(tooltip_items)
     st.markdown(f"<span>{line}</span>", unsafe_allow_html=True)
 
-    if show_clear and st.button("Clear", key=(clear_key or f"{full_key}_clear_all")):
+    _view_mode = bool(st.session_state.get("_view_mode", False))
+    if show_clear and not _view_mode and st.button("Clear", key=(clear_key or f"{full_key}_clear_all")):
         st.session_state[list_state_key] = []
         st.session_state[full_key] = []
         st.rerun()

@@ -23,34 +23,26 @@ def _make_version_pdf(card: dict) -> bytes | None:
     from app.services.markdown.renderer import render_version_pdf_bytes  # noqa: PLC0415
 
     version_id: int = card["id"]
-    card_id: int = card["card_id"]
 
     try:
         version_data = get_public_version(version_id)
-        all_versions = get_versions(card_id)
     except BackendError as exc:
         st.error(str(exc))
         return None
 
     content: dict = version_data.get("content") or {}
     model_bi: dict = content.get("model_basic_information") or {}
+    is_anonymous: bool = bool(card.get("is_anonymous", False))
 
-    model_name: str = model_bi.get("name") or card.get("slug", "Model Card")
-    author: str = model_bi.get("developed_by_name") or "Anonymous"
-    contact_email: str = model_bi.get("developed_by_email") or ""
-    version_str: str = card.get("version", version_data.get("version", ""))
-    published_date: str = str(card.get("created_at", ""))[:10]
-    history = [v for v in all_versions if v.get("status") == "published"]
+    author: str = "" if is_anonymous else (model_bi.get("developed_by_name") or "")
+    contact_email: str = "" if is_anonymous else (model_bi.get("developed_by_email") or "")
 
     try:
         return render_version_pdf_bytes(
             content,
-            model_name=model_name,
-            version=version_str,
             author=author,
             contact_email=contact_email,
-            published_date=published_date,
-            version_history=history,
+            is_anonymous=is_anonymous,
         )
     except RuntimeError as exc:
         st.error(str(exc))
@@ -73,7 +65,6 @@ def _load_version_into_editor(card_id: int, version_id: int) -> None:
         st.error("This model card has no versions yet.")
         return
 
-    # Find the requested version; fall back to the last (most recent) one.
     target = next((v for v in versions if v.get("id") == version_id), versions[-1])
     content = target.get("content")
 
@@ -82,6 +73,7 @@ def _load_version_into_editor(card_id: int, version_id: int) -> None:
         return
 
     populate_session_state_from_json(content)
+    st.session_state["_view_mode"] = True  # read-only viewer
     st.session_state.runpage = card_metadata_render
     st.query_params["view"] = "create"
     st.rerun()
@@ -107,6 +99,15 @@ def published_cards_page() -> None:
     """Render the public catalogue of approved model cards."""
     inject_css(AUTH_CSS_PATH)
 
+    # Remove stale bytes that older code stored under "dl_pdf_N" — those keys
+    # now belong exclusively to download widgets, so a bytes value there would
+    # raise StreamlitValueAssignmentNotAllowedError.
+    for _sk in [
+        k for k in list(st.session_state.keys())
+        if k.startswith("dl_pdf_") and isinstance(st.session_state.get(k), (bytes, bytearray))
+    ]:
+        del st.session_state[_sk]
+
     st.header("Published Model Cards")
     st.markdown(
         "Browse model cards that have been reviewed and approved for publication."
@@ -123,75 +124,92 @@ def published_cards_page() -> None:
         st.markdown("---")
         _, col_back, _ = st.columns([1, 2, 1])
         with col_back:
-            if st.button("← Back to Main Page", key="published_back_home_empty", use_container_width=True):
+            if st.button("← Back to Main Page", use_container_width=True):
                 st.query_params["view"] = "home"
                 st.rerun()
         return
 
-    # HTML grid — display only (no interactive Streamlit elements inside HTML)
-    cards_html = '<div class="cards-grid">'
     for card in cards:
-        badge = _status_badge(card.get("status", "published"))
+        version_id: int = card["id"]
         slug = card.get("slug", "—")
         task = card.get("task_type", "—")
         version = card.get("version", "—")
         created = str(card.get("created_at", ""))[:10]
-        cards_html += (
-            '<div class="card-item">'
-            '<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-            f'<span class="card-item__slug">{slug}</span>{badge}'
-            "</div>"
-            f'<div class="card-item__meta">Task: {task} &nbsp;·&nbsp; Version: {version} &nbsp;·&nbsp; Published: {created}</div>'
-            "</div>"
-        )
-    cards_html += "</div>"
-    st.markdown(cards_html, unsafe_allow_html=True)
+        status = card.get("status", "published")
+        is_anon = card.get("is_anonymous", False)
+        author_name: str = card.get("author_name") or ""
+        author_email: str = card.get("author_email") or ""
+        # State key for cached PDF bytes — intentionally different from the
+        # download widget key (dl_pdf_N) so we never assign a value directly
+        # to a widget-managed key, which would cause
+        # StreamlitValueAssignmentNotAllowedError.
+        pdf_state_key = f"_pdf_bytes_{version_id}"
 
-    # Action buttons must be Streamlit widgets (cannot live inside injected HTML)
-    st.markdown("---")
-    num_cols = min(3, len(cards))
-    cols = st.columns(num_cols)
-    for i, card in enumerate(cards):
-        version_id: int = card["id"]
-        with cols[i % num_cols]:
-            st.caption(f"{card.get('slug', '')} · v{card.get('version', '')}")
+        with st.container(border=True):
+            # ── Title + status badge ──────────────────────────────────────
+            st.markdown(
+                f"**{slug}** &nbsp; {_status_badge(status)}",
+                unsafe_allow_html=True,
+            )
 
-            col_load, col_pdf = st.columns(2)
-            with col_load:
+            # ── Metadata row ─────────────────────────────────────────────
+            st.caption(f"Task: {task}  ·  Version: {version}  ·  Published: {created}")
+
+            # ── Author row ────────────────────────────────────────────────
+            if is_anon:
+                st.caption("Author: *Anonymous*")
+            else:
+                author_display = author_name or "—"
+                if author_email:
+                    st.caption(f"Author: {author_display}  ·  Contact: {author_email}")
+                else:
+                    st.caption(f"Author: {author_display}")
+
+            # ── Action buttons — kept inside the card ────────────────────
+            col_view, col_pdf, _ = st.columns([2, 2, 3])
+
+            with col_view:
                 if st.button(
-                    "Load into Editor",
+                    "View Card",
                     key=f"load_card_{version_id}",
                     use_container_width=True,
                 ):
                     _load_version_into_editor(card["card_id"], version_id)
 
             with col_pdf:
-                if st.button(
-                    "Download PDF",
-                    key=f"pdf_btn_{version_id}",
-                    use_container_width=True,
-                ):
-                    with st.spinner("Generating PDF…"):
-                        pdf_bytes = _make_version_pdf(card)
-                    if pdf_bytes is not None:
-                        st.session_state[f"_pdf_{version_id}"] = pdf_bytes
-
-            cached = st.session_state.get(f"_pdf_{version_id}")
-            if cached is not None:
-                slug = card.get("slug", "model-card")
-                ver = card.get("version", "1")
-                st.download_button(
-                    "Save PDF",
-                    data=cached,
-                    file_name=f"{slug}_v{ver}.pdf",
-                    mime="application/pdf",
-                    key=f"dl_pdf_{version_id}",
-                    use_container_width=True,
-                )
+                if pdf_state_key in st.session_state:
+                    # PDF already generated — show the download button.
+                    # Key dl_pdf_N is only ever registered here; we never
+                    # assign to it via st.session_state, so no conflict.
+                    st.download_button(
+                        "⬇ Save PDF",
+                        data=st.session_state[pdf_state_key],
+                        file_name=f"{slug}_v{version}.pdf",
+                        mime="application/pdf",
+                        key=f"dl_pdf_{version_id}",
+                        use_container_width=True,
+                    )
+                else:
+                    if st.button(
+                        "Download PDF",
+                        key=f"pdf_btn_{version_id}",
+                        use_container_width=True,
+                    ):
+                        with st.spinner("Generating PDF…"):
+                            pdf_bytes = _make_version_pdf(card)
+                        if pdf_bytes is not None:
+                            # Store under a non-widget key, then rerun so the
+                            # download button renders cleanly in a fresh cycle.
+                            st.session_state[pdf_state_key] = pdf_bytes
+                            st.rerun()
 
     st.markdown("---")
     _, col_back, _ = st.columns([1, 2, 1])
     with col_back:
-        if st.button("← Back to Main Page", key="published_back_home", use_container_width=True):
+        if st.button(
+            "← Back to Main Page",
+            key="back_home_from_published",
+            use_container_width=True,
+        ):
             st.query_params["view"] = "home"
             st.rerun()

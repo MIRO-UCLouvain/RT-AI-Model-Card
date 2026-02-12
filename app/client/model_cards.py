@@ -29,14 +29,15 @@ if _raw_url and not _raw_url.startswith(("http://", "https://")):
 
 BACKEND_URL: str = _raw_url
 _TIMEOUT: float = 10.0
+_LONG_TIMEOUT: float = 60.0  # for endpoints that may return large payloads (e.g. version content with embedded images)
 
 
 class BackendError(Exception):
     """Raised when the backend is unavailable or returns an error response."""
 
 
-def _client() -> httpx.Client:
-    return httpx.Client(base_url=BACKEND_URL, timeout=_TIMEOUT)
+def _client(timeout: float = _TIMEOUT) -> httpx.Client:
+    return httpx.Client(base_url=BACKEND_URL, timeout=timeout)
 
 
 def _raise_for_status(response: httpx.Response) -> None:
@@ -146,6 +147,30 @@ def reset_password(token: str, new_password: str) -> dict:
         raise BackendError("Request timed out. Try again.")
 
 
+def change_password(token: str, current_password: str, new_password: str) -> dict:
+    """Change password for the authenticated user.
+
+    Returns a dict with a ``message`` key on success.
+    Raises BackendError if the current password is wrong or the backend fails.
+    """
+    try:
+        with _client() as client:
+            response = client.post(
+                "/v1/auth/change-password",
+                json={
+                    "current_password": current_password,
+                    "new_password": new_password,
+                },
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
 def get_me(token: str) -> dict:
     """Return the current user's profile (first_name, last_name, email, …)."""
     try:
@@ -189,7 +214,7 @@ def create_model_card(
     }
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
-        with _client() as client:
+        with _client(_LONG_TIMEOUT) as client:
             response = client.post("/v1/model-cards", json=payload, headers=headers)
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
@@ -200,8 +225,10 @@ def create_model_card(
 
 
 def list_model_cards(token: str = "") -> list[dict]:
-    """Return all model cards (with versions) owned by the authenticated user.
+    """Return lightweight summaries of all model cards owned by the authenticated user.
 
+    Each item has: id, slug, task_type, created_at, updated_at.
+    Version content is NOT included — call get_versions(card_id) to fetch that.
     Raises BackendError if the request fails.
     """
     headers = {"Authorization": f"Bearer {token}"} if token else {}
@@ -219,10 +246,11 @@ def list_model_cards(token: str = "") -> list[dict]:
 def get_versions(card_id: int) -> list[dict]:
     """Return all versions of a model card ordered by version_number.
 
+    Uses a longer timeout because each version may contain embedded image data.
     Raises BackendError if the request fails or the card does not exist.
     """
     try:
-        with _client() as client:
+        with _client(_LONG_TIMEOUT) as client:
             response = client.get(f"/v1/model-cards/{card_id}/versions")
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
@@ -238,13 +266,14 @@ def create_version(
     """Save a new version of an existing model card.
 
     ``user_version`` is the version string from the card form (e.g. "v1.0").
+    Uses a longer timeout because the payload may contain embedded image data.
     Returns the new version dict (id, version_number, is_latest, …).
     Raises BackendError if the request fails or the card does not exist.
     """
     payload = {"title": title, "user_version": user_version, "content": content}
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
-        with _client() as client:
+        with _client(_LONG_TIMEOUT) as client:
             response = client.post(
                 f"/v1/model-cards/{card_id}/versions", json=payload, headers=headers
             )
@@ -277,7 +306,12 @@ def compare_versions(card_id: int, old_id: int, new_id: int) -> dict:
         raise BackendError("Request timed out. Try again.")
 
 
-def request_publication(card_id: int, version_id: int, token: str) -> dict:
+def request_publication(
+    card_id: int,
+    version_id: int,
+    token: str,
+    is_anonymous: bool = False,
+) -> dict:
     """Submit a specific version for publication review.
 
     Requires a valid Bearer token for the card owner.
@@ -288,6 +322,7 @@ def request_publication(card_id: int, version_id: int, token: str) -> dict:
             response = client.post(
                 f"/v1/model-cards/{card_id}/versions/{version_id}/submit",
                 headers={"Authorization": f"Bearer {token}"},
+                json={"is_anonymous": is_anonymous},
             )
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
@@ -325,6 +360,121 @@ def get_public_version(version_id: int) -> dict:
     try:
         with _client() as client:
             response = client.get(f"/v1/public-model-cards/{version_id}")
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def list_pending_admin(token: str) -> list[dict]:
+    """Return all versions currently awaiting admin review (in_review), oldest first.
+
+    Requires a valid Bearer token for an admin user.
+    Raises BackendError with HTTP 403 if the caller is not an admin.
+    """
+    try:
+        with _client() as client:
+            response = client.get(
+                "/v1/admin/model-card-versions/pending",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def get_version_admin(version_id: int, token: str) -> dict:
+    """Return full content of any model card version for admin review.
+
+    Unlike get_public_version, this works for any status (draft, in_review, etc.).
+    Requires a valid Bearer token for an admin user.
+    Raises BackendError with HTTP 403 if the caller is not an admin.
+    """
+    try:
+        with _client() as client:
+            response = client.get(
+                f"/v1/admin/model-card-versions/{version_id}",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def approve_version_admin(version_id: int, token: str) -> dict:
+    """Approve a version for publication (admin only).
+
+    Moves the version from in_review → published.
+    Raises BackendError with HTTP 403 if the caller is not an admin.
+    """
+    try:
+        with _client() as client:
+            response = client.put(
+                f"/v1/admin/model-card-versions/{version_id}/approve",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def reject_version_admin(version_id: int, token: str, feedback: str = "") -> dict:
+    """Reject a version publication request (admin only).
+
+    Moves the version from in_review → rejected.
+    *feedback* is an optional message stored on the version and shown to the owner.
+    Raises BackendError with HTTP 403 if the caller is not an admin.
+    """
+    try:
+        with _client() as client:
+            response = client.put(
+                f"/v1/admin/model-card-versions/{version_id}/reject",
+                headers={"Authorization": f"Bearer {token}"},
+                json={"feedback": feedback or None},
+            )
+        _raise_for_status(response)
+        return response.json()  # type: ignore[no-any-return]
+    except httpx.ConnectError:
+        raise BackendError("Cannot reach backend — is it running?")
+    except httpx.TimeoutException:
+        raise BackendError("Request timed out. Try again.")
+
+
+def submit_feedback(
+    email: str,
+    topic: str,
+    subject: str,
+    message: str,
+    page_context: str = "",
+    token: str = "",
+) -> dict:
+    """Submit feedback to the admin via the backend.
+
+    Returns a dict with a ``message`` key on success.
+    Raises BackendError if the request fails.
+    """
+    payload = {
+        "email": email,
+        "topic": topic,
+        "subject": subject,
+        "message": message,
+        "page_context": page_context,
+    }
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    try:
+        with _client() as client:
+            response = client.post("/v1/feedback", json=payload, headers=headers)
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
     except httpx.ConnectError:

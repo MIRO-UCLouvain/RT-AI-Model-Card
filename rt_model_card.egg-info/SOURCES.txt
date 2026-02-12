@@ -29,6 +29,7 @@ app/core/templates/md/technical_specifications.md.j2
 app/core/templates/md/training.md.j2
 app/services/__init__.py
 app/services/evaluations_extractor.py
+app/services/rtstruct_state.py
 app/services/schema_loader.py
 app/services/serialization.py
 app/services/state_store.py
@@ -51,8 +52,15 @@ app/ui/forms/__init__.py
 app/ui/forms/render.py
 app/ui/screens/__init__.py
 app/ui/screens/about.py
+app/ui/screens/forgot_password.py
 app/ui/screens/load_model_card.py
+app/ui/screens/login.py
 app/ui/screens/main.py
+app/ui/screens/my_cards.py
+app/ui/screens/profile.py
+app/ui/screens/published_cards.py
+app/ui/screens/register.py
+app/ui/screens/reset_password.py
 app/ui/screens/task_selector.py
 app/ui/screens/sections/__init__.py
 app/ui/screens/sections/appendix.py
@@ -65,6 +73,7 @@ app/ui/screens/sections/technical_specifications.py
 app/ui/screens/sections/training_data.py
 app/ui/screens/sections/warnings.py
 app/ui/utils/__init__.py
+app/ui/utils/auth.py
 app/ui/utils/css.py
 app/ui/utils/preview_file.py
 app/ui/utils/typography.py

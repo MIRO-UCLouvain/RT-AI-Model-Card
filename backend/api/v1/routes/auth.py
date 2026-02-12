@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies import get_current_user, get_db
 from models.user import User
+from schemas.change_password import ChangePasswordRequest, ChangePasswordResponse
 from schemas.password_reset import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -15,7 +16,7 @@ from schemas.password_reset import (
 from schemas.user import TokenResponse, UserCreate, UserResponse
 from security import create_access_token
 from services.password_reset import request_password_reset, reset_password
-from services.user import authenticate_user, create_user
+from services.user import authenticate_user, change_password, create_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -60,6 +61,20 @@ async def login(
 async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
     """Return the profile of the currently authenticated user."""
     return UserResponse.model_validate(current_user)
+
+
+@router.post("/change-password", response_model=ChangePasswordResponse)
+async def change_password_endpoint(
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ChangePasswordResponse:
+    """Change password for the currently authenticated user.
+
+    Requires the current password for verification.
+    """
+    await change_password(db, current_user, data.current_password, data.new_password)
+    return ChangePasswordResponse(message="Password changed successfully.")
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)

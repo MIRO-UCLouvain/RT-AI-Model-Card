@@ -5,6 +5,7 @@ Business logic lives in services/model_card.py and services/publication.py.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies import get_current_user, get_db
@@ -22,6 +23,11 @@ from services import model_card as model_card_service
 from services.diff import compute_diff
 from services.publication import request_publication
 from repositories.model_card import ModelCardVersionRepository
+
+
+class SubmitVersionBody(BaseModel):
+    """Optional body for the submit-for-review endpoint."""
+    is_anonymous: bool = False
 
 router = APIRouter(prefix="/model-cards", tags=["model-cards"])
 
@@ -45,16 +51,16 @@ async def create_model_card(
 
 @router.get(
     "",
-    response_model=list[ModelCardRead],
+    response_model=list[ModelCardSummary],
     status_code=status.HTTP_200_OK,
-    summary="List model cards owned by the authenticated user",
+    summary="List model cards owned by the authenticated user (lightweight — no version content)",
 )
 async def list_model_cards(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[ModelCardRead]:
+) -> list[ModelCardSummary]:
     cards = await model_card_service.list_model_cards_for_user(db, current_user.id)
-    return [ModelCardRead.model_validate(c) for c in cards]
+    return [ModelCardSummary.model_validate(c) for c in cards]
 
 
 @router.get(
@@ -166,8 +172,9 @@ async def compare_versions(
 async def submit_version(
     card_id: int,  # kept for URL legibility / future ownership checks at route level
     version_id: int,
+    body: SubmitVersionBody = SubmitVersionBody(),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ModelCardVersionRead:
-    ver = await request_publication(db, version_id, current_user)
+    ver = await request_publication(db, version_id, current_user, is_anonymous=body.is_anonymous)
     return ModelCardVersionRead.model_validate(ver)

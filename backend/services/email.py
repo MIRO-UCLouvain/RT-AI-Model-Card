@@ -14,6 +14,7 @@ import asyncio
 import json
 import logging
 import smtplib
+import urllib.error
 import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -109,9 +110,14 @@ def _send_via_resend(
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        if resp.status not in (200, 201):
-            raise RuntimeError(f"Resend API returned {resp.status}")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if resp.status not in (200, 201):
+                raise RuntimeError(f"Resend API returned {resp.status}")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        logger.error("Resend API %s: %s", exc.code, body)
+        raise RuntimeError(f"Resend API {exc.code}: {body}") from exc
 
 
 def _send_sync(msg: MIMEMultipart, recipient_email: str) -> None:
@@ -132,6 +138,64 @@ def _send_sync(msg: MIMEMultipart, recipient_email: str) -> None:
         if username and password:
             smtp.login(username, password)
         smtp.sendmail(settings.EMAIL_FROM, [recipient_email], msg.as_string())
+
+
+async def send_email(
+    *,
+    recipient_email: str,
+    subject: str,
+    body_plain: str,
+    body_html: str,
+) -> bool:
+    """Send an arbitrary email asynchronously.
+
+    Uses the Resend HTTP API if configured, otherwise falls back to SMTP.
+    When neither is configured (dev mode) the email is logged instead.
+
+    Returns ``True`` if the email was actually dispatched, ``False`` if
+    no provider is configured and sending was skipped.
+
+    Any transport error is re-raised so the caller can handle it.
+    """
+    if not settings.RESEND_API_KEY and not settings.SMTP_HOST:
+        if settings.DEBUG:
+            logger.warning(
+                "No email provider configured — DEV email to %s: [%s] %s",
+                recipient_email,
+                subject,
+                body_plain[:200],
+            )
+        else:
+            logger.warning(
+                "No email provider configured; email not sent to %s",
+                recipient_email,
+            )
+        return False
+
+    loop = asyncio.get_event_loop()
+
+    if settings.RESEND_API_KEY:
+        await loop.run_in_executor(
+            None,
+            partial(
+                _send_via_resend,
+                recipient_email,
+                subject,
+                body_plain,
+                body_html,
+            ),
+        )
+    else:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.EMAIL_FROM
+        msg["To"] = recipient_email
+        msg.attach(MIMEText(body_plain, "plain", "utf-8"))
+        msg.attach(MIMEText(body_html, "html", "utf-8"))
+        await loop.run_in_executor(None, partial(_send_sync, msg, recipient_email))
+
+    logger.info("Email sent to %s: %s", recipient_email, subject)
+    return True
 
 
 async def send_password_reset_email(

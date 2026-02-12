@@ -54,6 +54,8 @@ class ModelCardVersionRead(ModelCardVersionBase):
     model_card_id: int
     version: str
     status: PublicationStatus
+    is_anonymous: bool = False
+    rejection_feedback: str | None = None
     created_at: datetime
     created_by: uuid.UUID | None
 
@@ -144,6 +146,18 @@ class DiffResponse(BaseModel):
         return bool(self.sections)
 
 
+# ── Admin action schemas ──────────────────────────────────────────────────────
+
+class RejectRequest(BaseModel):
+    """Request body for the admin reject endpoint."""
+
+    feedback: str | None = Field(
+        default=None,
+        max_length=2000,
+        description="Optional feedback message visible to the card owner after rejection.",
+    )
+
+
 # ── Public catalogue schema ───────────────────────────────────────────────────
 
 class PublishedVersionSummary(BaseModel):
@@ -151,6 +165,10 @@ class PublishedVersionSummary(BaseModel):
 
     Combines version fields with its parent card's stable identifiers so the
     UI has everything it needs in a single object.
+
+    ``author_name`` and ``author_email`` are extracted from the card content at
+    serialisation time.  Both are set to empty string when the card was published
+    anonymously so callers never receive private information for anonymous cards.
     """
 
     id: int               # version id
@@ -159,10 +177,16 @@ class PublishedVersionSummary(BaseModel):
     task_type: str
     version: str
     status: PublicationStatus
+    is_anonymous: bool = False
+    author_name: str = ""
+    author_email: str = ""
     created_at: datetime
 
     @classmethod
     def from_version(cls, v: object) -> "PublishedVersionSummary":
+        is_anon = bool(getattr(v, "is_anonymous", False))
+        content: dict = getattr(v, "content", None) or {}  # type: ignore[assignment]
+        model_bi: dict = content.get("model_basic_information") or {}
         return cls(
             id=v.id,  # type: ignore[attr-defined]
             card_id=v.model_card_id,  # type: ignore[attr-defined]
@@ -170,5 +194,8 @@ class PublishedVersionSummary(BaseModel):
             task_type=v.model_card.task_type,  # type: ignore[attr-defined]
             version=v.version,  # type: ignore[attr-defined]
             status=v.status,  # type: ignore[attr-defined]
+            is_anonymous=is_anon,
+            author_name="" if is_anon else (model_bi.get("developed_by_name") or ""),
+            author_email="" if is_anon else (model_bi.get("developed_by_email") or ""),
             created_at=v.created_at,  # type: ignore[attr-defined]
         )

@@ -39,6 +39,7 @@ async def request_publication(
     session: AsyncSession,
     version_id: int,
     current_user: User,
+    is_anonymous: bool = False,
 ) -> ModelCardVersion:
     """Move a version from draft|rejected → in_review.
 
@@ -68,6 +69,7 @@ async def request_publication(
         )
 
     ver.status = "in_review"
+    ver.is_anonymous = is_anonymous
     await session.commit()
     return await _get_version_or_404(session, version_id)
 
@@ -105,6 +107,7 @@ async def reject_version(
     session: AsyncSession,
     version_id: int,
     current_user: User,
+    feedback: str | None = None,
 ) -> ModelCardVersion:
     """Move a version from in_review → rejected.
 
@@ -126,6 +129,7 @@ async def reject_version(
         )
 
     ver.status = "rejected"
+    ver.rejection_feedback = feedback or None
     await session.commit()
     return await _get_version_or_404(session, version_id)
 
@@ -135,3 +139,20 @@ async def list_published_versions(
 ) -> list[ModelCardVersion]:
     """Return all published versions (public catalogue), newest first."""
     return await ModelCardVersionRepository.list_published(session)
+
+
+async def list_pending_versions(
+    session: AsyncSession,
+    current_user: User,
+) -> list[ModelCardVersion]:
+    """Return all versions awaiting admin review (in_review), oldest first.
+
+    Raises:
+        403 if the caller is not an admin.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+    return await ModelCardVersionRepository.list_pending(session)

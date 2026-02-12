@@ -5,6 +5,14 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     env_file: .env
+    # Raise limits to handle large JSON content columns (embedded base64 images).
+    # sort_buffer_size: per-session buffer for ORDER BY; default 256 KB is too
+    #   small when rows contain multi-MB JSON.
+    # max_allowed_packet: cap on a single query/result packet; 64 MB default is
+    #   usually fine but raise it to 256 MB to be safe with large content saves.
+    command: >
+      --sort-buffer-size=32M
+      --max-allowed-packet=256M
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}

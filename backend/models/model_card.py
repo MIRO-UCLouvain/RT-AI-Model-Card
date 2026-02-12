@@ -90,6 +90,21 @@ class ModelCardVersion(Base, TimestampMixin):
         server_default="draft",
     )
 
+    # Whether the submitter chose to publish without attribution
+    is_anonymous: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
+
+    # Optional feedback left by the admin when rejecting a version
+    rejection_feedback: Mapped[str | None] = mapped_column(
+        String(2000),
+        nullable=True,
+        default=None,
+    )
+
     # Who created this version (nullable for rows pre-dating auth)
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(native_uuid=False),

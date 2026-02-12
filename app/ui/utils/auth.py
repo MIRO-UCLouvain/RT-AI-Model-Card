@@ -82,6 +82,36 @@ def save_auth(
     _inject(_js_set(*pairs))
 
 
+def save_auth_and_redirect(
+    token: str,
+    email: str,
+    first_name: str | None = None,
+    last_name: str | None = None,
+    *,
+    redirect_url: str = "?view=home",
+) -> None:
+    """Save auth to session state, write cookies, and navigate — all in one JS block.
+
+    Unlike save_auth() followed by st.rerun(), this puts the cookie-setting
+    statements and the window.location.href redirect in the same <script> block.
+    The browser executes them synchronously, so cookies are always written before
+    the navigation fires — no race condition with Streamlit's rerun protocol.
+    """
+    st.session_state.auth_token = token
+    st.session_state.auth_email = email
+    st.session_state.auth_first_name = first_name or ""
+    st.session_state.auth_last_name = last_name or ""
+
+    age = _COOKIE_MAX_AGE
+    js = (
+        f'document.cookie="{_COOKIE_TOKEN}={_safe(token)};path=/;SameSite=Lax;max-age={age}";'
+        f'document.cookie="{_COOKIE_EMAIL}={_safe(email)};path=/;SameSite=Lax;max-age={age}";'
+        f'document.cookie="{_COOKIE_FIRST_NAME}={_safe(first_name or "")};path=/;SameSite=Lax;max-age={age}";'
+        f'document.cookie="{_COOKIE_LAST_NAME}={_safe(last_name or "")};path=/;SameSite=Lax;max-age={age}";'
+    )
+    _inject(f"<script>{js}</script>")
+
+
 def restore_auth() -> None:
     """Restore auth from browser cookie if session state was reset by a page reload."""
     if st.session_state.get("auth_token"):
@@ -123,6 +153,7 @@ def clear_auth() -> None:
     st.session_state.auth_email = None
     st.session_state.auth_first_name = None
     st.session_state.auth_last_name = None
+    st.session_state.auth_is_admin = False
     st.session_state["_auth_logged_out"] = True
     st.session_state.saved_card_id = None
     st.session_state.saved_version = None

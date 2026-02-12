@@ -230,8 +230,7 @@ Requires-Dist: Markdown==3.6
 Requires-Dist: bleach>=6.1.0
 Requires-Dist: cssselect2>=0.7.0
 Requires-Dist: tinycss2>=1.3.0
-Requires-Dist: WeasyPrint==61.2
-Requires-Dist: pydyf==0.8.0
+Requires-Dist: xhtml2pdf>=0.2.11
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: pytest-cov; extra == "dev"

@@ -95,11 +95,9 @@ def _my_cards_tab(token: str) -> None:
 
     if not cards:
         st.info("No model cards saved yet.")
-        st.markdown(
-            "Start by [creating a model card](?view=create) "
-            "and saving it from the sidebar.",
-            unsafe_allow_html=True,
-        )
+        if st.button("Start by creating a model card →", key="no_cards_create_btn"):
+            st.query_params["view"] = "create"
+            st.rerun()
         return
 
     for card in cards:
@@ -229,7 +227,6 @@ def _requests_tab(token: str) -> None:
                 with col_info:
                     st.markdown(f"**Version {ver_str}** · saved {created}")
                     getattr(st, kind)(f"Status: **{label}**")
-
                 with col_action:
                     if status in ("draft", "rejected"):
                         if st.button(
@@ -257,14 +254,30 @@ def _requests_tab(token: str) -> None:
                                     st.session_state["_diff_before_submit"] = None
                             except BackendError:
                                 st.session_state["_diff_before_submit"] = None
+                            # Store author info so the dialog can show a preview
+                            _ver_content: dict[str, Any] = ver.get("content") or {}
+                            _model_bi: dict[str, Any] = _ver_content.get("model_basic_information") or {}
+                            st.session_state["_pending_submit_author_name"] = (
+                                _model_bi.get("developed_by_name") or ""
+                            )
+                            st.session_state["_pending_submit_author_email"] = (
+                                _model_bi.get("developed_by_email") or ""
+                            )
                             st.session_state["_pending_submit_card_id"] = card_id
                             st.session_state["_pending_submit_ver_id"] = ver_id
                             st.session_state["_show_submit_dialog"] = True
-
                     elif status == "in_review":
                         st.caption("Under review — editing locked.")
                     elif status == "published":
                         st.caption("Published ✓")
+                # Show admin feedback below the columns, inside the container
+                if status == "rejected":
+                    feedback: str = ver.get("rejection_feedback") or ""
+                    if feedback:
+                        st.markdown(
+                            f"**Admin feedback:** {feedback}",
+                            help="Feedback left by the reviewer when this version was rejected.",
+                        )
 
         st.divider()
 
@@ -535,6 +548,49 @@ def _submit_diff_dialog(card_id: int, version_id: int, token: str) -> None:
         )
 
     st.divider()
+
+    # ── Authorship choice ─────────────────────────────────────────────────────
+    st.markdown("**Authorship**")
+
+    author_name: str = st.session_state.get("_pending_submit_author_name") or ""
+    author_email: str = st.session_state.get("_pending_submit_author_email") or ""
+
+    attribution_choice = st.radio(
+        "How should your name appear in the public catalogue and PDF exports?",
+        options=["With my identity", "Anonymously"],
+        index=0,
+        key="dialog_attribution_choice",
+        help=(
+            "Your name and contact email are taken from the "
+            "'Developed by' fields in the Model Basic Information section."
+        ),
+    )
+    is_anonymous: bool = attribution_choice == "Anonymously"
+
+    # Live preview of what will be shown publicly
+    with st.container(border=True):
+        st.caption("Preview — how this card will appear in the catalogue:")
+        if is_anonymous:
+            st.markdown("Author: *Anonymous*")
+        else:
+            author_display = author_name or "*(not filled in)*"
+            if author_email:
+                st.markdown(f"Author: **{author_display}**  ·  Contact: {author_email}")
+            else:
+                st.markdown(f"Author: **{author_display}**")
+            if not author_name:
+                st.caption(
+                    "Tip: fill in your name in the Model Basic Information section "
+                    "before submitting if you want it to appear publicly."
+                )
+
+    st.markdown("")  # breathing room before the action buttons
+
+    _DIALOG_KEYS = (
+        "_show_submit_dialog", "_diff_before_submit",
+        "_pending_submit_card_id", "_pending_submit_ver_id",
+        "_pending_submit_author_name", "_pending_submit_author_email",
+    )
     col_submit, col_cancel = st.columns(2)
     with col_submit:
         if st.button(
@@ -544,11 +600,10 @@ def _submit_diff_dialog(card_id: int, version_id: int, token: str) -> None:
             key="dialog_confirm_submit",
         ):
             try:
-                result = request_publication(card_id, version_id, token)
+                result = request_publication(card_id, version_id, token, is_anonymous=is_anonymous)
                 if st.session_state.get("saved_version_id") == version_id:
                     st.session_state.saved_version_status = result.get("status", "in_review")
-                for key in ("_show_submit_dialog", "_diff_before_submit",
-                            "_pending_submit_card_id", "_pending_submit_ver_id"):
+                for key in _DIALOG_KEYS:
                     st.session_state.pop(key, None)
             except BackendError as exc:
                 st.error(str(exc))
@@ -556,8 +611,7 @@ def _submit_diff_dialog(card_id: int, version_id: int, token: str) -> None:
             st.rerun()
     with col_cancel:
         if st.button("Cancel", use_container_width=True, key="dialog_cancel_submit"):
-            for key in ("_show_submit_dialog", "_diff_before_submit",
-                        "_pending_submit_card_id", "_pending_submit_ver_id"):
+            for key in _DIALOG_KEYS:
                 st.session_state.pop(key, None)
             st.rerun()
 

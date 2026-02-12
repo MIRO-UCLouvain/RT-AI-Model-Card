@@ -87,7 +87,9 @@ async def create_new_version(
     """
     _require_nonempty_version(data.user_version)
 
-    card = await ModelCardRepository.get_by_id(session, card_id)
+    # Use get_card_only to avoid loading all version rows (large JSON content
+    # causes MySQL sort-buffer overflow when selectinload orders by created_at).
+    card = await ModelCardRepository.get_card_only(session, card_id)
     if card is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -130,7 +132,7 @@ async def delete_model_card(
 
     Raises 404 if not found, 403 if the caller is not the owner.
     """
-    card = await ModelCardRepository.get_by_id(session, card_id)
+    card = await ModelCardRepository.get_card_only(session, card_id)
     if card is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -160,7 +162,7 @@ async def get_versions(
 
     Raises 404 if the model card does not exist.
     """
-    card = await ModelCardRepository.get_by_id(session, card_id)
+    card = await ModelCardRepository.get_card_only(session, card_id)
     if card is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

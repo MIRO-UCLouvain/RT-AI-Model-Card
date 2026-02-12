@@ -10,9 +10,11 @@ import streamlit as st
 from app.client.model_cards import BackendError, get_me
 from app.ui.components.topbar import render_hero, render_topbar
 from app.ui.screens.about import about_page
+from app.ui.screens.feedback import feedback_page
 from app.ui.screens.forgot_password import forgot_password_page
 from app.ui.screens.load_model_card import load_model_card_page
 from app.ui.screens.login import login_page
+from app.ui.screens.admin import admin_page
 from app.ui.screens.my_cards import my_cards_page
 from app.ui.screens.profile import profile_page
 from app.ui.screens.published_cards import published_cards_page
@@ -201,19 +203,17 @@ def main() -> None:
     restore_auth()
     restore_card_state()
 
-    # If a token was restored but the name cookies were empty (e.g. the
-    # components.html JS that sets cookies ran after the next page load),
-    # fetch the profile once and backfill session state so the display name
-    # is always First + Last, never the email prefix.
-    if st.session_state.get("auth_token") and not (
-        st.session_state.get("auth_first_name") or st.session_state.get("auth_last_name")
-    ):
+    # Fetch the user profile once per session start whenever the token is
+    # present but is_admin (or the display name) is not yet in session state.
+    # This ensures admins see the Admin Panel link without a second login.
+    if st.session_state.get("auth_token") and "auth_is_admin" not in st.session_state:
         try:
             _profile = get_me(st.session_state.auth_token)
             st.session_state.auth_first_name = _profile.get("first_name") or ""
             st.session_state.auth_last_name = _profile.get("last_name") or ""
+            st.session_state.auth_is_admin = bool(_profile.get("is_admin", False))
         except BackendError:
-            pass
+            st.session_state.auth_is_admin = False
 
     # Login/register/password-reset pages must always be rendered unauthenticated.
     # If stale cookies were restored (race condition: the cookie-clearing JS
@@ -235,7 +235,18 @@ def main() -> None:
         auth_email=st.session_state.get("auth_email"),
         auth_first_name=st.session_state.get("auth_first_name"),
         auth_last_name=st.session_state.get("auth_last_name"),
+        auth_is_admin=bool(st.session_state.get("auth_is_admin", False)),
     )
+
+    is_admin = bool(st.session_state.get("auth_is_admin", False))
+    is_logged_in = bool(st.session_state.get("auth_token"))
+
+    # ── Admin guard: redirect admins away from regular-user views ────────
+    _user_only_views = {"create", "load", "my_cards", "requests"}
+    if is_admin and is_logged_in and view in _user_only_views:
+        st.query_params["view"] = "admin"
+        st.rerun()
+        return
 
     if view == "create":
         task_selector_page()
@@ -247,6 +258,10 @@ def main() -> None:
 
     if view == "about":
         about_page()
+        return
+
+    if view == "contact":
+        feedback_page()
         return
 
     if view == "published":
@@ -277,8 +292,16 @@ def main() -> None:
         profile_page()
         return
 
-    # Home — different content depending on auth state
-    if st.session_state.get("auth_token"):
+    if view == "admin":
+        admin_page()
+        return
+
+    # Home — admins go straight to the admin panel
+    if is_logged_in and is_admin:
+        admin_page()
+        return
+
+    if is_logged_in:
         _render_logged_in_home()
     else:
         render_hero()

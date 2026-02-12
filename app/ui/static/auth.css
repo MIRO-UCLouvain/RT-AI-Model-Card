@@ -1,44 +1,324 @@
-/* ===== Auth pages (login / register) ===================================== */
+/* ===== Auth pages (login / register) =====================================
+   Injected ONLY on auth screens — safe to target global Streamlit selectors
+   without leaking styles to other pages.
+   ======================================================================== */
 
-.auth-page {
-  max-width: 420px;
-  margin: 3rem auto;
-  padding: 0 1rem;
+/* ── Collapse Streamlit's default top padding on auth pages ────────────── */
+.block-container {
+  padding-top: 1rem !important;
 }
 
-.auth-page__card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 2rem;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+section[data-testid="stMain"] .block-container {
+  padding-top: 1rem !important;
 }
 
-/* ===== Published cards grid ============================================== */
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1rem;
+/* Hide the Streamlit toolbar header to reclaim vertical space */
+header[data-testid="stHeader"] {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  visibility: hidden !important;
 }
 
-.card-item {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+/* ── Card wrapper ──────────────────────────────────────────────────────── */
+[data-testid="stVerticalBlockBorderWrapper"] {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 20px !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.04),
+    0 10px 30px -5px rgba(15, 23, 42, 0.07) !important;
+  overflow: hidden !important;
+  position: relative !important;
+  transition: box-shadow 0.3s ease !important;
 }
 
-.card-item__slug {
-  font-weight: 700;
-  color: #023483;
-  font-size: 1.05rem;
+/* Disable the lift-on-hover from global.css — auth cards stay put */
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+  transform: none !important;
+  border-color: #e2e8f0 !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.04),
+    0 10px 30px -5px rgba(15, 23, 42, 0.07) !important;
 }
 
-.card-item__meta {
-  color: #6b7280;
+/* Gradient accent bar at the top of the card */
+[data-testid="stVerticalBlockBorderWrapper"]::before {
+  content: "";
+  display: block;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand-700), var(--brand-600), #3b7bf0);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+
+/* Inner padding */
+[data-testid="stVerticalBlockBorderWrapper"] > [data-testid="stVerticalBlock"] {
+  padding: 2.25rem 2.25rem 1.75rem !important;
+  gap: 0.6rem !important;
+}
+
+
+/* ── Auth header (icon + title + subtitle) ─────────────────────────────── */
+
+.auth-header {
+  text-align: center;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.auth-header__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--brand-50);
+  border-radius: 16px;
+  margin-bottom: 0.85rem;
+}
+
+.auth-header__icon svg {
+  width: 26px;
+  height: 26px;
+  stroke: var(--brand-600);
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.auth-header__title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.auth-header__subtitle {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+
+/* ── Tab role selector (segmented-control style) ───────────────────────── */
+
+[data-baseweb="tab-list"] {
+  background: var(--brand-50) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+  border-bottom: none !important;
+  margin-bottom: 0.15rem !important;
+}
+
+[data-baseweb="tab"] {
+  flex: 1 !important;
+  border-radius: 10px !important;
+  padding: 0.6rem 1rem !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  color: var(--muted) !important;
+  background: transparent !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+  justify-content: center !important;
+}
+
+[data-baseweb="tab"]:hover {
+  color: var(--brand-600) !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+}
+
+[data-baseweb="tab"][aria-selected="true"] {
+  background: #ffffff !important;
+  color: var(--brand-600) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1),
+              0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Hide the default BaseWeb tab underline and bottom border */
+[data-baseweb="tab-highlight"],
+[data-baseweb="tab-border"] {
+  display: none !important;
+}
+
+
+/* ── Input fields ──────────────────────────────────────────────────────── */
+
+[data-baseweb="input"],
+[data-baseweb="base-input"] {
+  border-radius: 10px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  transition: border-color 0.2s ease,
+              box-shadow 0.2s ease,
+              background 0.2s ease !important;
+}
+
+[data-baseweb="input"]:focus-within,
+[data-baseweb="base-input"]:focus-within {
+  border-color: var(--brand-600) !important;
+  box-shadow: 0 0 0 3px rgba(24, 65, 151, 0.1) !important;
+  background: #ffffff !important;
+}
+
+.stTextInput label {
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  color: #334155 !important;
+  letter-spacing: 0.01em !important;
+}
+
+input::placeholder {
+  color: #94a3b8 !important;
+  font-size: 0.9rem !important;
+}
+
+
+/* ── Submit button — solid brand gradient with white text ──────────────── */
+/* Extra selectors to beat global.css specificity                          */
+
+.stFormSubmitButton > button,
+.stFormSubmitButton > button[kind="secondary"],
+.stFormSubmitButton > button[kind="primary"] {
+  background: linear-gradient(135deg, var(--brand-600) 0%, #2a5cc7 100%) !important;
+  background-color: var(--brand-600) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 0.72rem 1.5rem !important;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.02em !important;
+  transition: all 0.25s ease !important;
+  box-shadow: 0 2px 8px rgba(24, 65, 151, 0.25) !important;
+  margin-top: 0.25rem !important;
+}
+
+.stFormSubmitButton > button:hover,
+.stFormSubmitButton > button[kind="secondary"]:hover,
+.stFormSubmitButton > button[kind="primary"]:hover {
+  background: linear-gradient(135deg, var(--brand-700) 0%, var(--brand-600) 100%) !important;
+  background-color: var(--brand-700) !important;
+  box-shadow: 0 4px 16px rgba(24, 65, 151, 0.35) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+}
+
+.stFormSubmitButton > button:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 4px rgba(24, 65, 151, 0.2) !important;
+}
+
+.stFormSubmitButton > button:focus:not(:active) {
+  box-shadow: 0 0 0 3px rgba(24, 65, 151, 0.2),
+              0 2px 8px rgba(24, 65, 151, 0.25) !important;
+  outline: none !important;
+  color: #ffffff !important;
+}
+
+
+/* ── Profile info rows ────────────────────────────────────────────────── */
+
+.profile-info {
+  padding: 0.5rem 0 1rem;
+}
+
+.profile-info__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.profile-info__row:last-child {
+  border-bottom: none;
+}
+
+.profile-info__label {
   font-size: 0.85rem;
-  margin-top: 0.3rem;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.01em;
 }
+
+.profile-info__value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+
+/* ── Account settings — section helpers & sign-out ────────────────────── */
+
+.settings-section__helper {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0.2rem 0 0.6rem;
+}
+
+.settings-signout-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 1rem 0 0.75rem;
+}
+
+
+/* ── Forgot-password link (right-aligned under password field) ────────── */
+
+.auth-forgot {
+  text-align: right;
+  margin: -0.2rem 0 0.4rem;
+  font-size: 0.8rem;
+}
+
+.auth-forgot a,
+.auth-forgot a:visited {
+  color: var(--brand-600) !important;
+  font-weight: 500;
+  text-decoration: none !important;
+  transition: color 0.15s ease;
+}
+
+.auth-forgot a:hover {
+  color: var(--brand-700) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+
+/* ── Footer (sign-up / sign-in link) ───────────────────────────────────── */
+
+.auth-footer {
+  text-align: center;
+  padding: 0.85rem 0 0.25rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.auth-footer a,
+.auth-footer a:visited {
+  color: var(--brand-600) !important;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: color 0.15s ease;
+}
+
+.auth-footer a:hover {
+  color: var(--brand-700) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+

@@ -190,6 +190,25 @@
   margin: 0;
 }
 
+.topbar__dropdown-item,
+.topbar__dropdown-item:visited {
+  display: block;
+  padding: 0.7rem 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink) !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+  background: transparent;
+  transition: background 0.12s ease;
+  cursor: pointer;
+}
+
+.topbar__dropdown-item:hover {
+  background: #f8fafc;
+  color: var(--brand-600) !important;
+}
+
 .topbar__dropdown-logout,
 .topbar__dropdown-logout:visited {
   display: block;
@@ -246,19 +265,41 @@
 .topbar__nav a,   .topbar__nav a:visited,   .topbar__nav a:hover,
 .topbar__nav a:focus,  .topbar__nav a:active,
 .topbar__brand a, .topbar__brand a:visited, .topbar__brand a:hover,
-.topbar__brand a:focus, .topbar__brand a:active,
-.topbar__auth a,  .topbar__auth a:visited,  .topbar__auth a:hover,
-.topbar__auth a:focus,  .topbar__auth a:active {
+.topbar__brand a:focus, .topbar__brand a:active {
   text-decoration: none !important;
   border-bottom: none !important;
   color: #fff !important;
 }
 
-/* Override: dropdown logout is NOT white */
+/* Auth zone links (Sign in / Sign up) — white; exclude dropdown children */
+.topbar__auth > a,
+.topbar__auth > a:visited,
+.topbar__auth > a:hover,
+.topbar__auth > a:focus,
+.topbar__auth > a:active {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  color: #fff !important;
+}
+
+/* Override: dropdown links are NOT white — each class sets its own colour */
 .topbar__dropdown a,
-.topbar__dropdown a:visited,
-.topbar__dropdown a:hover,
-.topbar__dropdown a:focus,
-.topbar__dropdown a:active {
+.topbar__dropdown a:visited {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+.topbar__dropdown-logout,
+.topbar__dropdown-logout:visited,
+.topbar__dropdown-logout:hover,
+.topbar__dropdown-logout:focus,
+.topbar__dropdown-logout:active {
   color: #c0392b !important;
+}
+
+.topbar__dropdown-item,
+.topbar__dropdown-item:visited,
+.topbar__dropdown-item:focus,
+.topbar__dropdown-item:active {
+  color: var(--ink) !important;
 }

@@ -40,14 +40,27 @@ class ModelCardRepository:
     async def list_for_owner(
         session: AsyncSession, owner_id: uuid.UUID
     ) -> list[ModelCard]:
-        """Return all cards owned by *owner_id*, newest first."""
+        """Return all cards owned by *owner_id*, newest first — no version data loaded."""
         result = await session.execute(
             select(ModelCard)
             .where(ModelCard.owner_id == owner_id)
-            .options(selectinload(ModelCard.versions))
             .order_by(ModelCard.created_at.desc())
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def get_card_only(
+        session: AsyncSession, card_id: int
+    ) -> ModelCard | None:
+        """Return a card without loading its versions.
+
+        Use this for ownership/existence checks where version content is not needed.
+        Avoids the sort-buffer overflow caused by loading large JSON version rows.
+        """
+        result = await session.execute(
+            select(ModelCard).where(ModelCard.id == card_id)
+        )
+        return result.scalars().first()
 
     @staticmethod
     async def delete(session: AsyncSession, card_id: int) -> bool:
@@ -120,6 +133,19 @@ class ModelCardVersionRepository:
             .where(ModelCardVersion.status == "published")
             .options(selectinload(ModelCardVersion.model_card))
             .order_by(ModelCardVersion.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def list_pending(
+        session: AsyncSession,
+    ) -> list[ModelCardVersion]:
+        """Return all versions with status 'in_review', oldest first (FIFO)."""
+        result = await session.execute(
+            select(ModelCardVersion)
+            .where(ModelCardVersion.status == "in_review")
+            .options(selectinload(ModelCardVersion.model_card))
+            .order_by(ModelCardVersion.created_at.asc())
         )
         return list(result.scalars().all())
 

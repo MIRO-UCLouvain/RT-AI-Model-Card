@@ -8,6 +8,7 @@ from typing import Any
 import streamlit as st
 
 from app.core.date_utils import is_yyyymmdd, set_safe_date_field, to_date
+from app.ui.utils.typography import strip_brackets
 
 # All known form-section key prefixes (and their _-prefixed widget shadow keys).
 _FORM_PREFIXES: tuple[str, ...] = (
@@ -108,6 +109,36 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
     :param data: The data to populate the session state with.
     :type data: dict[str, Any]
     """
+    # ── Restore embedded image data ───────────────────────────────────────────
+    # Images are stored as base64 data URIs in "_images" (standalone fields) and
+    # inline inside the learning_architectures list (architecture figures).
+    # Restoring them into render_uploads lets the renderer and the view-mode UI
+    # find them without needing the original local files.
+    if "_images" in data:
+        from app.services.uploads import (  # noqa: PLC0415
+            REG_RENDER_UPLOADS,
+            ensure_upload_state,
+        )
+        ensure_upload_state()
+        ru: dict[str, Any] = st.session_state[REG_RENDER_UPLOADS]
+        for field_key, img_info in data["_images"].items():
+            img_uri: str = img_info.get("data_uri", "")
+            img_name: str = img_info.get("name", "")
+            if img_uri:
+                ru[field_key] = {"path": "", "name": img_name, "data_uri": img_uri}
+
+    # ── Restore appendix upload metadata ──────────────────────────────────────
+    if "_appendix_meta" in data:
+        from app.services.uploads import (  # noqa: PLC0415
+            REG_APPENDIX_UPLOADS,
+            ensure_upload_state,
+        )
+        ensure_upload_state()
+        au: dict[str, Any] = st.session_state[REG_APPENDIX_UPLOADS]
+        for original_name, ameta in data["_appendix_meta"].items():
+            # path is intentionally omitted — the file doesn't exist locally
+            au[original_name] = {**ameta, "path": ""}
+
     if "task" in data:
         st.session_state["task"] = data["task"]
 
@@ -131,7 +162,7 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
             idx_counts: dict[tuple[str, str], int] = {}
             for io in ios:
                 clean: str = (
-                    io["entry"]
+                    strip_brackets(io["entry"])
                     .strip()
                     .replace(" ", "_")
                     .lower()
@@ -169,7 +200,7 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
                         idx_counts2: dict[tuple[str, str], int] = {}
                         for io in value:
                             clean2: str = (
-                                io["entry"]
+                                strip_brackets(io["entry"])
                                 .strip()
                                 .replace(" ", "_")
                                 .lower()
@@ -257,13 +288,35 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
         elif section == "technical_specifications":
             for k, v in content.items():
                 if k == "learning_architectures" and isinstance(v, list):
+                    from app.services.uploads import (  # noqa: PLC0415
+                        REG_RENDER_UPLOADS,
+                        ensure_upload_state,
+                    )
+                    ensure_upload_state()
+                    la_ru: dict[str, Any] = st.session_state[REG_RENDER_UPLOADS]
                     la_forms: dict[str, str] = {}
                     for i, arch in enumerate(v):
                         uid = _uuid.uuid4().hex[:8]
                         la_forms[uid] = f"Learning Architecture {i + 1}"
                         prefix = f"learning_architecture_{uid}_"
-                        for key, value in arch.items():
-                            st.session_state[f"{prefix}{key}"] = value
+                        for la_key, la_val in arch.items():
+                            if (
+                                la_key == "architecture_figure"
+                                and isinstance(la_val, dict)
+                                and "data_uri" in la_val
+                            ):
+                                # Embedded image: restore into render_uploads under
+                                # both the UID key (for view-mode UI) and the
+                                # numeric-index key (for the PDF renderer).
+                                fig_entry: dict[str, str] = {
+                                    "path": "",
+                                    "name": la_val.get("name", ""),
+                                    "data_uri": la_val["data_uri"],
+                                }
+                                la_ru[f"learning_architecture_{uid}_architecture_figure"] = fig_entry
+                                la_ru[f"learning_architecture_{i}_architecture_figure"] = fig_entry
+                            else:
+                                st.session_state[f"{prefix}{la_key}"] = la_val
                     st.session_state["learning_architecture_forms"] = la_forms
                     continue
 
