@@ -364,16 +364,32 @@ def _render_learning_architecture_tab(
         prefix,
     )
 
+    uq_props = cast(
+        "FieldProps",
+        {
+            **la_section["uncertainty_quantification_techniques"],
+            "placeholder": "NA if Not Applicable",
+        },
+    )
     render_field(
         "uncertainty_quantification_techniques",
-        la_section["uncertainty_quantification_techniques"],
+        uq_props,
         prefix,
+    )
+
+    exp_props = cast(
+        "FieldProps",
+        {
+            **la_section["explainability_techniques"],
+            "placeholder": "NA if Not Applicable",
+        },
     )
     render_field(
         "explainability_techniques",
-        la_section["explainability_techniques"],
+        exp_props,
         prefix,
     )
+
     render_field(
         "additional_information_ts",
         la_section["additional_information_ts"],

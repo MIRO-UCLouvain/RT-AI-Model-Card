@@ -100,9 +100,16 @@ def _render_versioning(section: ModelBasicInformation) -> None:
                 SECTION_PREFIX,
             )
         with col2:
+            vc_props = cast(
+                "FieldProps",
+                {
+                    **section["version_changes"],
+                    "placeholder": "NA if Not Applicable",
+                },
+            )
             render_field(
                 "version_changes",
-                section["version_changes"],
+                vc_props,
                 SECTION_PREFIX,
             )
 
@@ -236,9 +243,16 @@ def _render_developed_by_and_sources(section: ModelBasicInformation) -> None:
 
     section_divider()
 
+    coi_props = cast(
+        "FieldProps",
+        {
+            **section["conflict_of_interest"],
+            "placeholder": "NA if Not Applicable",
+        },
+    )
     render_field(
         "conflict_of_interest",
-        section["conflict_of_interest"],
+        coi_props,
         SECTION_PREFIX,
     )
 

@@ -5,7 +5,7 @@
 ### 2.1 Model overview
 
 #### Model pipeline
-- **Summary:** {{ technical_specifications_model_pipeline_summary | default("—", true) }}
+- **Summary** **\*** : {{ technical_specifications_model_pipeline_summary | default("—", true) }}
 
 {% set f = technical_specifications_model_pipeline_figure %}
 {% if f %}
@@ -13,13 +13,17 @@
 {{ C.render_file(f, label="Figure") }}
 {% endif %}
 
-- **Model inputs:** {{ technical_specifications_model_inputs | default("—", true) }}
+- **Model inputs** **\*** : {{ technical_specifications_model_inputs | default("—", true) }}
 
-- **Model outputs:** {{ technical_specifications_model_outputs | default("—", true) }}
+- **Additional information**: {{ technical_specifications_additional_information_model_inputs | default("—", true) }}
 
-- **Pre-processing:** {{ technical_specifications_pre_processing | default("—", true) }}
+- **Model outputs** **\*** : {{ technical_specifications_model_outputs | default("—", true) }}
 
-- **Post-processing:** {{ technical_specifications_post_processing | default("—", true) }}
+- **Additional information**: {{ technical_specifications_additional_information_model_outputs | default("—", true) }}
+
+- **Pre-processing** **\*** : {{ technical_specifications_pre_processing | default("—", true) }}
+
+- **Post-processing** **\*** : {{ technical_specifications_post_processing | default("—", true) }}
 
 ### 2.2 Learning architecture(s)
 
@@ -32,7 +36,7 @@ _No learning architectures provided._
 
 | Field | Value |
 |----------|-------|
-| **Total number of trainable parameters** | {{ la.total_number_trainable_parameters | default("—", true) }} |
+| **Total number of trainable parameters** **\*** | {{ la.total_number_trainable_parameters | default("—", true) }} |
 | **Number of inputs** | {{ la.number_of_inputs | default("—", true) }} |
 | **Input content** | {{ la.input_content | default("—") }} |
 {% if la.additional_information_input_content %}
@@ -51,17 +55,17 @@ _No learning architectures provided._
 | **Output format** | {{ la.output_format | default("—") }} |
 {% endif %}
 | **Output size** | {{ la.output_size | default("—", true) }} |
-| **Loss function** | {{ la.loss_function | default("—", true) }} |
+| **Loss function** **\*** | {{ la.loss_function | default("—", true) }} |
 | **Batch size** | {{ la.batch_size | default("—", true) }} |
 | **Regularisation** | {{ la.regularisation | default("—", true) }} |
 {% set f = la.architecture_figure %}
 {% if f %}
-| **Architecture figure** | {{ (f.name if f is defined and f.name is defined else (f.get("name") if f.get is defined else "—")) }}<br>{{ C.render_file(f, label="Architecture figure") }} |
+| **Architecture figure** **\*** | {{ (f.name if f is defined and f.name is defined else (f.get("name") if f.get is defined else "—")) }}<br>{{ C.render_file(f, label="Architecture figure") }} |
 {% endif %}
-| **Uncertainty quantification techniques** | {{ la.uncertainty_quantification_techniques | default("—", true) }} |
-| **Explainability techniques** | {{ la.explainability_techniques | default("—", true) }} |
+| **Uncertainty quantification techniques** **\*** | {{ la.uncertainty_quantification_techniques | default("NA", true) }} |
+| **Explainability techniques** **\*** | {{ la.explainability_techniques | default("NA", true) }} |
 {% if la.additional_information_ts %}
-| **Additional info** | {{ la.additional_information_ts | default("—") }} |
+| **Additional information** | {{ la.additional_information_ts | default("—") }} |
 {% endif %}
 {% if la.citation_details_ts %}
 | **Citation(s)** | {{ la.citation_details_ts | default("—") }} |

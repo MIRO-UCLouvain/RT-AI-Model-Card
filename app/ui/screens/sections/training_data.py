@@ -53,6 +53,7 @@ TITLE_PATIENT_INFO = "3. Patient demographics and clinical characteristics"
 TITLE_TRAINING_METHODOLOGY = "Training Methodology"
 
 SECTION_PREFIX = "training_data"
+NA_PLACEHOLDER = "NA if Not Applicable"
 
 
 class TrainingData(TypedDict, total=False):
@@ -114,6 +115,15 @@ class TrainingData(TypedDict, total=False):
     model_choice_criteria: FieldProps
     inference_method: FieldProps
 
+def _force_training_na_placeholder(section: TrainingData) -> None:
+    if "reference_standard" in section:
+        section["reference_standard"]["placeholder"] = NA_PLACEHOLDER
+    if "reference_standard_qa" in section:
+        section["reference_standard_qa"]["placeholder"] = NA_PLACEHOLDER
+    if "age" in section:
+        section["age"]["placeholder"] = NA_PLACEHOLDER
+    if "sex" in section:
+        section["sex"]["placeholder"] = NA_PLACEHOLDER
 
 def _render_fine_tuned_from(section: TrainingData) -> None:
     title_header(TITLE_FINE_TUNED)
@@ -257,11 +267,15 @@ def _render_technical_characteristics(section: TrainingData) -> None:
                 ],
                 "fov": section["fov"],
             }
-            for f in field_keys.values():
-                f["placeholder"] = f.get(
-                    "placeholder",
-                    "N/A or NA if Not Applicable",
-                )
+            for key, f in field_keys.items():
+                if key in (
+                    "scanner_model",
+                    "scan_acquisition_parameters",
+                    "scan_reconstruction_parameters",
+                    "fov",
+                ):
+                    f["placeholder"] = NA_PLACEHOLDER
+
 
             col1, col2 = st.columns([1, 1])
             with col1:
@@ -509,6 +523,7 @@ def training_data_render() -> None:
     subtitle(SUBTITLE)
 
     _render_fine_tuned_from(section)
+    _force_training_na_placeholder(section)
     _render_general_info(section)
     _render_technical_characteristics(section)
     _render_dose_prediction_fields(section)

@@ -61,7 +61,7 @@ TITLE_PATIENT_INFO = "3. Patient demographics and clinical characteristics"
 WARNING_EVAL_EXISTS = "An evaluation form with this name already exists."
 TITLE_QUANTITATIVE_EVALUATION = "Quantitative Evaluation"
 TITLE_QUALITATIVE_EVALUATION = "Qualitative Evaluation"
-NA_PLACEHOLDER = "N/A or NA if Not Applicable"
+NA_PLACEHOLDER = "NA if Not Applicable"
 # This page renders dynamic forms with prefixes like "evaluation_<name>", so no
 # single SECTION_PREFIX.
 
@@ -211,6 +211,30 @@ class Evaluation(TypedDict, total=False):
     qualitative_other_results: FieldProps
     explainability: FieldProps
     citation_details: FieldProps
+
+def _force_na_placeholder(section: Evaluation) -> None:
+    fields = [
+        "reference_standard",
+        "reference_standard_qa",
+        "age_ev",
+        "sex_ev",
+        "metric_specifications_dm",
+        "metric_specifications_gm_seg",
+        "metric_specifications_dm_dp",
+        "metric_specifications_dm_seg",
+        "uncertainty_metrics_method",
+        "evaluators_information",
+        "likert_scoring_method",
+        "turing_test_method",
+        "time_saving_method",
+        "explainability",
+    ]
+
+    sec = cast("dict[str, FieldProps]", section)
+
+    for field in fields:
+        if field in sec:
+            sec[field]["placeholder"] = NA_PLACEHOLDER
 
 
 def _render_header_and_evaluated_by(
@@ -481,8 +505,15 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
                     **disabled_flag,
                 },
             }
-            for f in field_keys.values():
-                f["placeholder"] = f.get("placeholder", NA_PLACEHOLDER)
+            for key, f in field_keys.items():
+                if key in (
+                    "scanner_model",
+                    "scan_acquisition_parameters",
+                    "scan_reconstruction_parameters",
+                    "fov",
+                ):
+                    f["placeholder"] = NA_PLACEHOLDER
+
 
             col1, col2 = st.columns([1, 1])
             with col1:
@@ -1451,6 +1482,7 @@ def _render_one_evaluation_form(
     current_task = st.session_state.get("task", "").strip().lower()
     section_prefix = f"evaluation_{form_name.replace(' ', '_')}"
     with st.expander(f"{form_name}", expanded=False):
+        _force_na_placeholder(eval_schema)
         _render_header_and_evaluated_by(eval_schema, section_prefix)
         _render_general_info(eval_schema, section_prefix)
         _render_technical_characteristics(eval_schema, section_prefix)

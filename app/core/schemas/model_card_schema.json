@@ -1006,7 +1006,7 @@
     "patient_positioning": {
       "type": "String, Free text format",
       "label": "Patient positioning",
-      "description": "Patient positioning during image acquisition or treatment delivery. Indicate 'NA' whenever not relevant nor applicable.",
+      "description": "Patient positioning during image acquisition or treatment delivery.",
       "required": true,
       "example": "[Supine, arms above head, flat couch]"
     },

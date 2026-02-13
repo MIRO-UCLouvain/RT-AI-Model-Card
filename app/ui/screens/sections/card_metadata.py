@@ -87,9 +87,13 @@ def card_metadata_render() -> None:
             SECTION_PREFIX,
         )
     with col2:
+        vc_props = cast("FieldProps", {
+            **section["version_changes"],
+            "placeholder": "NA if Not Applicable",
+        })
         render_field(
             "version_changes",
-            section["version_changes"],
+            vc_props,
             SECTION_PREFIX,
         )
 

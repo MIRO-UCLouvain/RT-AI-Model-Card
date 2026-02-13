@@ -1,68 +1,72 @@
 {% import "components.md.j2" as C %}
 {% set metrics_schema = {
   "type_ism": {
-    "title": "Image Similarity Metrics",
-    "columns": {
-      "name": "Type",
-      "on_volume_ism": "On Volume",
-      "registration_ism": "Registration",
-      "sample_data_ism": "Sample Data",
-      "mean_data_ism": "Mean Data",
-      "figure_ism_appendix_note": "Figure Appendix Label"
-    }
+  "title": "Image Similarity Metrics",
+  "columns": {
+    "name": "**Type** **\\***",
+    "on_volume_ism": "**On Volume** **\\***",
+    "registration_ism": "**Registration** **\\***",
+    "sample_data_ism": "**Sample Data**",
+    "mean_data_ism": "**Mean Data** **\\***",
+    "figure_ism_appendix_note": "**Figure Appendix Label**"
+  }
   },
+
   "type_dose_dm": {
     "title": "Dose Metrics",
     "columns": {
-      "name": "Type",
-      "metric_specifications_dm": "Metric Specifications",
-      "on_volume_dm": "On Volume",
-      "registration_dm": "Registration",
-      "treatment_modality_dm": "Treatment Modality",
-      "dose_engine_dm": "Dose Engine",
-      "dose_grid_resolution_dm": "Dose Grid Resolution",
-      "tps_vendor_dm": "TPS Vendor",
-      "sample_data_dm": "Sample Data",
-      "mean_data_dm": "Mean Data",
-      "figure_dm_appendix_note": "Figure Appendix Label"
+      "name": "**Type** **\\***",
+      "metric_specifications_dm": "**Metric Specifications** **\\***",
+      "on_volume_dm": "**On Volume** **\\***",
+      "registration_dm": "**Registration** **\\***",
+      "treatment_modality_dm": "**Treatment Modality** **\\***",
+      "dose_engine_dm": "**Dose Engine** **\\***",
+      "dose_grid_resolution_dm": "**Dose Grid Resolution** **\\***",
+      "tps_vendor_dm": "**TPS Vendor**",
+      "sample_data_dm": "**Sample Data**",
+      "mean_data_dm": "**Mean Data** **\\***",
+      "figure_dm_appendix_note": "**Figure Appendix Label**"
     }
   },
+
   "type_gm_seg": {
     "title": "Geometric Metrics",
     "columns": {
-      "name": "Type",
-      "metric_specifications_gm_seg": "Metric Specifications",
-      "on_volume_gm_seg": "On Volume",
-      "sample_data_gm_seg": "Sample Data",
-      "mean_data_gm_seg": "Mean Data",
-      "figure_gm_seg_appendix_note": "Figure Appendix Label"
+      "name": "**Type** **\\***",
+      "metric_specifications_gm_seg": "**Metric Specifications** **\\***",
+      "on_volume_gm_seg": "**On Volume** **\\***",
+      "sample_data_gm_seg": "**Sample Data**",
+      "mean_data_gm_seg": "**Mean Data** **\\***",
+      "figure_gm_seg_appendix_note": "**Figure Appendix Label**"
     }
   },
+
   "type_dose_dm_seg": {
     "title": "Dose Metrics",
     "columns": {
-      "name": "Type",
-      "metric_specifications_dm_seg": "Metric Specifications",
-      "on_volume_dm_seg": "On Volume",
-      "treatment_modality_dm_seg": "Treatment Modality",
-      "dose_engine_dm_seg": "Dose Engine",
-      "dose_grid_resolution_dm_seg": "Dose Grid Resolution",
-      "tps_vendor_dm_seg": "TPS Vendor",
-      "sample_data_dm_seg": "Sample Data",
-      "mean_data_dm_seg": "Mean Data",
-      "figure_dm_seg_appendix_note": "Figure DM Seg Appendix Label"
+      "name": "**Type** **\\***",
+      "metric_specifications_dm_seg": "**Metric Specifications** **\\***",
+      "on_volume_dm_seg": "**On Volume** **\\***",
+      "treatment_modality_dm_seg": "**Treatment Modality** **\\***",
+      "dose_engine_dm_seg": "**Dose Engine** **\\***",
+      "dose_grid_resolution_dm_seg": "**Dose Grid Resolution** **\\***",
+      "tps_vendor_dm_seg": "**TPS Vendor**",
+      "sample_data_dm_seg": "**Sample Data**",
+      "mean_data_dm_seg": "**Mean Data** **\\***",
+      "figure_dm_seg_appendix_note": "**Figure DM Seg Appendix Label**"
     }
   },
+
   "type_dose_dm_dp": {
     "title": "Dose Metrics",
     "columns": {
-      "name": "Type",
-      "metric_specifications_dm_dp": "Metric Specifications",
-      "on_volume_dm_dp": "On Volume",
-      "dose_grid_resolution_dm_dp": "Dose Grid Resolution",
-      "sample_data_dm_dp": "Sample Data",
-      "mean_data_dm_dp": "Mean Data",
-      "figure_dm_dp_appendix_note": "Figure DM DP Appendix Label"
+      "name": "**Type** **\\***",
+      "metric_specifications_dm_dp": "**Metric Specifications** **\\***",
+      "on_volume_dm_dp": "**On Volume** **\\***",
+      "dose_grid_resolution_dm_dp": "**Dose Grid Resolution** **\\***",
+      "sample_data_dm_dp": "**Sample Data**",
+      "mean_data_dm_dp": "**Mean Data** **\\***",
+      "figure_dm_dp_appendix_note": "**Figure DM DP Appendix Label**"
     }
   },
   "type_metrics_other": {
@@ -87,83 +91,82 @@ _No evaluations provided._
 {% for ev in ev_list %}
 ### {{ loop.index }} {{ ev.name | default("—") }}
 
-**Evaluation date:** {{ ev.evaluation_date | default("—", true) }}
+**Evaluation date** **\*** : {{ ev.evaluation_date | default("—", true) }}
 #### Evaluated by
-- **Name(s):** {{ ev.evaluated_by_name | default("—", true) }}
-- **Institution(s):** {{ ev.evaluated_by_institution | default("—", true) }}
-- **Contact email(s):** {{ ev.evaluated_by_contact_email | default("—", true) }}
+- **Name(s)** **\*** : {{ ev.evaluated_by_name | default("—", true) }}
+- **Institution(s)** **\*** : {{ ev.evaluated_by_institution | default("—", true) }}
+- **Contact email(s)** **\*** : {{ ev.evaluated_by_contact_email | default("—", true) }}
 - **Same as 'Approved by':** {{ 'Yes' if ev.evaluated_same_as_approved else 'No' }}
 
 
-**Evaluation frame:** {{ ev.evaluation_frame | default("—", true) }}
+**Evaluation frame** **\*** : {{ ev.evaluation_frame | default("—", true) }}
 
 {% if ev.sanity_check %} **Sanity check:** {{ ev.sanity_check | default("—", true) }}{% endif %}
 
 #### Evaluation dataset 
 ##### General information
-- **Total size:** {{ ev.total_size | default("—", true) }}
+- **Total size** **\*** : {{ ev.total_size | default("—", true) }}
 
-- **Number of patients:** {{ ev.number_of_patients | default("—", true) }}
+- **Number of patients** **\*** : {{ ev.number_of_patients | default("—", true) }}
 
-- **Source:** {{ ev.source | default("—", true) }}
+- **Source** **\*** : {{ ev.source | default("—", true) }}
 
-- **Acquisition period:** {{ ev.acquisition_period | default("—", true) }}
+- **Acquisition period** **\*** : {{ ev.acquisition_period | default("—", true) }}
 
-- **Inclusion / Exclusion criteria:** {{ ev.inclusion_exclusion_criteria | default("—", true) }}
+- **Inclusion / Exclusion criteria** **\*** : {{ ev.inclusion_exclusion_criteria | default("—", true) }}
 
-- **URL info:** {{ ev.url_info | default("—", true) }}
+- **URL info**: {{ ev.url_info | default("—", true) }}
 
 ##### Technical specifications
 
-{# --- Inputs/Outputs (TS) per modality, if present --- #}
 {% set io_list = ev.inputs_outputs_technical_specifications | default([], true) %}
 {% if io_list and io_list | length > 0 %}
-  {% for item in io_list %}
+{% for item in io_list %}
 **{{ item.entry | default("—", true) }}** ({{ item.source | default("—", true) }})
 
 | Field | Value |
 |-------|-------|
-{% for key, label in DATA_INPUT_OUTPUT_TS.items() %}
-| **{{ label }}** | {{ item[key] | default("—", true) }} |
+{% for key, label in DATA_INPUT_OUTPUT_TS.items() -%}
+| **{{ label }}** **\*** | {{ (item[key] | default("NA", true)) if key in ["scanner_model", "scan_acquisition_parameters", "scan_reconstruction_parameters", "fov"] else (item[key] | default("—", true)) }} |
 {% endfor %}
 
-
-  {% endfor %}
+{% endfor %}
 {% else %}
 _No input/output technical specifications provided._
 {% endif %}
 
 
-{% if ev.treatment_modality %} - **Treatment modality:** {{ ev.treatment_modality | default("—", true) }} {% endif %}
 
-{% if ev.beam_configuration_and_energy %} - **Beam configuration and energy:** {{ ev.beam_configuration_and_energy | default("—", true) }} {% endif %}
+{% if ev.treatment_modality %} - **Treatment modality** **\*** : {{ ev.treatment_modality | default("—", true) }} {% endif %}
 
-{% if ev.dose_engine %} - **Dose engine:** {{ ev.dose_engine | default("—", true) }} {% endif %}
+{% if ev.beam_configuration_and_energy %} - **Beam configuration and energy** **\*** : {{ ev.beam_configuration_and_energy | default("—", true) }} {% endif %}
 
-{% if ev.target_volumes_and_prescription %} - **Target volumes and prescription:** {{ ev.target_volumes_and_prescription | default("—", true) }} {% endif %}
+{% if ev.dose_engine %} - **Dose engine** **\*** : {{ ev.dose_engine | default("—", true) }} {% endif %}
 
-{% if ev.number_of_fractions %} - **Number of fractions:** {{ ev.number_of_fractions | default("—", true) }} {% endif %}
+{% if ev.target_volumes_and_prescription %} - **Target volumes and prescription** **\*** : {{ ev.target_volumes_and_prescription | default("—", true) }} {% endif %}
 
-- **Reference standard:** {{ ev.reference_standard | default("—", true) }}
+{% if ev.number_of_fractions %} - **Number of fractions** **\*** : {{ ev.number_of_fractions | default("—", true) }} {% endif %}
 
-- **Reference standard QA:** {{ ev.reference_standard_qa | default("—", true) }}
+- **Reference standard** **\*** : {{ ev.reference_standard | default("NA", true) }}
 
-{% if ev.reference_standard_qa_additional_information %} - **Additional information:** {{ ev.reference_standard_qa_additional_information | default("—") }} {% endif %}
+- **Reference standard QA** **\*** : {{ ev.reference_standard_qa | default("NA", true) }}
+
+{% if ev.reference_standard_qa_additional_information %} - **Additional information**: {{ ev.reference_standard_qa_additional_information | default("—") }} {% endif %}
 
 ##### Patient demographics and clinical characteristics
-{% if ev.icd10_11_ev %} - **ICD10/11:** {{ ev.icd10_11_ev | default("—") }} {% endif %}
+{% if ev.icd10_11_ev %} - **ICD10/11**: {{ ev.icd10_11_ev | default("—") }} {% endif %}
 
-{% if ev.tnm_staging_ev %} - **TNM staging:** {{ ev.tnm_staging_ev | default("—") }} {% endif %}
+{% if ev.tnm_staging_ev %} - **TNM staging**: {{ ev.tnm_staging_ev | default("—") }} {% endif %}
 
-- **Age:** {{ ev.age_ev | default("—", true) }}
+- **Age** **\*** : {{ ev.age_ev | default("NA", true) }}
 
-- **Sex:** {{ ev.sex_ev | default("—", true) }}
+- **Sex** **\*** : {{ ev.sex_ev | default("NA", true) }}
 
-{% if ev.target_volume_cm3_ev %} - **Target volume (cm³):** {{ ev.target_volume_cm3_ev | default("—", true) }} {% endif %}
+{% if ev.target_volume_cm3_ev %} - **Target volume (cm³)**: {{ ev.target_volume_cm3_ev | default("—", true) }} {% endif %}
 
-{% if ev.bmi_ev %} - **BMI:** {{ ev.bmi_ev | default("—", true) }} {% endif %}
+{% if ev.bmi_ev %} - **BMI**: {{ ev.bmi_ev | default("—", true) }} {% endif %}
 
-{% if ev.additional_patient_info_ev %} - **Additional information:** {{ ev.additional_patient_info_ev | default("—", true) }} {% endif %}
+{% if ev.additional_patient_info_ev %} - **Additional information**: {{ ev.additional_patient_info_ev | default("—", true) }} {% endif %}
 
 {% import "components.md.j2" as C %}
 
@@ -191,16 +194,17 @@ _No input/output technical specifications provided._
     {% set schema = metrics_schema.get(group_name) %}
     {% if schema %}
 ##### {{ schema.title | default("—", true) }}
-      {% for r in rows %}
+{% for r in rows %}
 **{{ r.name | default('Metric ' ~ loop.index, true) }}**
 
 | Field | Value |
 |---|---|
-        {% for c, v in schema.columns.items() %}
-| {{ v | default(c | replace('_',' ') | title, true) }} | {{ r[c] | default("—", true) }} |
-        {% endfor %}
+{% for c, v in schema.columns.items() -%}
+| {{ v | default(c | replace('_',' ') | title, true) }} | {{ (r[c] | default("NA", true)) if c.startswith("metric_specifications") else (r[c] | default("—", true)) }} |
+{% endfor %}
 
-      {% endfor %}
+{% endfor %}
+
     {% else %}
 #### {{ group_name | replace('_',' ') | title }}
       {% for r in rows %}
@@ -245,31 +249,31 @@ _No input/output technical specifications provided._
 {% endfor %}
 
 #### Qualitative evaluation
-**Evaluators information:** {{ ev.evaluators_information | default("—", true) }}
+**Evaluators information** **\*** : {{ ev.evaluators_information | default("NA", true) }}
 
 **Likert scoring**
 
-- Method: {{ ev.likert_scoring_method | default("—", true) }}
-- Results: {{ ev.likert_scoring_results | default("—", true) }}
+- **Method** **\*** : {{ ev.likert_scoring_method | default("NA", true) }}
+- **Results** **\*** : {{ ev.likert_scoring_results | default("—", true) }}
 
 **Turing test**
 
-- Method: {{ ev.turing_test_method | default("—", true) }}
-- Results: {{ ev.turing_test_results | default("—", true) }}
+- **Method** **\*** : {{ ev.turing_test_method | default("NA", true) }}
+- **Results** **\*** : {{ ev.turing_test_results | default("—", true) }}
 
 **Time saving**
 
-- Method: {{ ev.time_saving_method | default("—", true) }}
-- Results: {{ ev.time_saving_results | default("—", true) }}
+- **Method** **\*** : {{ ev.time_saving_method | default("NA", true) }}
+- **Results** **\*** : {{ ev.time_saving_results | default("—", true) }}
 
 **Other**
 
-- Method: {{ ev.other_method | default("—", true) }}
-- Results: {{ ev.other_results | default("—", true) }}
+- **Method** **\*** : {{ ev.other_method | default("—", true) }}
+- **Results** **\*** : {{ ev.other_results | default("—", true) }}
 
-**Explainability:** {{ ev.explainability | default("—", true) }}
+**Explainability** **\*** : {{ ev.explainability | default("NA", true) }}
 
-**Citation details:** {{ ev.citation_details | default("—", true) }}
+**Citation details**: {{ ev.citation_details | default("—", true) }}
 
 {% if not loop.last %}
 ---
