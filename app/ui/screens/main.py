@@ -261,7 +261,11 @@ def main() -> None:
         return
 
     if view == "contact":
-        feedback_page()
+        if is_logged_in:
+            st.query_params["view"] = "profile"
+            st.rerun()
+        else:
+            feedback_page()
         return
 
     if view == "published":

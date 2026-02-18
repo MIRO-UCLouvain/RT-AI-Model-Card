@@ -57,9 +57,8 @@ def render_topbar(
         initial = (auth_first_name[0] if auth_first_name else auth_email[0]).upper()
         # Flat string — no indentation so Python-Markdown never treats it as a code block.
         nav_html = (
-            (f'<a class="{cls("admin")}" href="?view=admin" target="_self">Admin Panel</a>'
-             if auth_is_admin else "")
-            + f'<a class="{cls("contact")}" href="?view=contact" target="_self">Contact</a>'
+            f'<a class="{cls("admin")}" href="?view=admin" target="_self">Admin Panel</a>'
+            if auth_is_admin else ""
         )
         auth_html = (
             '<div class="topbar__auth">'
@@ -75,6 +74,7 @@ def render_topbar(
             f'<div class="topbar__dropdown-email">{auth_email}</div>'
             "</div>"
             '<a href="?view=profile" target="_self" class="topbar__dropdown-item">My Account</a>'
+            '<a href="?view=profile" target="_self" class="topbar__dropdown-item">Contact support</a>'
             '<div class="topbar__dropdown-divider"></div>'
             '<a href="?view=logout" target="_self" class="topbar__dropdown-logout">Sign out</a>'
             "</div>"

@@ -4,11 +4,34 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import re
+
 import streamlit as st
 
-from app.client.model_cards import BackendError, change_password
+from app.client.model_cards import BackendError, change_password, submit_feedback
 from app.ui.utils.auth import clear_auth
 from app.ui.utils.css import inject_css
+
+_FEEDBACK_TOPICS = [
+    "General feedback",
+    "Bug report",
+    "Feature request",
+    "UX / interface",
+    "Login / account",
+    "Model basic information",
+    "Clinical problem",
+    "Intended use",
+    "Training data",
+    "Validation data",
+    "Model performance",
+    "Limitations",
+    "Ethical considerations",
+    "Publication workflow",
+    "PDF export",
+    "Other",
+]
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 AUTH_CSS = Path(__file__).resolve().parent.parent / "static" / "auth.css"
 
@@ -84,8 +107,10 @@ def profile_page() -> None:
                 unsafe_allow_html=True,
             )
 
-            # ── Profile / Security tabs ─────────────────────────────
-            tab_profile, tab_security = st.tabs(["Profile", "Security"])
+            # ── Profile / Security / Feedback tabs ─────────────────
+            tab_profile, tab_security, tab_feedback = st.tabs(
+                ["Profile", "Security", "Feedback"],
+            )
 
             # ── Tab 1: Profile ──────────────────────────────────────
             with tab_profile:
@@ -154,6 +179,107 @@ def profile_page() -> None:
                             )
                         except BackendError as exc:
                             st.error(str(exc))
+
+            # ── Tab 3: Feedback ─────────────────────────────────────
+            with tab_feedback:
+                if st.session_state.get("_feedback_sent"):
+                    st.markdown(
+                        '<div style="text-align:center;padding:1.5rem 0.5rem;">'
+                        '<div style="font-size:2.5rem;margin-bottom:0.4rem;">&#9993;</div>'
+                        '<p style="font-size:1.15rem;font-weight:700;margin:0 0 6px;'
+                        'color:var(--ink,#1e293b);">Feedback sent!</p>'
+                        '<p style="color:var(--muted,#64748b);font-size:0.9rem;'
+                        'margin:0;line-height:1.5;">'
+                        'Thank you for writing to us. We will review your '
+                        'message and get back to you if needed.'
+                        '</p>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(
+                        "Send another",
+                        use_container_width=True,
+                        key="fb_another",
+                    ):
+                        del st.session_state["_feedback_sent"]
+                        st.rerun()
+                else:
+                    st.markdown(
+                        '<p class="settings-section__helper">'
+                        'Send feedback, report a bug, or request a feature.'
+                        '</p>',
+                        unsafe_allow_html=True,
+                    )
+
+                    fb_email = st.text_input(
+                        "Email address *",
+                        value=email,
+                        placeholder="you@example.com",
+                        key="fb_email",
+                    )
+                    fb_topic = st.selectbox(
+                        "Topic *",
+                        options=_FEEDBACK_TOPICS,
+                        index=0,
+                        key="fb_topic",
+                    )
+                    fb_subject = st.text_input(
+                        "Subject *",
+                        placeholder="Brief description of your feedback",
+                        key="fb_subject",
+                    )
+                    fb_message = st.text_area(
+                        "Message *",
+                        placeholder="Tell us more…",
+                        height=140,
+                        key="fb_message",
+                    )
+
+                    if st.button(
+                        "Send feedback",
+                        use_container_width=True,
+                        key="fb_submit",
+                    ):
+                        errors: list[str] = []
+                        fb_email_v = (fb_email or "").strip()
+                        fb_subject_v = (fb_subject or "").strip()
+                        fb_message_v = (fb_message or "").strip()
+                        fb_topic_v = fb_topic or ""
+
+                        if not fb_email_v:
+                            errors.append("Email address is required.")
+                        elif not _EMAIL_RE.match(fb_email_v):
+                            errors.append("Please enter a valid email address.")
+                        if not fb_topic_v:
+                            errors.append("Please select a topic.")
+                        if not fb_subject_v:
+                            errors.append("Subject is required.")
+                        if not fb_message_v:
+                            errors.append("Message is required.")
+                        elif len(fb_message_v) < 10:
+                            errors.append("Message must be at least 10 characters.")
+
+                        if errors:
+                            for err in errors:
+                                st.error(err)
+                        else:
+                            token = st.session_state.get("auth_token") or ""
+                            try:
+                                with st.spinner("Sending your feedback…"):
+                                    submit_feedback(
+                                        email=fb_email_v,
+                                        topic=fb_topic_v,
+                                        subject=fb_subject_v,
+                                        message=fb_message_v,
+                                        token=token,
+                                    )
+                                for k in ("fb_email", "fb_topic",
+                                          "fb_subject", "fb_message"):
+                                    st.session_state.pop(k, None)
+                                st.session_state["_feedback_sent"] = True
+                                st.rerun()
+                            except BackendError as exc:
+                                st.error(f"Could not send feedback: {exc}")
 
             # ── Sign out (bottom, less prominent) ───────────────────
             st.markdown(
