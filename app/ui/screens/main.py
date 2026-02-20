@@ -125,62 +125,157 @@ def _render_logged_in_home() -> None:
     else:
         display_name = email.split("@")[0] if email else "there"
 
-    # Welcome header — flat string, no indentation (avoids markdown code-block issue)
+    # ── Hero banner ─────────────────────────────────────────────────────────
     st.markdown(
-        '<div style="padding:2rem 0 0.75rem;">'
-        f'<h2 style="margin:0 0 0.35rem;color:var(--ink);font-size:1.9rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;">'
-        f'Welcome back, <span style="color:var(--brand-600);">{display_name}</span>'
+        '<div class="dash-hero">'
+        '<h2 class="dash-hero__title">'
+        f'Welcome back, {display_name}'
         '</h2>'
-        '<p style="margin:0;color:var(--muted);font-size:0.875rem;font-weight:400;line-height:1.5;">Select an action below to get started.</p>'
+        '<p class="dash-hero__sub">'
+        'Create and manage AI Model Cards for Radiation Therapy'
+        '</p>'
         '</div>',
         unsafe_allow_html=True,
     )
 
-    # ── 2×2 dashboard grid ────────────────────────────────────────────────
-    col1, col2 = st.columns(2, gap="medium")
 
-    with col1:
+    # ── Primary CTA — Create Model Card ──────────────────────────────────
+    with st.container(border=True):
+        st.markdown(
+            '<div class="dash-cta">'
+            '<div class="dash-cta__icon">'
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+            'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+            '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'
+            '</svg>'
+            '</div>'
+            '<div class="dash-cta__text">'
+            '<p class="dash-cta__title">Create a new Model Card</p>'
+            '<p class="dash-cta__desc">'
+            'Build a comprehensive AI model card using the standardised AID-RT template.'
+            '</p>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Create Model Card", use_container_width=True, key="home_create"):
+            clear_form_state()
+            clear_card_state()
+            st.query_params["view"] = "create"
+            st.rerun()
+
+    # ── Two cards: Load + Published ──────────────────────────────────────
+    c1, c2 = st.columns(2, gap="medium")
+
+    with c1:
         with st.container(border=True):
             st.markdown(
-                '<p class="dash-card__title">Create Model Card</p>'
-                '<p class="dash-card__desc">Build a new AI model card using the standardised RT template.</p>',
-                unsafe_allow_html=True,
-            )
-            if st.button("Create Model Card", use_container_width=True, key="home_create"):
-                clear_form_state()
-                clear_card_state()  # clears session + cookies + sets guard flag
-                st.query_params["view"] = "create"
-                st.rerun()
-
-        with st.container(border=True):
-            st.markdown(
-                '<p class="dash-card__title">My Model Cards</p>'
-                '<p class="dash-card__desc">View and submit cards you have saved in this session.</p>',
-                unsafe_allow_html=True,
-            )
-            if st.button("My Model Cards", use_container_width=True, key="home_my_cards"):
-                st.query_params["view"] = "my_cards"
-                st.rerun()
-
-    with col2:
-        with st.container(border=True):
-            st.markdown(
+                '<div class="dash-card__icon dash-card__icon--load">'
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'
+                '<polyline points="7 10 12 15 17 10"/>'
+                '<line x1="12" y1="15" x2="12" y2="3"/>'
+                '</svg></div>'
                 '<p class="dash-card__title">Load Model Card</p>'
-                '<p class="dash-card__desc">Resume editing by uploading an existing card from a JSON file.</p>',
+                '<p class="dash-card__desc">'
+                'Upload a previously exported JSON file to resume editing.'
+                '</p>',
                 unsafe_allow_html=True,
             )
-            if st.button("Load Model Card", use_container_width=True, key="home_load"):
+            if st.button("Load from file", use_container_width=True, key="home_load"):
                 st.query_params["view"] = "load"
                 st.rerun()
 
+    with c2:
         with st.container(border=True):
             st.markdown(
-                '<p class="dash-card__title">Published Model Cards</p>'
-                '<p class="dash-card__desc">Browse cards that have been reviewed and approved for publication.</p>',
+                '<div class="dash-card__icon dash-card__icon--published">'
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                '<circle cx="12" cy="12" r="10"/>'
+                '<line x1="2" y1="12" x2="22" y2="12"/>'
+                '<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>'
+                '</svg></div>'
+                '<p class="dash-card__title">Published Cards</p>'
+                '<p class="dash-card__desc">'
+                'Browse the public catalogue of approved model cards.'
+                '</p>',
                 unsafe_allow_html=True,
             )
-            if st.button("Published Model Cards", use_container_width=True, key="home_published"):
+            if st.button("Browse catalogue", use_container_width=True, key="home_published"):
                 st.query_params["view"] = "published"
+                st.rerun()
+
+    # ── My Model Cards actions — 3 mini cards ──────────────────────────────
+    b1, b2, b3 = st.columns(3, gap="medium")
+
+    with b1:
+        with st.container(border=True):
+            st.markdown(
+                '<div class="dash-mini">'
+                '<div class="dash-mini__icon">'
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>'
+                '<polyline points="14 2 14 8 20 8"/>'
+                '<line x1="16" y1="13" x2="8" y2="13"/>'
+                '<line x1="16" y1="17" x2="8" y2="17"/>'
+                '</svg></div>'
+                '<div class="dash-mini__text">'
+                '<p class="dash-mini__title">View My Cards</p>'
+                '<p class="dash-mini__desc">Browse and manage your saved model cards</p>'
+                '</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Open", use_container_width=True, key="home_my_cards"):
+                st.session_state["_my_cards_section"] = "cards"
+                st.query_params["view"] = "my_cards"
+                st.rerun()
+
+    with b2:
+        with st.container(border=True):
+            st.markdown(
+                '<div class="dash-mini">'
+                '<div class="dash-mini__icon">'
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                '<polyline points="16 18 22 12 16 6"/>'
+                '<polyline points="8 6 2 12 8 18"/>'
+                '</svg></div>'
+                '<div class="dash-mini__text">'
+                '<p class="dash-mini__title">Compare Versions</p>'
+                '<p class="dash-mini__desc">Side-by-side diff between card versions</p>'
+                '</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Open", use_container_width=True, key="home_compare"):
+                st.session_state["_my_cards_section"] = "compare"
+                st.query_params["view"] = "my_cards"
+                st.rerun()
+
+    with b3:
+        with st.container(border=True):
+            st.markdown(
+                '<div class="dash-mini">'
+                '<div class="dash-mini__icon">'
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                '<line x1="22" y1="2" x2="11" y2="13"/>'
+                '<polygon points="22 2 15 22 11 13 2 9 22 2"/>'
+                '</svg></div>'
+                '<div class="dash-mini__text">'
+                '<p class="dash-mini__title">Request Publication</p>'
+                '<p class="dash-mini__desc">Submit a version for admin review</p>'
+                '</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Open", use_container_width=True, key="home_publish"):
+                st.session_state["_my_cards_section"] = "requests"
+                st.query_params["view"] = "my_cards"
                 st.rerun()
 
 
@@ -262,6 +357,7 @@ def main() -> None:
 
     if view == "contact":
         if is_logged_in:
+            st.session_state["_settings_section"] = "feedback"
             st.query_params["view"] = "profile"
             st.rerun()
         else:

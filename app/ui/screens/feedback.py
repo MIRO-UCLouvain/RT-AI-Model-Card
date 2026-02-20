@@ -15,11 +15,9 @@ _TOPICS = [
     "UX / interface",
     "Login / account",
     "Model basic information",
-    "Clinical problem",
     "Intended use",
     "Training data",
     "Validation data",
-    "Model performance",
     "Limitations",
     "Ethical considerations",
     "Publication workflow",
@@ -63,7 +61,7 @@ def feedback_page() -> None:
                         st.rerun()
                 with col_home:
                     if st.button(
-                        "Back to Home",
+                        "Back to Main Page",
                         use_container_width=True,
                         key="feedback_go_home",
                     ):

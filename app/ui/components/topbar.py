@@ -73,10 +73,19 @@ def render_topbar(
             f'<div class="topbar__dropdown-name">{display_name}</div>'
             f'<div class="topbar__dropdown-email">{auth_email}</div>'
             "</div>"
-            '<a href="?view=profile" target="_self" class="topbar__dropdown-item">My Account</a>'
-            '<a href="?view=profile" target="_self" class="topbar__dropdown-item">Contact support</a>'
+            '<a href="?view=home" target="_self" class="topbar__dropdown-item">'
+            '<svg class="topbar__dropdown-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
+            'Home</a>'
+            '<a href="?view=profile" target="_self" class="topbar__dropdown-item">'
+            '<svg class="topbar__dropdown-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+            'My Account</a>'
+            '<a href="?view=contact" target="_self" class="topbar__dropdown-item">'
+            '<svg class="topbar__dropdown-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+            'Contact support</a>'
             '<div class="topbar__dropdown-divider"></div>'
-            '<a href="?view=logout" target="_self" class="topbar__dropdown-logout">Sign out</a>'
+            '<a href="?view=logout" target="_self" class="topbar__dropdown-logout">'
+            '<svg class="topbar__dropdown-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>'
+            'Sign out</a>'
             "</div>"
             "</div>"
             "</div>"

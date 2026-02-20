@@ -65,7 +65,7 @@ def login_page() -> None:
     _auth_result: tuple[str, str, str, str] | None = None
     _is_admin: bool = False
 
-    _, col, _ = st.columns([1, 1.4, 1])
+    _, col, _ = st.columns([1, 2.5, 1])
     with col:
         with st.container(border=True):
             # ── Header ───────────────────────────────────────────────────

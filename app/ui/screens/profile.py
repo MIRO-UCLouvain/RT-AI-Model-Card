@@ -1,14 +1,13 @@
-"""Account Settings screen — unified profile + security at ?view=profile."""
+"""Account Settings screen — desktop sidebar layout at ?view=profile."""
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import re
+from pathlib import Path
 
 import streamlit as st
 
-from app.client.model_cards import BackendError, change_password, submit_feedback
+from app.client.model_cards import BackendError, change_password, get_me, submit_feedback
 from app.ui.utils.auth import clear_auth
 from app.ui.utils.css import inject_css
 
@@ -19,11 +18,9 @@ _FEEDBACK_TOPICS = [
     "UX / interface",
     "Login / account",
     "Model basic information",
-    "Clinical problem",
     "Intended use",
     "Training data",
     "Validation data",
-    "Model performance",
     "Limitations",
     "Ethical considerations",
     "Publication workflow",
@@ -34,23 +31,13 @@ _FEEDBACK_TOPICS = [
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 AUTH_CSS = Path(__file__).resolve().parent.parent / "static" / "auth.css"
+SETTINGS_CSS = Path(__file__).resolve().parent.parent / "static" / "settings.css"
 
-# Inline SVG — settings/cog icon (Feather-style)
-_SETTINGS_SVG = (
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
-    '<circle cx="12" cy="12" r="3"/>'
-    '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 '
-    '2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 '
-    '2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06'
-    '.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 '
-    '0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 '
-    '0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 '
-    '4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 '
-    '1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 '
-    '1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 '
-    '1.65 0 0 0-1.51 1z"/>'
-    '</svg>'
-)
+_SECTIONS = [
+    ("profile", "Profile"),
+    ("security", "Change password"),
+    ("feedback", "Contact"),
+]
 
 
 def _validate_password_change(
@@ -70,18 +57,252 @@ def _validate_password_change(
     return None
 
 
+def _render_profile(
+    display_name: str,
+    email: str,
+    initial: str,
+    institution: str,
+    country: str,
+) -> None:
+    """Render the Profile section."""
+    st.markdown(
+        '<div class="settings-section">'
+        '<h3 class="settings-section__title">Profile</h3>'
+        '<p class="settings-section__desc">Your account information</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.markdown(
+            f'<div class="profile-card">'
+            f'<div class="profile-card__avatar">{initial}</div>'
+            f'<div class="profile-card__info">'
+            f'<div class="profile-card__name">{display_name}</div>'
+            f'<div class="profile-card__email">{email}</div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    with st.container(border=True):
+        inst_display = institution if institution else "—"
+        country_display = country if country else "—"
+        st.markdown(
+            '<div class="profile-info">'
+            '<div class="profile-info__row">'
+            '<span class="profile-info__label">Full name</span>'
+            f'<span class="profile-info__value">{display_name}</span>'
+            '</div>'
+            '<div class="profile-info__row">'
+            '<span class="profile-info__label">Email address</span>'
+            f'<span class="profile-info__value">{email}</span>'
+            '</div>'
+            '<div class="profile-info__row">'
+            '<span class="profile-info__label">Institution</span>'
+            f'<span class="profile-info__value">{inst_display}</span>'
+            '</div>'
+            '<div class="profile-info__row">'
+            '<span class="profile-info__label">Country</span>'
+            f'<span class="profile-info__value">{country_display}</span>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        '<div style="margin-top:0.75rem;"></div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("Sign out", key="profile_signout", use_container_width=True):
+        clear_auth()
+        st.query_params["view"] = "home"
+        st.rerun()
+
+
+def _render_security() -> None:
+    """Render the Security section."""
+    st.markdown(
+        '<div class="settings-section">'
+        '<h3 class="settings-section__title">Security</h3>'
+        '<p class="settings-section__desc">Update your password</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.markdown(
+            '<p class="settings-section__helper">'
+            'Choose a strong password with at least 8 characters. '
+            'We recommend mixing letters, numbers, and symbols.'
+            '</p>',
+            unsafe_allow_html=True,
+        )
+
+        with st.form("form_change_password"):
+            current_pw = st.text_input(
+                "Current password",
+                type="password",
+                key="cp_current",
+                placeholder="Enter your current password",
+            )
+            new_pw = st.text_input(
+                "New password",
+                type="password",
+                key="cp_new",
+                placeholder="At least 8 characters",
+            )
+            confirm_pw = st.text_input(
+                "Confirm new password",
+                type="password",
+                key="cp_confirm",
+                placeholder="Re-enter your new password",
+            )
+            submitted = st.form_submit_button(
+                "Update password", use_container_width=True,
+            )
+
+        if submitted:
+            error = _validate_password_change(current_pw, new_pw, confirm_pw)
+            if error:
+                st.error(error)
+            else:
+                token = st.session_state.get("auth_token", "")
+                try:
+                    result = change_password(token, current_pw, new_pw)
+                    st.success(
+                        result.get("message", "Password changed successfully.")
+                    )
+                except BackendError as exc:
+                    st.error(str(exc))
+
+
+def _render_feedback(email: str) -> None:
+    """Render the Feedback section."""
+    st.markdown(
+        '<div class="settings-section">'
+        '<h3 class="settings-section__title">Feedback</h3>'
+        '<p class="settings-section__desc">'
+        'Send feedback, report a bug, or request a feature'
+        '</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    if st.session_state.get("_feedback_sent"):
+        with st.container(border=True):
+            st.markdown(
+                '<div style="text-align:center;padding:2rem 1rem;">'
+                '<div style="font-size:3rem;margin-bottom:0.5rem;">&#9993;</div>'
+                '<p style="font-size:1.2rem;font-weight:700;margin:0 0 8px;'
+                'color:var(--ink,#1e293b);">Feedback sent!</p>'
+                '<p style="color:var(--muted,#64748b);font-size:0.9rem;'
+                'margin:0 0 20px;line-height:1.5;">'
+                'Thank you for writing to us. We will review your '
+                'message and get back to you if needed.'
+                '</p>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Send another", use_container_width=True, key="fb_another"):
+                del st.session_state["_feedback_sent"]
+                st.rerun()
+        return
+
+    with st.container(border=True):
+        fb_email = st.text_input(
+            "Email address *",
+            value=email,
+            placeholder="you@example.com",
+            key="fb_email",
+        )
+        fb_topic = st.selectbox(
+            "Topic *",
+            options=_FEEDBACK_TOPICS,
+            index=0,
+            key="fb_topic",
+        )
+        fb_subject = st.text_input(
+            "Subject *",
+            placeholder="Brief description of your feedback",
+            key="fb_subject",
+        )
+        fb_message = st.text_area(
+            "Message *",
+            placeholder="Tell us more…",
+            height=160,
+            key="fb_message",
+        )
+
+        if st.button("Send feedback", use_container_width=True, key="fb_submit"):
+            errors: list[str] = []
+            fb_email_v = (fb_email or "").strip()
+            fb_subject_v = (fb_subject or "").strip()
+            fb_message_v = (fb_message or "").strip()
+            fb_topic_v = fb_topic or ""
+
+            if not fb_email_v:
+                errors.append("Email address is required.")
+            elif not _EMAIL_RE.match(fb_email_v):
+                errors.append("Please enter a valid email address.")
+            if not fb_topic_v:
+                errors.append("Please select a topic.")
+            if not fb_subject_v:
+                errors.append("Subject is required.")
+            if not fb_message_v:
+                errors.append("Message is required.")
+            elif len(fb_message_v) < 10:
+                errors.append("Message must be at least 10 characters.")
+
+            if errors:
+                for err in errors:
+                    st.error(err)
+            else:
+                token = st.session_state.get("auth_token") or ""
+                try:
+                    with st.spinner("Sending your feedback…"):
+                        submit_feedback(
+                            email=fb_email_v,
+                            topic=fb_topic_v,
+                            subject=fb_subject_v,
+                            message=fb_message_v,
+                            token=token,
+                        )
+                    for k in ("fb_email", "fb_topic", "fb_subject", "fb_message"):
+                        st.session_state.pop(k, None)
+                    st.session_state["_feedback_sent"] = True
+                    st.rerun()
+                except BackendError as exc:
+                    st.error(f"Could not send feedback: {exc}")
+
+
 def profile_page() -> None:
-    """Render the unified Account Settings page."""
+    """Render the Account Settings page with sidebar navigation."""
     if not st.session_state.get("auth_token"):
         st.warning("You must be logged in to view your profile.")
         st.markdown("[Login](?view=login)", unsafe_allow_html=True)
         return
 
     inject_css(AUTH_CSS)
+    inject_css(SETTINGS_CSS)
 
     email: str = st.session_state.get("auth_email", "")
     first_name: str = st.session_state.get("auth_first_name", "")
     last_name: str = st.session_state.get("auth_last_name", "")
+    institution: str = st.session_state.get("auth_institution", "")
+    country: str = st.session_state.get("auth_country", "")
+
+    # Fetch institution/country from backend if not yet in session
+    if not institution and not country:
+        try:
+            token = st.session_state.get("auth_token", "")
+            profile = get_me(token)
+            institution = profile.get("institution") or ""
+            country = profile.get("country") or ""
+            st.session_state["auth_institution"] = institution
+            st.session_state["auth_country"] = country
+        except BackendError:
+            pass
 
     if first_name and last_name:
         display_name = f"{first_name} {last_name}"
@@ -92,215 +313,51 @@ def profile_page() -> None:
     else:
         display_name = email.split("@")[0] if email else ""
 
-    _, col, _ = st.columns([1, 1.6, 1])
-    with col:
-        with st.container(border=True):
-            # ── Card header ─────────────────────────────────────────
-            st.markdown(
-                '<div class="auth-header">'
-                f'<div class="auth-header__icon">{_SETTINGS_SVG}</div>'
-                '<h2 class="auth-header__title">Account Settings</h2>'
-                '<p class="auth-header__subtitle">'
-                'Manage your profile and security preferences'
-                '</p>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
+    initial = (first_name[0] if first_name else email[0]).upper() if (first_name or email) else "?"
 
-            # ── Profile / Security / Feedback tabs ─────────────────
-            tab_profile, tab_security, tab_feedback = st.tabs(
-                ["Profile", "Security", "Feedback"],
-            )
+    # Default to "profile" section
+    if "_settings_section" not in st.session_state:
+        st.session_state["_settings_section"] = "profile"
 
-            # ── Tab 1: Profile ──────────────────────────────────────
-            with tab_profile:
-                st.markdown(
-                    '<div class="profile-info">'
-                    '<div class="profile-info__row">'
-                    '<span class="profile-info__label">Name</span>'
-                    f'<span class="profile-info__value">{display_name}</span>'
-                    '</div>'
-                    '<div class="profile-info__row">'
-                    '<span class="profile-info__label">Email</span>'
-                    f'<span class="profile-info__value">{email}</span>'
-                    '</div>'
-                    '</div>',
-                    unsafe_allow_html=True,
-                )
+    active = st.session_state["_settings_section"]
 
-            # ── Tab 2: Security ─────────────────────────────────────
-            with tab_security:
-                st.markdown(
-                    '<p class="settings-section__helper">'
-                    'Choose a strong password with at least 8 characters. '
-                    'We recommend mixing letters, numbers, and symbols.'
-                    '</p>',
-                    unsafe_allow_html=True,
-                )
+    # ── Layout: sidebar + main content ────────────────────────────────────
+    col_side, col_main = st.columns([1, 3], gap="large")
 
-                with st.form("form_change_password"):
-                    current_pw = st.text_input(
-                        "Current password",
-                        type="password",
-                        key="cp_current",
-                        placeholder="Enter your current password",
-                    )
-                    new_pw = st.text_input(
-                        "New password",
-                        type="password",
-                        key="cp_new",
-                        placeholder="At least 8 characters",
-                    )
-                    confirm_pw = st.text_input(
-                        "Confirm new password",
-                        type="password",
-                        key="cp_confirm",
-                        placeholder="Re-enter your new password",
-                    )
-                    submitted = st.form_submit_button(
-                        "Update password", use_container_width=True,
-                    )
+    # ── Sidebar ───────────────────────────────────────────────────────────
+    with col_side:
+        st.markdown(
+            '<p class="settings-sidebar__title">Account Settings</p>',
+            unsafe_allow_html=True,
+        )
 
-                if submitted:
-                    error = _validate_password_change(
-                        current_pw, new_pw, confirm_pw,
-                    )
-                    if error:
-                        st.error(error)
-                    else:
-                        token = st.session_state.get("auth_token", "")
-                        try:
-                            result = change_password(token, current_pw, new_pw)
-                            st.success(
-                                result.get(
-                                    "message",
-                                    "Password changed successfully.",
-                                )
-                            )
-                        except BackendError as exc:
-                            st.error(str(exc))
-
-            # ── Tab 3: Feedback ─────────────────────────────────────
-            with tab_feedback:
-                if st.session_state.get("_feedback_sent"):
-                    st.markdown(
-                        '<div style="text-align:center;padding:1.5rem 0.5rem;">'
-                        '<div style="font-size:2.5rem;margin-bottom:0.4rem;">&#9993;</div>'
-                        '<p style="font-size:1.15rem;font-weight:700;margin:0 0 6px;'
-                        'color:var(--ink,#1e293b);">Feedback sent!</p>'
-                        '<p style="color:var(--muted,#64748b);font-size:0.9rem;'
-                        'margin:0;line-height:1.5;">'
-                        'Thank you for writing to us. We will review your '
-                        'message and get back to you if needed.'
-                        '</p>'
-                        '</div>',
-                        unsafe_allow_html=True,
-                    )
-                    if st.button(
-                        "Send another",
-                        use_container_width=True,
-                        key="fb_another",
-                    ):
-                        del st.session_state["_feedback_sent"]
-                        st.rerun()
-                else:
-                    st.markdown(
-                        '<p class="settings-section__helper">'
-                        'Send feedback, report a bug, or request a feature.'
-                        '</p>',
-                        unsafe_allow_html=True,
-                    )
-
-                    fb_email = st.text_input(
-                        "Email address *",
-                        value=email,
-                        placeholder="you@example.com",
-                        key="fb_email",
-                    )
-                    fb_topic = st.selectbox(
-                        "Topic *",
-                        options=_FEEDBACK_TOPICS,
-                        index=0,
-                        key="fb_topic",
-                    )
-                    fb_subject = st.text_input(
-                        "Subject *",
-                        placeholder="Brief description of your feedback",
-                        key="fb_subject",
-                    )
-                    fb_message = st.text_area(
-                        "Message *",
-                        placeholder="Tell us more…",
-                        height=140,
-                        key="fb_message",
-                    )
-
-                    if st.button(
-                        "Send feedback",
-                        use_container_width=True,
-                        key="fb_submit",
-                    ):
-                        errors: list[str] = []
-                        fb_email_v = (fb_email or "").strip()
-                        fb_subject_v = (fb_subject or "").strip()
-                        fb_message_v = (fb_message or "").strip()
-                        fb_topic_v = fb_topic or ""
-
-                        if not fb_email_v:
-                            errors.append("Email address is required.")
-                        elif not _EMAIL_RE.match(fb_email_v):
-                            errors.append("Please enter a valid email address.")
-                        if not fb_topic_v:
-                            errors.append("Please select a topic.")
-                        if not fb_subject_v:
-                            errors.append("Subject is required.")
-                        if not fb_message_v:
-                            errors.append("Message is required.")
-                        elif len(fb_message_v) < 10:
-                            errors.append("Message must be at least 10 characters.")
-
-                        if errors:
-                            for err in errors:
-                                st.error(err)
-                        else:
-                            token = st.session_state.get("auth_token") or ""
-                            try:
-                                with st.spinner("Sending your feedback…"):
-                                    submit_feedback(
-                                        email=fb_email_v,
-                                        topic=fb_topic_v,
-                                        subject=fb_subject_v,
-                                        message=fb_message_v,
-                                        token=token,
-                                    )
-                                for k in ("fb_email", "fb_topic",
-                                          "fb_subject", "fb_message"):
-                                    st.session_state.pop(k, None)
-                                st.session_state["_feedback_sent"] = True
-                                st.rerun()
-                            except BackendError as exc:
-                                st.error(f"Could not send feedback: {exc}")
-
-            # ── Sign out (bottom, less prominent) ───────────────────
-            st.markdown(
-                '<div class="settings-signout-divider"></div>',
-                unsafe_allow_html=True,
-            )
+        for key, label in _SECTIONS:
+            is_active = active == key
+            btn_type = "primary" if is_active else "secondary"
             if st.button(
-                "Sign out",
-                key="profile_logout",
+                label,
+                key=f"settings_nav_{key}",
                 use_container_width=True,
+                type=btn_type,
             ):
-                clear_auth()
-                st.query_params["view"] = "home"
+                st.session_state["_settings_section"] = key
                 st.rerun()
 
-    _, col_back, _ = st.columns([1, 2, 1])
-    with col_back:
+        # Back link
+        st.markdown("---")
         if st.button(
             "\u2190 Back to Main Page",
-            key="profile_back_home",
+            key="settings_back_home",
             use_container_width=True,
         ):
             st.query_params["view"] = "home"
             st.rerun()
+
+    # ── Main content ──────────────────────────────────────────────────────
+    with col_main:
+        if active == "profile":
+            _render_profile(display_name, email, initial, institution, country)
+        elif active == "security":
+            _render_security()
+        elif active == "feedback":
+            _render_feedback(email)

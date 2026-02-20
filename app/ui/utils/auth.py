@@ -90,12 +90,11 @@ def save_auth_and_redirect(
     *,
     redirect_url: str = "?view=home",
 ) -> None:
-    """Save auth to session state, write cookies, and navigate — all in one JS block.
+    """Save auth to session state, write cookies, and navigate.
 
-    Unlike save_auth() followed by st.rerun(), this puts the cookie-setting
-    statements and the window.location.href redirect in the same <script> block.
-    The browser executes them synchronously, so cookies are always written before
-    the navigation fires — no race condition with Streamlit's rerun protocol.
+    Sets session state immediately (for the current Streamlit session),
+    then injects JS to persist cookies in the browser.  The caller should
+    call ``st.query_params`` + ``st.rerun()`` afterwards to navigate.
     """
     st.session_state.auth_token = token
     st.session_state.auth_email = email
@@ -103,13 +102,13 @@ def save_auth_and_redirect(
     st.session_state.auth_last_name = last_name or ""
 
     age = _COOKIE_MAX_AGE
-    js = (
-        f'document.cookie="{_COOKIE_TOKEN}={_safe(token)};path=/;SameSite=Lax;max-age={age}";'
-        f'document.cookie="{_COOKIE_EMAIL}={_safe(email)};path=/;SameSite=Lax;max-age={age}";'
-        f'document.cookie="{_COOKIE_FIRST_NAME}={_safe(first_name or "")};path=/;SameSite=Lax;max-age={age}";'
-        f'document.cookie="{_COOKIE_LAST_NAME}={_safe(last_name or "")};path=/;SameSite=Lax;max-age={age}";'
-    )
-    _inject(f"<script>{js}</script>")
+    _inject(_js_set(
+        (_COOKIE_TOKEN, _safe(token)),
+        (_COOKIE_EMAIL, _safe(email)),
+        (_COOKIE_FIRST_NAME, _safe(first_name or "")),
+        (_COOKIE_LAST_NAME, _safe(last_name or "")),
+        max_age=age,
+    ))
 
 
 def restore_auth() -> None:

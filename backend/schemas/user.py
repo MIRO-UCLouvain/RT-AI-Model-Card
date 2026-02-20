@@ -11,6 +11,8 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
+    institution: str = Field(min_length=1, max_length=255)
+    country: str = Field(min_length=1, max_length=100)
 
 
 class UserResponse(BaseModel):
@@ -20,6 +22,8 @@ class UserResponse(BaseModel):
     email: str
     first_name: str | None
     last_name: str | None
+    institution: str | None = None
+    country: str | None = None
     is_active: bool
     is_admin: bool
     created_at: datetime

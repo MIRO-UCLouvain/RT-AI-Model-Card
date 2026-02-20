@@ -190,9 +190,18 @@
   margin: 0;
 }
 
+.topbar__dropdown-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: -2px;
+  margin-right: 0.55rem;
+  flex-shrink: 0;
+}
+
 .topbar__dropdown-item,
 .topbar__dropdown-item:visited {
-  display: block;
+  display: flex;
+  align-items: center;
   padding: 0.7rem 1.1rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -211,7 +220,8 @@
 
 .topbar__dropdown-logout,
 .topbar__dropdown-logout:visited {
-  display: block;
+  display: flex;
+  align-items: center;
   padding: 0.7rem 1.1rem;
   font-size: 0.875rem;
   font-weight: 500;

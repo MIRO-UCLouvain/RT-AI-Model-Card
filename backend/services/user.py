@@ -36,6 +36,8 @@ async def create_user(session: AsyncSession, data: UserCreate) -> User:
         hashed,
         first_name=data.first_name,
         last_name=data.last_name,
+        institution=data.institution,
+        country=data.country,
     )
     await session.commit()
     # User has no lazy-loaded relationships — refresh is safe here

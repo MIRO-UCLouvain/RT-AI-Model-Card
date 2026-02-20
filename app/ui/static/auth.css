@@ -3,13 +3,13 @@
    without leaking styles to other pages.
    ======================================================================== */
 
-/* ── Collapse Streamlit's default top padding on auth pages ────────────── */
+/* ── Vertically centre the auth card within the viewport ─────────────── */
 .block-container {
-  padding-top: 1rem !important;
+  padding-top: 12vh !important;
 }
 
 section[data-testid="stMain"] .block-container {
-  padding-top: 1rem !important;
+  padding-top: 12vh !important;
 }
 
 /* Hide the Streamlit toolbar header to reclaim vertical space */
@@ -183,46 +183,45 @@ input::placeholder {
 }
 
 
-/* ── Submit button — solid brand gradient with white text ──────────────── */
-/* Extra selectors to beat global.css specificity                          */
+/* ── Submit button — outlined brand (consistent with global buttons) ── */
 
 .stFormSubmitButton > button,
 .stFormSubmitButton > button[kind="secondary"],
 .stFormSubmitButton > button[kind="primary"] {
-  background: linear-gradient(135deg, var(--brand-600) 0%, #2a5cc7 100%) !important;
-  background-color: var(--brand-600) !important;
-  color: #ffffff !important;
-  border: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--brand-600) !important;
+  border: 1.5px solid var(--brand-600) !important;
   border-radius: 10px !important;
   padding: 0.72rem 1.5rem !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   font-size: 0.95rem !important;
-  letter-spacing: 0.02em !important;
-  transition: all 0.25s ease !important;
-  box-shadow: 0 2px 8px rgba(24, 65, 151, 0.25) !important;
+  letter-spacing: 0.01em !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
   margin-top: 0.25rem !important;
 }
 
 .stFormSubmitButton > button:hover,
 .stFormSubmitButton > button[kind="secondary"]:hover,
 .stFormSubmitButton > button[kind="primary"]:hover {
-  background: linear-gradient(135deg, var(--brand-700) 0%, var(--brand-600) 100%) !important;
-  background-color: var(--brand-700) !important;
-  box-shadow: 0 4px 16px rgba(24, 65, 151, 0.35) !important;
-  transform: translateY(-1px) !important;
-  color: #ffffff !important;
+  background: var(--brand-50) !important;
+  background-color: var(--brand-50) !important;
+  border-color: var(--brand-600) !important;
+  box-shadow: 0 2px 8px rgba(24, 65, 151, 0.12) !important;
+  transform: none !important;
+  color: var(--brand-600) !important;
 }
 
 .stFormSubmitButton > button:active {
-  transform: translateY(0) !important;
-  box-shadow: 0 2px 4px rgba(24, 65, 151, 0.2) !important;
+  transform: none !important;
+  box-shadow: 0 0 0 3px rgba(24, 65, 151, 0.15) !important;
 }
 
 .stFormSubmitButton > button:focus:not(:active) {
-  box-shadow: 0 0 0 3px rgba(24, 65, 151, 0.2),
-              0 2px 8px rgba(24, 65, 151, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(24, 65, 151, 0.2) !important;
   outline: none !important;
-  color: #ffffff !important;
+  color: var(--brand-600) !important;
 }
 
 
@@ -302,7 +301,7 @@ input::placeholder {
 .auth-footer {
   text-align: center;
   padding: 0.85rem 0 0.25rem;
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--muted);
   line-height: 1.5;
 }

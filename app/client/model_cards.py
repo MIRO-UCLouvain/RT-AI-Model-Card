@@ -85,7 +85,14 @@ def login(email: str, password: str) -> dict:
         raise BackendError("Request timed out. Try again.")
 
 
-def register(email: str, password: str, first_name: str, last_name: str) -> dict:
+def register(
+    email: str,
+    password: str,
+    first_name: str,
+    last_name: str,
+    institution: str = "",
+    country: str = "",
+) -> dict:
     """Register a new user account. Returns the UserResponse dict."""
     try:
         with _client() as client:
@@ -96,6 +103,8 @@ def register(email: str, password: str, first_name: str, last_name: str) -> dict
                     "password": password,
                     "first_name": first_name,
                     "last_name": last_name,
+                    "institution": institution,
+                    "country": country,
                 },
             )
         _raise_for_status(response)

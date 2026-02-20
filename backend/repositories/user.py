@@ -32,12 +32,16 @@ class UserRepository:
         hashed_password: str,
         first_name: str | None = None,
         last_name: str | None = None,
+        institution: str | None = None,
+        country: str | None = None,
     ) -> User:
         user = User(
             email=email,
             hashed_password=hashed_password,
             first_name=first_name,
             last_name=last_name,
+            institution=institution,
+            country=country,
         )
         session.add(user)
         await session.flush()  # populates user.id without committing

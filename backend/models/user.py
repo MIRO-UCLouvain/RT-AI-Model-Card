@@ -52,3 +52,11 @@ class User(Base, TimestampMixin):
         nullable=False,
         server_default="0",
     )
+    institution: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    country: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )

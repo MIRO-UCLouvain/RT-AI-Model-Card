@@ -48,8 +48,19 @@ _SECTION_LABELS: dict[str, str] = {
 
 # ── Main page ────────────────────────────────────────────────────────────────
 
+_SECTION_TITLES = {
+    "cards": "My Cards",
+    "requests": "Requests to Publish",
+    "compare": "Compare Versions",
+}
+
+
 def my_cards_page() -> None:
-    """Render the My Model Cards screen with My Cards, Requests, and Compare tabs."""
+    """Render the My Model Cards screen.
+
+    If ``_my_cards_section`` is set in session state, only the requested
+    section is shown.  Otherwise all three tabs are displayed.
+    """
     if not st.session_state.get("auth_token"):
         st.warning("You must be logged in to view your model cards.")
         st.markdown(
@@ -58,29 +69,51 @@ def my_cards_page() -> None:
         )
         return
 
-    st.header("My Model Cards")
-
     token: str = st.session_state.get("auth_token") or ""
+    section: str | None = st.session_state.get("_my_cards_section")
 
-    tab_cards, tab_requests, tab_compare = st.tabs(
-        ["My Cards", "Requests to Publish", "Compare Versions"]
-    )
+    if section and section in _SECTION_TITLES:
+        # ── Single-section view ───────────────────────────────────────
+        st.header(_SECTION_TITLES[section])
 
-    with tab_cards:
-        _my_cards_tab(token)
+        if section == "cards":
+            _my_cards_tab(token)
+        elif section == "requests":
+            _requests_tab(token)
+        elif section == "compare":
+            _compare_tab(token)
 
-    with tab_requests:
-        _requests_tab(token)
+        st.markdown("---")
+        _, col_back, _ = st.columns([1, 2, 1])
+        with col_back:
+            if st.button("← Back to Main Page", key="mc_back_home", use_container_width=True):
+                st.session_state.pop("_my_cards_section", None)
+                st.query_params["view"] = "home"
+                st.rerun()
+    else:
+        # ── All tabs view (default) ───────────────────────────────────
+        st.header("My Model Cards")
 
-    with tab_compare:
-        _compare_tab(token)
+        tab_cards, tab_requests, tab_compare = st.tabs(
+            ["My Cards", "Requests to Publish", "Compare Versions"]
+        )
 
-    st.markdown("---")
-    _, col_back, _ = st.columns([1, 2, 1])
-    with col_back:
-        if st.button("← Back to Main Page", key="my_cards_back_home", use_container_width=True):
-            st.query_params["view"] = "home"
-            st.rerun()
+        with tab_cards:
+            _my_cards_tab(token)
+
+        with tab_requests:
+            _requests_tab(token)
+
+        with tab_compare:
+            _compare_tab(token)
+
+        st.markdown("---")
+        _, col_back, _ = st.columns([1, 2, 1])
+        with col_back:
+            if st.button("← Back to Main Page", key="my_cards_back_home", use_container_width=True):
+                st.session_state.pop("_my_cards_section", None)
+                st.query_params["view"] = "home"
+                st.rerun()
 
 
 # ── My Cards tab ──────────────────────────────────────────────────────────────

@@ -1,0 +1,125 @@
+/* ===== Branded sidebar navigation ========================================
+   Fully styled sidebar matching the app's blue design system.
+   ======================================================================== */
+
+/* ── Sidebar container override ──────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, #f0f4ff 0%, #ffffff 100%) !important;
+  border-right: 1px solid #dde3ef !important;
+  box-shadow: 2px 0 12px rgba(24, 65, 151, 0.04) !important;
+}
+
+section[data-testid="stSidebar"] > div {
+  padding-top: 1.25rem !important;
+}
+
+/* ── Nav wrapper ─────────────────────────────────────────────────────── */
+.app-nav {
+  padding: 0 0.25rem;
+}
+
+/* ── Header (logo + title) ───────────────────────────────────────────── */
+.app-nav__header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.25rem 0.5rem 0.75rem;
+}
+
+.app-nav__logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #184197 0%, #3568c9 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(24, 65, 151, 0.25);
+}
+
+.app-nav__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #184197;
+  letter-spacing: -0.01em;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────── */
+.app-nav__divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c7d4f0, transparent);
+  margin: 0 0.25rem 0.75rem;
+}
+
+/* ── Section label ───────────────────────────────────────────────────── */
+.app-nav__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8896b3;
+  margin: 0 0 0.4rem;
+  padding: 0 0.65rem;
+}
+
+/* ── Nav items ───────────────────────────────────────────────────────── */
+.app-nav__item,
+.app-nav__item:visited {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  margin: 0.15rem 0;
+  border-radius: 10px;
+  font-size: 0.865rem;
+  font-weight: 500;
+  color: #475569 !important;
+  text-decoration: none !important;
+  border: none !important;
+  background: transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.app-nav__item:hover {
+  background: rgba(24, 65, 151, 0.06) !important;
+  color: #184197 !important;
+}
+
+/* ── Active state ────────────────────────────────────────────────────── */
+.app-nav__item--active,
+.app-nav__item--active:visited {
+  background: linear-gradient(135deg, #184197 0%, #2a5cc7 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(24, 65, 151, 0.3);
+}
+
+.app-nav__item--active:hover {
+  background: linear-gradient(135deg, #102a63 0%, #184197 100%) !important;
+  color: #ffffff !important;
+}
+
+.app-nav__item--active .app-nav__icon {
+  stroke: #ffffff;
+}
+
+/* ── Icons ────────────────────────────────────────────────────────────── */
+.app-nav__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  transition: stroke 0.15s ease;
+}
+
+/* ── Hide default Streamlit sidebar elements ──────────────────────────── */
+section[data-testid="stSidebar"] [data-testid="stSidebarNavContainer"],
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapsedControl"] {
+  display: none !important;
+}

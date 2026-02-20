@@ -12,6 +12,33 @@ from app.ui.utils.css import inject_css
 
 AUTH_CSS = Path(__file__).resolve().parent.parent / "static" / "auth.css"
 
+_COUNTRIES = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola",
+    "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+    "Bahrain", "Bangladesh", "Belarus", "Belgium", "Bolivia",
+    "Bosnia and Herzegovina", "Brazil", "Bulgaria", "Cambodia", "Cameroon",
+    "Canada", "Chile", "China", "Colombia", "Costa Rica",
+    "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark",
+    "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Estonia",
+    "Ethiopia", "Finland", "France", "Georgia", "Germany",
+    "Ghana", "Greece", "Guatemala", "Honduras", "Hong Kong",
+    "Hungary", "Iceland", "India", "Indonesia", "Iran",
+    "Iraq", "Ireland", "Israel", "Italy", "Jamaica",
+    "Japan", "Jordan", "Kazakhstan", "Kenya", "Kuwait",
+    "Latvia", "Lebanon", "Libya", "Lithuania", "Luxembourg",
+    "Malaysia", "Malta", "Mexico", "Moldova", "Monaco",
+    "Mongolia", "Montenegro", "Morocco", "Mozambique", "Nepal",
+    "Netherlands", "New Zealand", "Nicaragua", "Nigeria", "North Macedonia",
+    "Norway", "Oman", "Pakistan", "Panama", "Paraguay",
+    "Peru", "Philippines", "Poland", "Portugal", "Qatar",
+    "Romania", "Russia", "Saudi Arabia", "Senegal", "Serbia",
+    "Singapore", "Slovakia", "Slovenia", "South Africa", "South Korea",
+    "Spain", "Sri Lanka", "Sweden", "Switzerland", "Taiwan",
+    "Tanzania", "Thailand", "Tunisia", "Turkey", "UAE",
+    "Uganda", "Ukraine", "United Kingdom", "United States", "Uruguay",
+    "Uzbekistan", "Venezuela", "Vietnam", "Other",
+]
+
 # Inline SVG — user-plus icon (Feather-style)
 _USER_PLUS_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
@@ -31,7 +58,7 @@ def register_page() -> None:
     # then call save_auth() outside to avoid components.html rendering artifacts.
     _auth_result: tuple | None = None
 
-    _, col, _ = st.columns([1, 1.4, 1])
+    _, col, _ = st.columns([1, 2.5, 1])
     with col:
         with st.container(border=True):
             # ── Header ───────────────────────────────────────────────────
@@ -45,17 +72,31 @@ def register_page() -> None:
             )
 
             with st.form("form_register_page"):
-                first_name = st.text_input(
-                    "First Name", key="reg_page_first_name",
-                    placeholder="Jane",
-                )
-                last_name = st.text_input(
-                    "Last Name", key="reg_page_last_name",
-                    placeholder="Doe",
-                )
+                col_fn, col_ln = st.columns(2)
+                with col_fn:
+                    first_name = st.text_input(
+                        "First Name", key="reg_page_first_name",
+                        placeholder="Jane",
+                    )
+                with col_ln:
+                    last_name = st.text_input(
+                        "Last Name", key="reg_page_last_name",
+                        placeholder="Doe",
+                    )
                 email = st.text_input(
                     "Email", key="reg_page_email",
                     placeholder="you@example.com",
+                )
+                institution = st.text_input(
+                    "Institution / Company", key="reg_page_institution",
+                    placeholder="e.g. University Hospital Brussels",
+                )
+                country = st.selectbox(
+                    "Country",
+                    options=[""] + _COUNTRIES,
+                    index=0,
+                    key="reg_page_country",
+                    format_func=lambda x: "Select your country" if x == "" else x,
                 )
                 password = st.text_input(
                     "Password (min 8 characters)",
@@ -70,6 +111,10 @@ def register_page() -> None:
             if submitted:
                 if not first_name or not last_name or not email or not password:
                     st.error("Please fill in all fields.")
+                elif not institution or not institution.strip():
+                    st.error("Please enter your institution or company.")
+                elif not country:
+                    st.error("Please select your country.")
                 else:
                     try:
                         register(
@@ -77,6 +122,8 @@ def register_page() -> None:
                             password,
                             first_name.strip(),
                             last_name.strip(),
+                            institution=institution.strip(),
+                            country=country,
                         )
                         # Auto-login after registration
                         result = login(email.strip(), password)
@@ -99,14 +146,15 @@ def register_page() -> None:
                 unsafe_allow_html=True,
             )
 
-    # Set cookies and redirect in one JS block — same race-condition fix as login.
+    # Set cookies and redirect.
     if _auth_result:
         save_auth_and_redirect(
             _auth_result[0], _auth_result[1],
             first_name=_auth_result[2], last_name=_auth_result[3],
             redirect_url="?view=home",
         )
-        st.stop()
+        st.query_params["view"] = "home"
+        st.rerun()
 
     _, col_back, _ = st.columns([1, 2, 1])
     with col_back:
