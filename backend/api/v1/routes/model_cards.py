@@ -22,7 +22,7 @@ from schemas.model_card import (
 from services import model_card as model_card_service
 from services.diff import compute_diff
 from services.publication import request_publication
-from repositories.model_card import ModelCardVersionRepository
+from repositories.model_card import ModelCardRepository, ModelCardVersionRepository
 
 
 class SubmitVersionBody(BaseModel):
@@ -72,8 +72,9 @@ async def list_model_cards(
 async def get_versions(
     card_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> list[ModelCardVersionRead]:
-    versions = await model_card_service.get_versions(db, card_id)
+    versions = await model_card_service.get_versions(db, card_id, owner_id=current_user.id)
     return [ModelCardVersionRead.model_validate(v) for v in versions]
 
 
@@ -119,6 +120,7 @@ async def compare_versions(
     old_id: int = Query(..., description="ID of the older version"),
     new_id: int = Query(..., description="ID of the newer version"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> DiffResponse:
     if old_id == new_id:
         raise HTTPException(
@@ -145,6 +147,14 @@ async def compare_versions(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Both versions must belong to the specified model card.",
+        )
+
+    # Verify the caller owns this card.
+    card = await ModelCardRepository.get_card_only(db, card_id)
+    if card is None or card.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not own this model card.",
         )
 
     raw_diff = compute_diff(old_ver.content, new_ver.content)  # type: ignore[union-attr]

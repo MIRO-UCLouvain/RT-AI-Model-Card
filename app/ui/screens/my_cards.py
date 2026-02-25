@@ -140,7 +140,7 @@ def _my_cards_tab(token: str) -> None:
         # Fetch versions directly — more reliable than the embedded list in
         # list_model_cards (which depends on SQLAlchemy selectinload).
         try:
-            versions: list[dict[str, Any]] = get_versions(card_id)
+            versions: list[dict[str, Any]] = get_versions(card_id, token=token)
         except BackendError:
             versions = []
         latest = versions[-1] if versions else None
@@ -239,7 +239,7 @@ def _requests_tab(token: str) -> None:
 
         # Fetch versions directly — same reliable source used by Compare Versions.
         try:
-            versions = get_versions(card_id)
+            versions = get_versions(card_id, token=token)
         except BackendError:
             versions = []
         if not versions:
@@ -268,7 +268,7 @@ def _requests_tab(token: str) -> None:
                             use_container_width=True,
                         ):
                             try:
-                                all_versions = get_versions(card_id)
+                                all_versions = get_versions(card_id, token=token)
                                 published = [
                                     v for v in all_versions
                                     if v.get("status") == "published"
@@ -278,7 +278,8 @@ def _requests_tab(token: str) -> None:
                                     last_pub = published[-1]
                                     try:
                                         diff = compare_versions(
-                                            card_id, last_pub["id"], ver_id
+                                            card_id, last_pub["id"], ver_id,
+                                            token=token,
                                         )
                                         st.session_state["_diff_before_submit"] = diff
                                     except BackendError:
@@ -356,7 +357,7 @@ def _compare_tab(token: str) -> None:
     card_id: int = card["id"]
 
     try:
-        versions: list[dict[str, Any]] = get_versions(card_id)
+        versions: list[dict[str, Any]] = get_versions(card_id, token=token)
     except BackendError as exc:
         st.error(f"Could not load versions: {exc}")
         return
@@ -400,7 +401,7 @@ def _compare_tab(token: str) -> None:
             st.warning("Select two different versions to compare.")
             return
         try:
-            diff = compare_versions(card_id, old_id, new_id)
+            diff = compare_versions(card_id, old_id, new_id, token=token)
             st.session_state["_diff_result"] = diff
         except BackendError as exc:
             st.error(str(exc))
@@ -657,8 +658,9 @@ def _load_into_editor(card_id: int, slug: str) -> None:
         card_metadata_render,
     )
 
+    _token: str = st.session_state.get("auth_token") or ""
     try:
-        versions = get_versions(card_id)
+        versions = get_versions(card_id, token=_token)
     except BackendError as exc:
         st.error(str(exc))
         return

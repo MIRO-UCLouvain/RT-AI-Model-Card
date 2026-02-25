@@ -157,9 +157,11 @@ async def list_model_cards_for_user(
 async def get_versions(
     session: AsyncSession,
     card_id: int,
+    owner_id: uuid.UUID | None = None,
 ) -> list[ModelCardVersion]:
     """Return all versions of a model card ordered by creation date ascending.
 
+    If *owner_id* is provided the caller must be the card owner (403 otherwise).
     Raises 404 if the model card does not exist.
     """
     card = await ModelCardRepository.get_card_only(session, card_id)
@@ -167,5 +169,10 @@ async def get_versions(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Model card with id={card_id} not found.",
+        )
+    if owner_id is not None and card.owner_id != owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not own this model card.",
         )
     return await ModelCardVersionRepository.get_all_for_card(session, card_id)

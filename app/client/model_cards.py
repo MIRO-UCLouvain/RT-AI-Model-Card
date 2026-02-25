@@ -252,15 +252,18 @@ def list_model_cards(token: str = "") -> list[dict]:
         raise BackendError("Request timed out. Try again.")
 
 
-def get_versions(card_id: int) -> list[dict]:
+def get_versions(card_id: int, token: str = "") -> list[dict]:
     """Return all versions of a model card ordered by version_number.
 
     Uses a longer timeout because each version may contain embedded image data.
     Raises BackendError if the request fails or the card does not exist.
     """
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         with _client(_LONG_TIMEOUT) as client:
-            response = client.get(f"/v1/model-cards/{card_id}/versions")
+            response = client.get(
+                f"/v1/model-cards/{card_id}/versions", headers=headers,
+            )
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]
     except httpx.ConnectError:
@@ -294,18 +297,20 @@ def create_version(
         raise BackendError("Request timed out. Try again.")
 
 
-def compare_versions(card_id: int, old_id: int, new_id: int) -> dict:
+def compare_versions(card_id: int, old_id: int, new_id: int, token: str = "") -> dict:
     """Compare two versions of a model card.
 
     Returns a DiffResponse dict with keys:
       old_version_id, new_version_id, old_version, new_version, sections.
     Each section has: added, removed, changed lists.
     """
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         with _client() as client:
             response = client.get(
                 f"/v1/model-cards/{card_id}/versions/compare",
                 params={"old_id": old_id, "new_id": new_id},
+                headers=headers,
             )
         _raise_for_status(response)
         return response.json()  # type: ignore[no-any-return]

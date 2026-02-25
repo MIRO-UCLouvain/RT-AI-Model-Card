@@ -148,16 +148,50 @@ def clear_auth() -> None:
             pass
     if token:
         _logged_out_tokens.add(token)
+    # ── Auth state ──────────────────────────────────────────────────────
     st.session_state.auth_token = None
     st.session_state.auth_email = None
     st.session_state.auth_first_name = None
     st.session_state.auth_last_name = None
     st.session_state.auth_is_admin = False
     st.session_state["_auth_logged_out"] = True
+    # Profile fields added later
+    for k in ("auth_institution", "auth_country"):
+        st.session_state.pop(k, None)
+
+    # ── Card / version state ─────────────────────────────────────────
     st.session_state.saved_card_id = None
     st.session_state.saved_version = None
     st.session_state.saved_version_id = None
     st.session_state.saved_version_status = None
+    st.session_state.pop("saved_slug", None)
+
+    # ── Submission dialog / diff state ───────────────────────────────
+    for k in (
+        "_pending_submit_card_id",
+        "_pending_submit_ver_id",
+        "_pending_submit_author_name",
+        "_pending_submit_author_email",
+        "_show_submit_dialog",
+        "_diff_before_submit",
+        "_diff_result",
+        "_feedback_sent",
+        "_my_cards_section",
+        "_settings_section",
+    ):
+        st.session_state.pop(k, None)
+
+    # ── Upload registries ────────────────────────────────────────────
+    for k in (
+        "render_uploads",
+        "appendix_uploads",
+        "all_uploaded_paths",
+        "appendix_uploader_nonce",
+        "normalized_uploads",
+    ):
+        st.session_state.pop(k, None)
+
+    # ── Form data ────────────────────────────────────────────────────
     clear_form_state()
     _inject(_js_clear(
         _COOKIE_TOKEN, _COOKIE_EMAIL, _COOKIE_FIRST_NAME, _COOKIE_LAST_NAME,
@@ -203,9 +237,15 @@ def restore_card_state() -> None:
     """
     if st.session_state.get("saved_card_id"):
         return
-    # One-shot guard: clear_card_state() sets this to prevent the very next
-    # restore from re-reading stale cookies before the JS clearing has fired.
-    if st.session_state.pop("_new_card_mode", False):
+    # Guard: clear_card_state() sets this to prevent cookie restoration
+    # until the JS cookie-clearing has had time to execute.
+    if st.session_state.get("_new_card_mode"):
+        # Check if cookies are actually gone yet
+        try:
+            if not st.context.cookies.get(_COOKIE_CARD_ID):
+                st.session_state.pop("_new_card_mode", None)
+        except AttributeError:
+            st.session_state.pop("_new_card_mode", None)
         return
     try:
         cookies = st.context.cookies

@@ -31,6 +31,7 @@ def clear_form_state() -> None:
     """
     for nav_key in (
         "task", "task_temp", "runpage", "last_readme_text", "format_error",
+        "evaluation_forms", "learning_architecture_forms",
     ):
         st.session_state.pop(nav_key, None)
 

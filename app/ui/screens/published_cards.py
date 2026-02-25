@@ -9,7 +9,6 @@ import streamlit as st
 from app.client.model_cards import (
     BackendError,
     get_public_version,
-    get_versions,
     list_public_model_cards,
 )
 from app.services.state_store import populate_session_state_from_json
@@ -56,16 +55,11 @@ def _load_version_into_editor(card_id: int, version_id: int) -> None:
     )
 
     try:
-        versions = get_versions(card_id)
+        target = get_public_version(version_id)
     except BackendError as exc:
         st.error(str(exc))
         return
 
-    if not versions:
-        st.error("This model card has no versions yet.")
-        return
-
-    target = next((v for v in versions if v.get("id") == version_id), versions[-1])
     content = target.get("content")
 
     if not isinstance(content, dict):

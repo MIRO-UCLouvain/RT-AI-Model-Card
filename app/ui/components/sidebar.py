@@ -506,14 +506,16 @@ def _save_section() -> None:
         except BackendError as exc:
             msg = str(exc)
             st.error(msg)
-            if "not found" in msg.lower() and card_id is not None:
-                # The card referenced by the cookie no longer exists (e.g. after a
-                # DB reset). Clear stale card state so the next save creates a new card.
+            if ("not found" in msg.lower() or "not own" in msg.lower()) and card_id is not None:
+                # The card referenced by the cookie no longer exists or belongs
+                # to another user. Clear stale state AND cookies, then auto-retry
+                # as a new card on the next rerun.
+                clear_card_state()
                 st.session_state.saved_card_id = None
                 st.session_state.saved_version = None
                 st.session_state.saved_version_id = None
                 st.session_state.saved_version_status = None
-                st.info("Stale card reference cleared — click Save again to create a new card.")
+                st.rerun()
         except (ValueError, KeyError, TypeError) as exc:
             st.error(f"Unexpected error: {exc}")
 
