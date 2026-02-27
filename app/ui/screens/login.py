@@ -126,7 +126,12 @@ def login_page() -> None:
                 unsafe_allow_html=True,
             )
 
-    # Set auth cookies then navigate.
+    # On successful login: persist auth state + cookies, then drive the
+    # UI transition through Streamlit so the user lands on the
+    # authenticated view immediately.  Relying on JS-in-iframe to
+    # navigate was unreliable (hidden iframes don't always execute
+    # their srcdoc), which left users stuck on the login screen even
+    # though authentication had succeeded.
     if _auth_result:
         st.session_state.auth_is_admin = _is_admin
         target = "admin" if _is_admin else "home"

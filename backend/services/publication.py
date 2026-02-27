@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.model_card import ModelCardVersion
 from models.user import User
 from repositories.model_card import ModelCardVersionRepository
+from services.content_validation import validate_content_for_publication
 
 # Statuses from which a user may submit/re-submit for review.
 _SUBMITTABLE = {"draft", "rejected"}
@@ -49,6 +50,7 @@ async def request_publication(
     Raises:
         403 if the caller is not the owner of the parent card.
         409 if the version is not in a submittable status.
+        422 if the content is missing required fields for publication.
     """
     ver = await _get_version_or_404(session, version_id)
 
@@ -67,6 +69,10 @@ async def request_publication(
                 "Only versions with status 'draft' or 'rejected' can be submitted."
             ),
         )
+
+    # Validate required fields before allowing publication submission.
+    task_type: str | None = getattr(ver.model_card, "task_type", None)
+    validate_content_for_publication(ver.content or {}, task_type=task_type)
 
     ver.status = "in_review"
     ver.is_anonymous = is_anonymous

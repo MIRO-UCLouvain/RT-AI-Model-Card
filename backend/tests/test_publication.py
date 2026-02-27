@@ -22,12 +22,47 @@ from services.publication import (
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def _valid_content() -> dict:
+    """Minimal content that passes publication validation."""
+    return {
+        "card_metadata": {
+            "card_creation_date": "20260101",
+            "version_number": "1.0",
+            "version_changes": "Initial version",
+        },
+        "model_basic_information": {
+            "name": "Test Model",
+            "creation_date": "20260101",
+            "version_number": "01.00.0000",
+            "version_changes": "NA",
+            "model_scope_summary": "Test segmentation model",
+            "model_scope_anatomical_site": "HN",
+            "clearance_type": "Not approved",
+            "clearance_approved_by_institution": "Test Institution",
+            "observed_limitations": "None observed",
+            "type_of_learning_architecture": "U-Net",
+            "developed_by_institution": "Test University",
+            "conflict_of_interest": "None",
+            "software_license": "MIT",
+        },
+        "technical_specifications": {
+            "model_pipeline_summary": "End-to-end segmentation",
+            "model_inputs": "CT images",
+            "model_outputs": "Segmentation masks",
+            "pre_processing": "Normalization",
+            "post_processing": "Thresholding",
+        },
+    }
+
+
 def _ver(status: str, owner_id: uuid.UUID | None = None) -> MagicMock:
     v = MagicMock()
     v.status = status
     v.version = "v1.0"
+    v.content = _valid_content()
     v.model_card = MagicMock()
     v.model_card.owner_id = owner_id or uuid.uuid4()
+    v.model_card.task_type = "Segmentation"
     return v
 
 

@@ -7,7 +7,6 @@ import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.types import Uuid
 
 from models.user import User
 
@@ -24,6 +23,13 @@ class UserRepository:
     async def get_by_email(session: AsyncSession, email: str) -> User | None:
         result = await session.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def list_all(session: AsyncSession) -> list[User]:
+        result = await session.execute(
+            select(User).order_by(User.created_at.desc())
+        )
+        return list(result.scalars().all())
 
     @staticmethod
     async def create(

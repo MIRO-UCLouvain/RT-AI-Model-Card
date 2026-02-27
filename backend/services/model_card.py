@@ -19,6 +19,7 @@ from repositories.model_card import (
     ModelCardVersionRepository,
 )
 from schemas.model_card import ModelCardCreate, ModelCardVersionCreate
+from services.content_validation import validate_content_structure
 
 
 def _require_nonempty_version(user_version: str) -> None:
@@ -41,9 +42,10 @@ async def create_model_card(
     """Create a new model card with its first version (status=draft).
 
     Raises 409 if a card with the same slug already exists.
-    Raises 422 if the version number is empty.
+    Raises 422 if the version number is empty or the content is malformed.
     """
     _require_nonempty_version(data.first_version.user_version)
+    validate_content_structure(data.first_version.content)
 
     existing = await ModelCardRepository.get_by_slug(session, data.slug)
     if existing is not None:
@@ -83,9 +85,10 @@ async def create_new_version(
 
     Raises 404 if the model card does not exist.
     Raises 409 if a version with the same number already exists for this card.
-    Raises 422 if the version number is empty.
+    Raises 422 if the version number is empty or the content is malformed.
     """
     _require_nonempty_version(data.user_version)
+    validate_content_structure(data.content)
 
     # Use get_card_only to avoid loading all version rows (large JSON content
     # causes MySQL sort-buffer overflow when selectinload orders by created_at).

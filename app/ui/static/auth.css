@@ -1,27 +1,23 @@
 /* ===== Auth pages (login / register) =====================================
    Injected ONLY on auth screens — safe to target global Streamlit selectors
    without leaking styles to other pages.
+
+   IMPORTANT: do NOT add `padding-top` to .block-container here, and do
+   NOT change `.topbar`'s positioning.  global.css sets the topbar flush
+   at viewport top: 0 on every page, and any per-page override would
+   re-introduce the inconsistent "extra white gap" between auth pages
+   and the rest of the app.  Vertical placement of the auth card is
+   controlled exclusively via the card's own `margin-top` (see below).
    ======================================================================== */
-
-/* ── Vertically centre the auth card within the viewport ─────────────── */
-.block-container {
-  padding-top: 12vh !important;
-}
-
-section[data-testid="stMain"] .block-container {
-  padding-top: 12vh !important;
-}
-
-/* Hide the Streamlit toolbar header to reclaim vertical space */
-header[data-testid="stHeader"] {
-  height: 0 !important;
-  min-height: 0 !important;
-  padding: 0 !important;
-  visibility: hidden !important;
-}
 
 /* ── Card wrapper ──────────────────────────────────────────────────────── */
 [data-testid="stVerticalBlockBorderWrapper"] {
+  /* Push the auth card down to roughly the upper-third of the viewport
+     so the form sits comfortably below the topbar without the page
+     feeling top-heavy.  Keeps the visual rhythm consistent with the
+     hero-led pages (home, profile) where content also starts well
+     below the topbar. */
+  margin-top: 6vh !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 20px !important;
   background: #ffffff !important;
@@ -31,6 +27,7 @@ header[data-testid="stHeader"] {
   overflow: hidden !important;
   position: relative !important;
   transition: box-shadow 0.3s ease !important;
+  cursor: default !important;
 }
 
 /* Disable the lift-on-hover from global.css — auth cards stay put */

@@ -25,7 +25,47 @@
 
 .block-container {
   max-width: 1280px;
-  padding: 1.5rem 2.5rem 3rem;
+  /* padding-top: 0 so the in-flow topbar sits flush at the very top of
+     the viewport on EVERY page (auth, home, profile, published, editor,
+     …).  Any non-zero top padding here would push the topbar down on
+     non-auth pages while auth pages used a `position: fixed` workaround
+     to compensate — that asymmetry is what produced the "extra white
+     gap above the topbar" reported on non-auth pages. */
+  padding: 0 2.5rem 3rem;
+}
+
+/* Hide Streamlit's built-in toolbar (the bar with the "Deploy" button)
+   on every page so the app's own topbar sits flush at the top of the
+   viewport — keeping the topbar position consistent across Home,
+   Profile, Published Cards, Editor, and the auth screens. */
+header[data-testid="stHeader"] {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Streamlit's <section data-testid="stMain"> ships with a default
+   padding-top intended to clear the now-hidden stHeader.  Zero it out
+   so the in-flow topbar lives at viewport top: 0 on every page, with
+   no residual white strip pushing it down. */
+section[data-testid="stMain"] {
+  padding-top: 0 !important;
+}
+section[data-testid="stMain"] > div:first-child {
+  padding-top: 0 !important;
+}
+
+/* Pull full-bleed hero sections (.hero on the unauthenticated home,
+   .dash-hero on the logged-in home, .settings-hero on the profile page)
+   up by 1rem so they butt directly against the bottom of the topbar.
+   Without this, the default 1rem flex `gap` on stVerticalBlock leaves
+   a thin white strip between the topbar and the hero gradient.  The
+   settings-hero rule lives in settings.css for legacy reasons; this
+   block covers the home heroes that lacked the compensation. */
+section[data-testid="stMain"] [data-testid="stElementContainer"]:has(> .dash-hero),
+section[data-testid="stMain"] [data-testid="stElementContainer"]:has(> .hero) {
+  margin-top: -1rem !important;
 }
 
 /* =========================================
@@ -117,9 +157,9 @@ p, li { line-height: 1.65; color: var(--ink); }
     #eef3fb 90%,
     #ffffff 100%
   );
-  padding: 4.5rem 2rem 6.5rem;
+  padding: 3.5rem 2rem 4rem;
   text-align: center;
-  margin-bottom: 0; /* importante */
+  margin-bottom: 1.25rem;
 }
 
 .dash-hero__title {
@@ -397,13 +437,26 @@ p, li { line-height: 1.65; color: var(--ink); }
 /* =========================================
    Misc
    ========================================= */
-/* Hide 0-height component iframes (auth cookie injection) */
-iframe[height="0"],
+/* Make the 0-height components.html() iframe (used by auth.py to set
+   cookies and drive the post-login redirect) take no visual space —
+   but DO NOT use `display: none`.  Modern browsers (Chrome/Firefox)
+   lazy-load and skip script execution for fully hidden iframes, which
+   silently breaks Sign in / Create Account / logout because the JS
+   inside the iframe never runs to set cookies or navigate the parent
+   window.  Offscreen positioning keeps the iframe in the DOM and
+   guarantees its embedded <script> executes. */
+iframe[height="0"] {
+  border: 0 !important;
+}
 .element-container:has(> iframe[height="0"]) {
-  display:  none   !important;
-  height:   0      !important;
-  margin:   0      !important;
-  padding:  0      !important;
+  position: absolute !important;
+  width:    1px      !important;
+  height:   1px      !important;
+  margin:   0        !important;
+  padding:  0        !important;
+  overflow: hidden   !important;
+  pointer-events: none !important;
+  opacity:  0        !important;
 }
 
 /* Hide Streamlit's native dismiss (X) button on uploaded-file chips.

@@ -8,7 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 from app.client.model_cards import BackendError, change_password, get_me, submit_feedback
-from app.ui.utils.auth import clear_auth
+from app.ui.utils.auth import clear_auth, restore_auth
 from app.ui.utils.css import inject_css
 
 _FEEDBACK_TOPICS = [
@@ -279,11 +279,18 @@ def _render_feedback(email: str) -> None:
 def profile_page() -> None:
     """Render the Account Settings page with sidebar navigation."""
     if not st.session_state.get("auth_token"):
+        # Last-chance cookie restore — handles the case where the user landed
+        # here via an <a href> click that triggered a full page reload before
+        # the auth token was rehydrated into session_state.
+        restore_auth()
+    if not st.session_state.get("auth_token"):
         st.warning("You must be logged in to view your profile.")
         st.markdown("[Login](?view=login)", unsafe_allow_html=True)
         return
 
-    inject_css(AUTH_CSS)
+    # NOTE: do NOT inject AUTH_CSS here — it forces .block-container
+    # padding-top to 12vh (intended for the centered login/register card)
+    # which would push the topbar visibly downward on the profile page.
     inject_css(SETTINGS_CSS)
 
     email: str = st.session_state.get("auth_email", "")
@@ -320,6 +327,23 @@ def profile_page() -> None:
         st.session_state["_settings_section"] = "profile"
 
     active = st.session_state["_settings_section"]
+
+    # ── Hero (full-width gradient, mirrors the logged-in home dashboard) ──
+    _hero_subtitle = {
+        "profile": "Manage your personal information",
+        "security": "Update your password and security settings",
+        "feedback": "Send feedback, report a bug, or request a feature",
+    }.get(active, "Manage your personal information")
+    st.markdown(
+        '<div class="settings-hero">'
+        f'<h2 class="settings-hero__title">Welcome back, {display_name}</h2>'
+        f'<p class="settings-hero__sub">{_hero_subtitle}</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Content shell (sits on top of the gradient → white transition) ───
+    st.markdown('<div class="settings-shell">', unsafe_allow_html=True)
 
     # ── Layout: sidebar + main content ────────────────────────────────────
     col_side, col_main = st.columns([1, 3], gap="large")
@@ -361,3 +385,6 @@ def profile_page() -> None:
             _render_security()
         elif active == "feedback":
             _render_feedback(email)
+
+    # Close the .settings-shell wrapper opened above the columns.
+    st.markdown('</div>', unsafe_allow_html=True)

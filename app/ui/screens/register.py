@@ -133,7 +133,6 @@ def register_page() -> None:
                             first_name.strip(),
                             last_name.strip(),
                         )
-                        st.query_params["view"] = "home"
                     except BackendError as exc:
                         st.error(str(exc))
 
@@ -146,7 +145,11 @@ def register_page() -> None:
                 unsafe_allow_html=True,
             )
 
-    # Set cookies and redirect.
+    # On successful registration: persist auth state + cookies, then
+    # drive the UI transition through Streamlit so the user lands on
+    # the authenticated home immediately.  Relying on JS-in-iframe to
+    # navigate was unreliable and left users stuck on the register
+    # screen even though the account had been created.
     if _auth_result:
         save_auth_and_redirect(
             _auth_result[0], _auth_result[1],

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import streamlit as st
 
 from app.client.model_cards import (
@@ -12,9 +10,6 @@ from app.client.model_cards import (
     list_public_model_cards,
 )
 from app.services.state_store import populate_session_state_from_json
-from app.ui.utils.css import inject_css
-
-AUTH_CSS_PATH = Path(__file__).resolve().parent.parent / "static" / "auth.css"
 
 
 def _make_version_pdf(card: dict) -> bytes | None:
@@ -91,7 +86,12 @@ def _status_badge(status: str) -> str:
 
 def published_cards_page() -> None:
     """Render the public catalogue of approved model cards."""
-    inject_css(AUTH_CSS_PATH)
+    # NOTE: do NOT inject AUTH_CSS here — it forces .block-container
+    # padding-top to 12vh (intended for the centered login/register card)
+    # and hides Streamlit's stHeader, which together pushed the topbar
+    # visibly downward and added a large blank strip at the top of this
+    # page.  global.css already styles bordered containers consistently
+    # for the whole app, so no extra stylesheet is needed here.
 
     # Remove stale bytes that older code stored under "dl_pdf_N" — those keys
     # now belong exclusively to download widgets, so a bytes value there would
