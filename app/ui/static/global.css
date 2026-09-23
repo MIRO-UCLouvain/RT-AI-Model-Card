@@ -21,10 +21,14 @@
   background: var(--surface);
 }
 
-/* Center content like a site */
+/* Center content like a site.
+   Streamlit's own block container has no auto margins: it relies on its
+   flex parent. Setting them here keeps it centred regardless. */
 .block-container{
   max-width: 1100px;
-  padding: 1.5rem 2rem 3rem;
+  padding: 1.75rem 2rem clamp(.5rem, 1.4vh, 1.5rem);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* =========================================
@@ -92,13 +96,16 @@
 .hero{
   width: 100vw;
   margin-left: calc(-50vw + 50%);
-  padding: 4.25rem 0 3rem;
+  padding: clamp(.6rem, 4.2vh, 3.5rem) 0 clamp(.75rem, 4.8vh, 4rem);
 
   background: linear-gradient(
     180deg,
     var(--brand-600) 0%,
-    #3b7bf0 40%,
-    #eaf1ff 100%
+    #1c4bb0 22%,
+    #2f68d8 46%,
+    #5b93ef 70%,
+    #a9c7f7 87%,
+    #ffffff 100%
   );
   color: white;
   text-align: center;
@@ -113,16 +120,21 @@
 }
 
 .hero h1{
-  margin: 0 0 .5rem;
+  margin: 0 0 clamp(.35rem, 1vh, .8rem);
+  color: #fff;               /* explicit: don't rely on inherited colour */
   font-weight: 800;
-  font-size: clamp(28px, 4vw, 44px);
+  font-size: clamp(20px, 3.4vh, 38px);
+  line-height: 1.15;
+  letter-spacing: -.015em;
 }
 
 .hero .lead{
-  color: #f0f4ff;
-  font-size: clamp(14px, 1.8vw, 18px);
+  color: #eaf1ff;
+  font-size: clamp(13px, 1.75vh, 17.5px);
+  line-height: 1.5;
   margin: 0 auto;
-  max-width: 900px;
+  max-width: 780px;
+  text-align: center;        /* overrides the justified .block-container p */
 }
 
 /* =========================================
@@ -134,19 +146,48 @@ p, li{ line-height: 1.65; color: var(--ink); }
 /* Optional: justify long paragraphs */
 .block-container p, .block-container li{ text-align: justify; }
 
+/* ===== Home intro: logo stacked above the copy, both centred ========== */
+/* Wider than .block-container (1100px) on purpose, so the landing doesn't
+   sit in a narrow column. Only the home sections opt into this width; the
+   form pages keep the container width.                                   */
+.home-intro,
+.home-actions{
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1180px, 100vw - 4rem);
+}
+
+.home-intro{
+  margin-top: clamp(.5rem, 3vh, 2.5rem);
+  text-align: center;
+}
+
+.home-logo{ text-align: center; }
+
+.home-logo img{
+  display: block;
+  /* Sized by height so the logo grows and shrinks with the viewport */
+  height: clamp(75px, 19.5vh, 235px);
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
 /* ===== Unified Home text style (for ABOUT + repo) ===================== */
 /* Same font as the hero (inherits .stApp’s Inter), a bit larger size.  */
 .home-copy{
-  max-width: 980px;
-  margin: 1.25rem auto 0;
-  padding: 0 2rem;
+  max-width: 95ch;                     /* wide, but still a readable line */
+  margin: clamp(.5rem, 2.6vh, 2rem) auto 0;
   font-family: inherit;                /* same as hero/white text */
-  font-size: clamp(16px, 1.2vw, 18px); /* a bit bigger, like repo text */
-  line-height: 1.75;
+  font-size: clamp(14px, 1.75vh, 20px);
+  line-height: 1.55;
   color: var(--ink);
 }
 
-.home-copy p{ margin: 0 0 .9rem; }
+/* Left-aligned: overrides the justified default set for .block-container */
+.home-copy p{ margin: 0 0 clamp(.3rem, 1.1vh, .9rem); text-align: left; }
+.home-copy p:last-child{ margin-bottom: 0; }
 
 /* Links inside the block */
 .home-copy a{
@@ -162,14 +203,26 @@ p, li{ line-height: 1.65; color: var(--ink); }
 /* Repo section centered with optional badges */
 .home-actions{
   text-align: center;
-  margin-top: 1rem;
+  margin-top: clamp(.5rem, 2.8vh, 2.2rem);
+  padding-top: clamp(.4rem, 2vh, 1.4rem);
+  border-top: 1px solid rgba(24, 65, 151, .12);  /* closes the composition */
 }
 .home-actions__copy{
-  margin: .25rem 0 .5rem;
+  margin: 0 0 .9rem;
+  color: var(--muted);
+  font-size: clamp(15px, 1.05vw, 16.5px);
+  text-align: center;        /* overrides the justified .block-container p */
 }
 
 /* Keep badges tidy and on one line if present */
 .home-actions__badges img{
   vertical-align: middle;
-  margin: .25rem .15rem 0;
+  margin: .25rem .2rem 0;
 }
+
+@media (max-width: 640px){
+  .home-intro,
+  .home-actions{ width: min(100%, 100vw - 2.5rem); }
+  .home-logo img{ max-width: 260px; }
+}
+

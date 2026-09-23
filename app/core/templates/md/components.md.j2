@@ -1,5 +1,5 @@
 {# templates/components.md.j2 #}
-{% macro render_file(value, label=None, show_non_images_as_text=False) -%}
+{% macro render_file(value, label=None, show_non_images_as_text=False, caption=None) -%}
   {# 1) Guard: no value #}
   {% set has_value = value is not none and value != "" %}
   {% if not has_value %}
@@ -43,6 +43,9 @@
     {# 4) Render #}
     {% if is_img and url %}
 ![{{ label or name or 'Figure' }}]({{ url }})
+      {% if caption %}
+*{{ caption }}*
+      {% endif %}
     {% elif show_non_images_as_text %}
 **{{ label or 'File' }}:** {{ name or value }}
     {% endif %}

@@ -4,11 +4,11 @@
 
 #### Fine tuned form
 
-- **Model name** **\*** : {{ training_data_model_name | default("—", true) }}
+- **Model name** **\*** : {{ training_data_model_name | default("NA", true) }}
 
-- **URL/DOI to model card** **\*** : {{ training_data_url_doi_to_model_card | default("—", true) }}
+- **URL/DOI to model card** **\*** : {{ training_data_url_doi_to_model_card | default("NA", true) }}
 
-- **Tuning technique** **\*** : {{ training_data_tuning_technique | default("—", true) }}
+- **Tuning technique** **\*** : {{ training_data_tuning_technique | default("NA", true) }}
 
 #### Training Dataset
 
@@ -34,7 +34,7 @@
 {% set io_list = training_data_inputs_outputs_technical_specifications | default([], true) %}
 {% if io_list %}
   {% for item in io_list %}
-**{{ item.entry }}** ({{ item.source }})
+**{{ item.source_label | default("Model input", true) }}:** {{ item.entry | default("—", true) }}
 
 | Field | Value |
 |-------|-------|
@@ -102,7 +102,7 @@ _No input/output technical specifications provided._
 
 {% if training_data_train_and_validation_loss_curves %}
 **Train & validation loss curves** **\*** :
-{{ C.render_file(training_data_train_and_validation_loss_curves, label="Loss curves") }}
+{{ C.render_file(training_data_train_and_validation_loss_curves, label="Loss curves", caption=training_data_train_and_validation_loss_curves_caption | default(None, true)) }}
 {% endif %}
 
 **Model choice criteria** **\*** : {{ training_data_model_choice_criteria | default("—", true) }}

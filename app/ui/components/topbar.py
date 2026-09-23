@@ -63,30 +63,27 @@ def render_topbar(active: str, github_url: str | None = None) -> None:
             f'target="_self" aria-label="GitHub">GitHub</a>'
         )
 
+    # Emitted without indentation or line breaks inside the tags: markdown
+    # treats indented lines as its own blocks and wraps the loose text in a
+    # <p>, whose bottom margin pushes the links off-centre in the bar.
     st.markdown(
-        f"""
-        <div class="topbar">
-          <div class="topbar__inner">
-            <div class="topbar__brand">
-              <a class="topbar__home" href="?view=home" target="_self">
-                RT AI Model Card Writing Tool
-              </a>
-            </div>
-            <nav class="topbar__nav">
-              <a class="{cls('create')}"
-                 href="?view=create"
-                 target="_self">Create</a>
-              <a class="{cls('load')}"
-                 href="?view=load"
-                 target="_self">Load</a>
-              <a class="{cls('about')}"
-                 href="?view=about"
-                 target="_self">About</a>
-              {icon_html}
-            </nav>
-          </div>
-        </div>
-        """,
+        '<div class="topbar">'
+        '<div class="topbar__inner">'
+        '<div class="topbar__brand">'
+        '<a class="topbar__home" href="?view=home" target="_self">'
+        "RT AI Model Card Writing Tool</a>"
+        "</div>"
+        '<nav class="topbar__nav">'
+        f'<a class="{cls("create")}" href="?view=create" '
+        'target="_self">Create</a>'
+        f'<a class="{cls("load")}" href="?view=load" '
+        'target="_self">Load</a>'
+        f'<a class="{cls("about")}" href="?view=about" '
+        'target="_self">About</a>'
+        f"{icon_html}"
+        "</nav>"
+        "</div>"
+        "</div>",
         unsafe_allow_html=True,
     )
 

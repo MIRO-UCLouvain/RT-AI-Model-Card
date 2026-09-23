@@ -36,7 +36,7 @@ SCHEMA = {
     },
     "technical_specifications": {
         "model_pipeline_summary": {},
-        "model_pipeline_figure_appendix_note": {},
+        "model_pipeline_figure_caption": {},
         "model_inputs": {},
         "model_outputs": {},
         "pre_processing": {},
@@ -84,7 +84,7 @@ SCHEMA = {
         "epochs": {},
         "optimiser": {},
         "learning_rate": {},
-        "train_and_validation_loss_curves_appendix_note": {},
+        "train_and_validation_loss_curves_caption": {},
         "model_choice_criteria": {},
         "inference_method": {},
     },
@@ -157,7 +157,7 @@ LEARNING_ARCHITECTURE = {
     "loss_function": "",
     "batch_size": "",
     "regularisation": "",
-    "architecture_figure_appendix_note": "",
+    "architecture_figure_caption": "",
     "uncertainty_quantification_techniques": "",
     "explainability_techniques": "",
     "additional_information_ts": "",
@@ -179,7 +179,7 @@ EVALUATION_METRIC_FIELDS = {
         "registration_ism",
         "sample_data_ism",
         "mean_data_ism",
-        "figure_ism_appendix_note",
+        "figure_ism_caption",
     ],
     "type_dose_dm": [
         "metric_specifications_dm",
@@ -191,14 +191,14 @@ EVALUATION_METRIC_FIELDS = {
         "tps_vendor_dm",
         "sample_data_dm",
         "mean_data_dm",
-        "figure_dm_appendix_note",
+        "figure_dm_caption",
     ],
     "type_gm_seg": [
         "metric_specifications_gm_seg",
         "on_volume_gm_seg",
         "sample_data_gm_seg",
         "mean_data_gm_seg",
-        "figure_gm_seg_appendix_note",
+        "figure_gm_seg_caption",
     ],
     "type_dose_dm_seg": [
         "metric_specifications_dm_seg",
@@ -208,7 +208,7 @@ EVALUATION_METRIC_FIELDS = {
         "dose_grid_resolution_dm_segtps_vendor_dm_seg",
         "sample_data_dm_seg",
         "mean_data_dm_seg",
-        "figure_dm_seg_appendix_note",
+        "figure_dm_seg_caption",
     ],
     "type_dose_dm_dp": [
         "metric_specifications_dm_dp",
@@ -216,13 +216,13 @@ EVALUATION_METRIC_FIELDS = {
         "dose_grid_resolution_dm_dp",
         "sample_data_dm_dp",
         "mean_data_dm_dp",
-        "figure_dm_dp_appendix_note",
+        "figure_dm_dp_caption",
     ],
     "type_metrics_other": [
         "additional_info_other",
         "sample_data_other",
         "mean_data_other",
-        "figure_other_appendix_note",
+        "figure_other_caption",
     ],
 }
 TASK_METRIC_MAP = {

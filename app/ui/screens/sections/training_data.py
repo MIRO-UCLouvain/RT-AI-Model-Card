@@ -116,6 +116,12 @@ class TrainingData(TypedDict, total=False):
     inference_method: FieldProps
 
 def _force_training_na_placeholder(section: TrainingData) -> None:
+    if "model_name" in section:
+        section["model_name"]["placeholder"] = NA_PLACEHOLDER
+    if "url_doi_to_model_card" in section:
+        section["url_doi_to_model_card"]["placeholder"] = NA_PLACEHOLDER
+    if "tuning_technique" in section:
+        section["tuning_technique"]["placeholder"] = NA_PLACEHOLDER
     if "reference_standard" in section:
         section["reference_standard"]["placeholder"] = NA_PLACEHOLDER
     if "reference_standard_qa" in section:
@@ -240,7 +246,9 @@ def _render_technical_characteristics(section: TrainingData) -> None:
     for tab_idx, entry in enumerate(modality_entries):
         modality, source = entry["modality"], entry["source"]
         with tabs[tab_idx]:
-            clean_modality = modality.strip().replace(" ", "_").lower()
+            clean_modality = (
+                strip_brackets(modality).strip().replace(" ", "_").lower()
+            )
 
             pair = (clean_modality, source)
             idx_for_pair = counts.get(pair, 0)
@@ -250,7 +258,7 @@ def _render_technical_characteristics(section: TrainingData) -> None:
             suffix = f"{clean_modality}_{source}_{idx_for_pair}"
 
             title_header(
-                f"{strip_brackets(modality)} — "
+                f"{modality} — "
                 f"{source.replace('_', ' ').capitalize()}",
                 size="1rem",
             )
@@ -522,8 +530,8 @@ def training_data_render() -> None:
     title(TITLE)
     subtitle(SUBTITLE)
 
-    _render_fine_tuned_from(section)
     _force_training_na_placeholder(section)
+    _render_fine_tuned_from(section)
     _render_general_info(section)
     _render_technical_characteristics(section)
     _render_dose_prediction_fields(section)

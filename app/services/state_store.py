@@ -1,12 +1,78 @@
 """Module for managing Streamlit session state, and extracting information from it."""  # noqa: E501
 from __future__ import annotations
 
+import uuid as _uuid
 from datetime import date, datetime
 from typing import Any
 
 import streamlit as st
 
 from app.core.date_utils import is_yyyymmdd, set_safe_date_field, to_date
+from app.ui.utils.typography import strip_brackets
+
+# All known form-section key prefixes (and their _-prefixed shadow keys).
+_FORM_PREFIXES: tuple[str, ...] = (
+    "card_metadata_",       "_card_metadata_",
+    "model_basic_information_", "_model_basic_information_",
+    "technical_specifications_", "_technical_specifications_",
+    "learning_architecture_",   "_learning_architecture_",
+    "hw_and_sw_",               "_hw_and_sw_",
+    "training_data_",           "_training_data_",
+    "evaluation_",              "_evaluation_",
+    "other_considerations_",    "_other_considerations_",
+    "appendix_",                "_appendix_",
+)
+
+
+def clear_form_state() -> None:
+    """Remove all model-card form data and navigation state from session state.
+
+    Safe to call at any time — auth state is left untouched.
+    """
+    for nav_key in (
+        "task", "task_temp", "runpage", "last_readme_text", "format_error",
+        "evaluation_forms", "learning_architecture_forms",
+    ):
+        st.session_state.pop(nav_key, None)
+
+    to_remove = [
+        k for k in list(st.session_state.keys())
+        if isinstance(k, str) and k.startswith(_FORM_PREFIXES)
+    ]
+    for key in to_remove:
+        st.session_state.pop(key, None)
+
+    for registry in ("render_uploads", "appendix_uploads"):
+        if registry in st.session_state:
+            st.session_state[registry] = {}
+
+
+def has_form_data() -> bool:
+    """Report whether the form holds anything the user would not want to lose.
+
+    Picking a task on its own doesn't count: only filled-in fields, added
+    evaluations and uploaded files do.
+    """
+    if st.session_state.get("render_uploads") or st.session_state.get(
+        "appendix_uploads",
+    ):
+        return True
+
+    for key, value in list(st.session_state.items()):
+        if not isinstance(key, str) or key.startswith("_"):
+            continue
+        # Bookkeeping, not user data: it always holds one default entry.
+        if key == "learning_architecture_forms":
+            continue
+        if not key.startswith(_FORM_PREFIXES):
+            continue
+        if isinstance(value, (str, list, dict, tuple)):
+            if value:
+                return True
+        elif value not in (None, 0, 0.0):
+            return True
+
+    return False
 
 
 def store_value(key: str) -> None:
@@ -18,19 +84,6 @@ def store_value(key: str) -> None:
     """
     st.session_state[key] = st.session_state["_" + key]
 
-# def load_value(key: str, default: object | None = None) -> None:
-#     """
-#     Load the value of a key from the session state.
-
-#     :param key: The key to load the value for.
-#     :type key: str
-#     :param default: The default value to use if the key is not found, defaults
-#         to None
-#     :type default: Optional[object], optional
-#     """
-#     if key not in st.session_state:
-#         st.session_state[key] = default
-#     st.session_state["_" + key] = st.session_state[key]
 
 def load_value(key: str, default: object | None = None) -> None:
     """
@@ -76,6 +129,40 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
     :param data: The data to populate the session state with.
     :type data: dict[str, Any]
     """
+    # ── Restore embedded image data ─────────────────────────────────────
+    # Images are stored as base64 data URIs in "_images" (standalone fields)
+    # and inline inside the learning_architectures list (architecture
+    # figures).  Restoring them into render_uploads lets the renderer find
+    # them without needing the original local files.
+    if "_images" in data:
+        from app.services.uploads import (  # noqa: PLC0415
+            REG_RENDER_UPLOADS,
+            ensure_upload_state,
+        )
+        ensure_upload_state()
+        ru: dict[str, Any] = st.session_state[REG_RENDER_UPLOADS]
+        for field_key, img_info in data["_images"].items():
+            img_uri: str = img_info.get("data_uri", "")
+            img_name: str = img_info.get("name", "")
+            if img_uri:
+                ru[field_key] = {
+                    "path": "",
+                    "name": img_name,
+                    "data_uri": img_uri,
+                }
+
+    # ── Restore appendix upload metadata ────────────────────────────────
+    if "_appendix_meta" in data:
+        from app.services.uploads import (  # noqa: PLC0415
+            REG_APPENDIX_UPLOADS,
+            ensure_upload_state,
+        )
+        ensure_upload_state()
+        au: dict[str, Any] = st.session_state[REG_APPENDIX_UPLOADS]
+        for original_name, ameta in data["_appendix_meta"].items():
+            # path is intentionally omitted — the file doesn't exist locally
+            au[original_name] = {**ameta, "path": ""}
+
     if "task" in data:
         st.session_state["task"] = data["task"]
 
@@ -99,7 +186,7 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
             idx_counts: dict[tuple[str, str], int] = {}
             for io in ios:
                 clean: str = (
-                    io["entry"]
+                    strip_brackets(io["entry"])
                     .strip()
                     .replace(" ", "_")
                     .lower()
@@ -137,7 +224,7 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
                         idx_counts2: dict[tuple[str, str], int] = {}
                         for io in value:
                             clean2: str = (
-                                io["entry"]
+                                strip_brackets(io["entry"])
                                 .strip()
                                 .replace(" ", "_")
                                 .lower()
@@ -225,15 +312,40 @@ def populate_session_state_from_json(  # noqa: C901, PLR0912, PLR0915
         elif section == "technical_specifications":
             for k, v in content.items():
                 if k == "learning_architectures" and isinstance(v, list):
-                    st.session_state["learning_architecture_forms"] = {
-                        f"Learning Architecture {i + 1}": {}
-                        for i in range(len(v))
-                    }
+                    from app.services.uploads import (  # noqa: PLC0415
+                        REG_RENDER_UPLOADS,
+                        ensure_upload_state,
+                    )
+                    ensure_upload_state()
+                    la_ru: dict[str, Any] = st.session_state[
+                        REG_RENDER_UPLOADS
+                    ]
+                    la_forms: dict[str, str] = {}
                     for i, arch in enumerate(v):
-                        prefix = f"learning_architecture_{i}_"
-                        for key, value in arch.items():
-                            full_key = f"{prefix}{key}"
-                            st.session_state[full_key] = value
+                        uid = _uuid.uuid4().hex[:8]
+                        la_forms[uid] = f"Learning Architecture {i + 1}"
+                        prefix = f"learning_architecture_{uid}_"
+                        for la_key, la_val in arch.items():
+                            if (
+                                la_key == "architecture_figure"
+                                and isinstance(la_val, dict)
+                                and "data_uri" in la_val
+                            ):
+                                # Embedded image: restore into
+                                # render_uploads under the UID key.
+                                fig_entry: dict[str, str] = {
+                                    "path": "",
+                                    "name": la_val.get("name", ""),
+                                    "data_uri": la_val["data_uri"],
+                                }
+                                fig_key = (
+                                    f"learning_architecture_{uid}"
+                                    "_architecture_figure"
+                                )
+                                la_ru[fig_key] = fig_entry
+                            else:
+                                st.session_state[f"{prefix}{la_key}"] = la_val
+                    st.session_state["learning_architecture_forms"] = la_forms
                     continue
 
                 if k == "hw_and_sw" and isinstance(v, dict):

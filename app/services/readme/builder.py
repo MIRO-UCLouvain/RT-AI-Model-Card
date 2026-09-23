@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 from app.services.markdown.renderer import render_full_model_card_md
 
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Minimal YAML front matter builder (no external deps)
-Scalar = Union[str, int, float, bool]
-YAMLish = Union[Scalar, list[Scalar], dict[str, Any]]
+Scalar = str | int | float | bool
+YAMLish = Scalar | list[Scalar] | dict[str, Any]
 
 
 def _is_nonempty(x: object) -> bool:
@@ -57,7 +57,11 @@ def _yaml_escape_scalar(v: Scalar) -> str:
     return s
 
 
-def _emit_yaml_lines(key: str, value: YAMLish, indent: int = 0) -> list[str]:
+def _emit_yaml_lines(  # noqa: C901, PLR0912
+    key: str,
+    value: YAMLish,
+    indent: int = 0,
+) -> list[str]:
     """Emit simple YAML for scalars, lists, and flat dicts."""
     sp = " " * indent
     out: list[str] = []

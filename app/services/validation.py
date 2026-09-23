@@ -191,8 +191,8 @@ def validate_learning_architectures(
     forms = st.session_state.get("learning_architecture_forms", {})
     schema_fields = schema.get("learning_architecture", {})
 
-    for i in range(len(forms)):
-        prefix = f"learning_architecture_{i}_"
+    for i, uid in enumerate(forms):
+        prefix = f"learning_architecture_{uid}_"
         for field in LEARNING_ARCHITECTURE:
             props = schema_fields.get(field)
             if not props or not props.get("required", False):
@@ -305,8 +305,10 @@ def _validate_metric_group(
                     missing.append(
                         (
                             "evaluation_data_methodology_results_commisioning",
-                            f"{_label_for(props, field_key)} "
-                            f"(Metric: {short}, Eval: {name})",
+                            (
+                                f"{_label_for(props, field_key)} "
+                                f"(Metric: {short}, Eval: {name})"
+                            ),
                         ),
                     )
 

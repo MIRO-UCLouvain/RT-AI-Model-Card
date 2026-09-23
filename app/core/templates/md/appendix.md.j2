@@ -1,12 +1,21 @@
 ## Appendix
 
-{% set n = appendix_files|length if appendix_files is defined and appendix_files is not none else 0 %}
+{% if appendix_files is defined and appendix_files %}
 {% for item in appendix_files %}
-- {% if item.label %}**{{ item.label }}:** {% endif %} {{ item.file.name }}
+**Item {{ loop.index }}**{% if item.label %}: {{ item.label }}{% endif %}
 
-{% if item.file.is_image and item.file.url %}
-  ![{{ item.file.name }}]({{ item.file.url }})
+{% if item.section %}
+*Section: {{ item.section }}{% if item.subsection_display %} – {{ item.subsection_display }}{% endif %}*
+
 {% endif %}
+{% if item.file.is_image and item.file.url %}
+![{{ item.label or "Figure" }}]({{ item.file.url }})
 
+*{{ item.file.name }}*
+
+{% elif item.file.name %}
+{{ item.file.name }}
+
+{% endif %}
 {% endfor %}
-
+{% endif %}

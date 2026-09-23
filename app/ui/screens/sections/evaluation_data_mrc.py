@@ -39,9 +39,6 @@ SUBTITLE = (
     "that are specifically evaluated within a clinical environment with "
     "clinic-specific data."
 )
-SAME_AS_APPROVED_BY_INFO = (
-    "Evaluation team is the same as the approval team. Fields auto-filled."
-)
 EVALUATION_DATASET_INFO = (
     "Note that all fields refer to the raw evaluation data used in 'Model "
     "inputs' (i.e. before  pre-processing steps) and raw 'Model outputs' for "
@@ -268,36 +265,65 @@ def _render_header_and_evaluated_by(
         args=(same_key,),
     )
 
-    if not same:
-        if all(
-            k in section
-            for k in (
-                "evaluated_by_name",
-                "evaluated_by_institution",
-                "evaluated_by_contact_email",
-            )
-        ):
-            col1, col2, col3 = st.columns([1, 1.5, 1.5])
-            with col1:
-                render_field(
+    if all(
+        k in section
+        for k in (
+            "evaluated_by_name",
+            "evaluated_by_institution",
+            "evaluated_by_contact_email",
+        )
+    ):
+        if same:
+            for ev_field, approved_key in (
+                (
                     "evaluated_by_name",
-                    section["evaluated_by_name"],
-                    section_prefix,
-                )
-            with col2:
-                render_field(
+                    "model_basic_information_clearance_approved_by_name",
+                ),
+                (
                     "evaluated_by_institution",
-                    section["evaluated_by_institution"],
-                    section_prefix,
-                )
-            with col3:
-                render_field(
+                    "model_basic_information_clearance_approved_by_institution",
+                ),
+                (
                     "evaluated_by_contact_email",
-                    section["evaluated_by_contact_email"],
-                    section_prefix,
-                )
-    else:
-        st.info(SAME_AS_APPROVED_BY_INFO)
+                    "model_basic_information_clearance_approved_by_contact_email",
+                ),
+            ):
+                val = st.session_state.get(approved_key, "")
+                full_key = f"{section_prefix}_{ev_field}"
+                st.session_state[full_key] = val
+                st.session_state[f"_{full_key}"] = val
+
+        col1, col2, col3 = st.columns([1, 1.5, 1.5])
+        with col1:
+            render_field(
+                "evaluated_by_name",
+                cast(
+                    "FieldProps",
+                    {**section["evaluated_by_name"], "disabled": same},
+                ),
+                section_prefix,
+            )
+        with col2:
+            render_field(
+                "evaluated_by_institution",
+                cast(
+                    "FieldProps",
+                    {**section["evaluated_by_institution"], "disabled": same},
+                ),
+                section_prefix,
+            )
+        with col3:
+            render_field(
+                "evaluated_by_contact_email",
+                cast(
+                    "FieldProps",
+                    {
+                        **section["evaluated_by_contact_email"],
+                        "disabled": same,
+                    },
+                ),
+                section_prefix,
+            )
 
     section_divider()
     render_fields(
@@ -465,9 +491,11 @@ def _render_technical_characteristics(  # noqa: C901, PLR0915
     for tab_idx, entry in enumerate(modality_entries):
         modality, source = entry["modality"], entry["source"]
         with tabs[tab_idx]:
-            clean_modality = modality.strip().replace(" ", "_").lower()
+            clean_modality = (
+                strip_brackets(modality).strip().replace(" ", "_").lower()
+            )
             heading = (
-                f"{strip_brackets(modality)} — "
+                f"{modality} — "
                 f"{source.replace('_', ' ').capitalize()}"
             )
             title_header(heading, size="1rem")
@@ -702,6 +730,33 @@ def _render_reference_and_demographics(
     )
 
 
+def _delete_metric_entry(
+    section_prefix: str,
+    field_suffix: str,
+    entry_name: str,
+    sub_prefix: str,
+) -> None:
+    """Remove a single metric entry and all its associated session state."""
+    list_key = f"{section_prefix}_{field_suffix}_list"
+    full_key = f"{section_prefix}_{field_suffix}"
+    updated = [
+        e for e in st.session_state.get(list_key, []) if e != entry_name
+    ]
+    st.session_state[list_key] = updated
+    st.session_state[full_key] = updated
+    keys_to_remove = [
+        k for k in list(st.session_state.keys())
+        if isinstance(k, str)
+        and (
+            k == sub_prefix
+            or k.startswith((f"{sub_prefix}_", f"{sub_prefix}."))
+        )
+    ]
+    for k in keys_to_remove:
+        del st.session_state[k]
+    st.rerun()
+
+
 def _render_image_similarity_metrics_block(
     section: Evaluation,
     section_prefix: str,
@@ -738,7 +793,7 @@ def _render_image_similarity_metrics_block(
     ):
         return
 
-    tabs = st.tabs(ism_entries)
+    tabs = st.tabs([strip_brackets(e) for e in ism_entries])
     for tab, type_name in zip(tabs, ism_entries, strict=False):
         with tab:
             sub_prefix = f"{section_prefix}.{type_name}"
@@ -776,6 +831,12 @@ def _render_image_similarity_metrics_block(
                     section["figure_ism"],
                     sub_prefix,
                 )
+            _, del_col = st.columns([5, 1])
+            with del_col:
+                if st.button("Delete", key=f"{sub_prefix}_delete_btn"):
+                    _delete_metric_entry(
+                        section_prefix, "type_ism", type_name, sub_prefix,
+                    )
 
 
 def _render_image_dose_metrics_block(  # noqa: C901, PLR0912
@@ -821,7 +882,9 @@ def _render_image_dose_metrics_block(  # noqa: C901, PLR0912
     ):
         return
 
-    tabs = st.tabs([str(entry) for entry in dm_entries if entry])
+    tabs = st.tabs(
+        [strip_brackets(str(entry)) for entry in dm_entries if entry],
+    )
     for tab, dm_name in zip(tabs, dm_entries, strict=False):
         with tab:
             sub_prefix = f"{section_prefix}.{dm_name}"
@@ -897,6 +960,12 @@ def _render_image_dose_metrics_block(  # noqa: C901, PLR0912
                     section["figure_dm"],
                     sub_prefix,
                 )
+            _, del_col = st.columns([5, 1])
+            with del_col:
+                if st.button("Delete", key=f"{sub_prefix}_delete_btn"):
+                    _delete_metric_entry(
+                        section_prefix, "type_dose_dm", dm_name, sub_prefix,
+                    )
 
 
 def _render_segmentation_geometric_block(
@@ -936,7 +1005,9 @@ def _render_segmentation_geometric_block(
     ):
         return
 
-    tabs = st.tabs([str(entry) for entry in seg_entries if entry])
+    tabs = st.tabs(
+        [strip_brackets(str(entry)) for entry in seg_entries if entry],
+    )
     for tab, seg_name in zip(tabs, seg_entries, strict=False):
         with tab:
             sub_prefix = f"{section_prefix}.{seg_name}"
@@ -968,9 +1039,15 @@ def _render_segmentation_geometric_block(
                 section["figure_gm_seg"],
                 sub_prefix,
             )
+            _, del_col = st.columns([5, 1])
+            with del_col:
+                if st.button("Delete", key=f"{sub_prefix}_delete_btn"):
+                    _delete_metric_entry(
+                        section_prefix, "type_gm_seg", seg_name, sub_prefix,
+                    )
 
 
-def _render_segmentation_dose_block(  # noqa: C901
+def _render_segmentation_dose_block(  # noqa: C901, PLR0912
     section: Evaluation,
     section_prefix: str,
     current_task: str,
@@ -1016,7 +1093,9 @@ def _render_segmentation_dose_block(  # noqa: C901
     ):
         return
 
-    tabs = st.tabs([str(entry) for entry in dm_seg_entries if entry])
+    tabs = st.tabs(
+        [strip_brackets(str(entry)) for entry in dm_seg_entries if entry],
+    )
     for tab, seg_name in zip(tabs, dm_seg_entries, strict=False):
         with tab:
             sub_prefix = f"{section_prefix}.{seg_name}"
@@ -1087,6 +1166,15 @@ def _render_segmentation_dose_block(  # noqa: C901
                     section["figure_dm_seg"],
                     sub_prefix,
                 )
+            _, del_col = st.columns([5, 1])
+            with del_col:
+                if st.button("Delete", key=f"{sub_prefix}_delete_btn"):
+                    _delete_metric_entry(
+                        section_prefix,
+                        "type_dose_dm_seg",
+                        seg_name,
+                        sub_prefix,
+                    )
 
 
 def _render_iov_block(
@@ -1130,7 +1218,7 @@ def _render_iov_block(
             )
 
 
-def _render_dose_prediction_dose_block(
+def _render_dose_prediction_dose_block(  # noqa: C901
     section: Evaluation,
     section_prefix: str,
     current_task: str,
@@ -1172,7 +1260,9 @@ def _render_dose_prediction_dose_block(
     ):
         return
 
-    tabs = st.tabs([str(entry) for entry in dm_dp_entries if entry])
+    tabs = st.tabs(
+        [strip_brackets(str(entry)) for entry in dm_dp_entries if entry],
+    )
     for tab, dp_name in zip(tabs, dm_dp_entries, strict=False):
         with tab:
             sub_prefix = f"{section_prefix}.{dp_name}"
@@ -1218,6 +1308,12 @@ def _render_dose_prediction_dose_block(
                     section["figure_dm_dp"],
                     sub_prefix,
                 )
+            _, del_col = st.columns([5, 1])
+            with del_col:
+                if st.button("Delete", key=f"{sub_prefix}_delete_btn"):
+                    _delete_metric_entry(
+                        section_prefix, "type_dose_dm_dp", dp_name, sub_prefix,
+                    )
 
 
 def _render_other_metrics(
@@ -1248,7 +1344,7 @@ def _render_other_metrics(
         [],
     )
     if other_keys:
-        tabs = st.tabs(other_keys)
+        tabs = st.tabs([strip_brackets(k) for k in other_keys])
         for tab, name in zip(tabs, other_keys, strict=False):
             with tab:
                 sub_prefix = f"{section_prefix}.{name}"
@@ -1272,6 +1368,15 @@ def _render_other_metrics(
                     section["figure_other"],
                     sub_prefix,
                 )
+                _, del_col = st.columns([5, 1])
+                with del_col:
+                    if st.button("Delete", key=f"{sub_prefix}_delete_btn"):
+                        _delete_metric_entry(
+                            section_prefix,
+                            "type_metrics_other",
+                            name,
+                            sub_prefix,
+                        )
 
 
 def _render_uncertainty_other(

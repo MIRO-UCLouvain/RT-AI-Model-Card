@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import base64 as _base64
 import json
+import mimetypes as _mimetypes
 import re
 from collections import OrderedDict
 from copy import deepcopy
+from pathlib import Path as _Path
 from typing import Any, cast
 
 import streamlit as st
@@ -20,8 +23,39 @@ from app.core.model_card.constants import (
 from app.services.evaluations_extractor import (
     extract_evaluations_from_state,
 )
+from app.ui.utils.typography import strip_brackets
 
 _METRIC_SUFFIX_RE = re.compile(r"(?: \d+)$")
+
+
+def _read_upload_as_data_uri(meta: dict[str, Any]) -> dict[str, str] | None:
+    """Convert a ``render_uploads`` entry to ``{name, data_uri}`` or None.
+
+    Handles both live uploads (file on disk) and already-restored entries
+    that carry an inline ``data_uri`` from a previous JSON load.
+    """
+    if not meta:
+        return None
+    # Already a data URI (e.g. restored from JSON in this session)
+    data_uri: str = meta.get("data_uri", "")
+    if data_uri:
+        return {"name": meta.get("name", ""), "data_uri": data_uri}
+    path_str: str = meta.get("path", "")
+    if not path_str:
+        return None
+    p = _Path(path_str)
+    if not p.exists():
+        return None
+    try:
+        raw = p.read_bytes()
+        name: str = meta.get("name") or p.name
+        mime, _ = _mimetypes.guess_type(name)
+        mime = mime or "application/octet-stream"
+        b64 = _base64.b64encode(raw).decode("ascii")
+    except OSError:
+        return None
+    else:
+        return {"name": name, "data_uri": f"data:{mime};base64,{b64}"}
 
 
 def _metric_base_name(name: str) -> str:
@@ -78,6 +112,7 @@ def _iter_modalities() -> list[dict[str, str]]:
             out.extend(
                 {"modality": item, "source": "model_outputs"} for item in v
             )
+    out.sort(key=lambda x: 0 if x["source"] == "model_inputs" else 1)
     return out
 
 
@@ -118,14 +153,24 @@ def _build_learning_architectures() -> list[dict[str, Any]]:
     :return: A list of learning architecture dictionaries.
     :rtype: list[dict[str, Any]]
     """
-    la_forms = st.session_state.get("learning_architecture_forms", {})
+    la_forms: dict[str, str] = st.session_state.get(
+        "learning_architecture_forms", {},
+    )
+    render_uploads: dict[str, Any] = st.session_state.get("render_uploads", {})
     out: list[dict[str, Any]] = []
-    for i in range(len(la_forms)):
-        prefix = f"learning_architecture_{i}_"
+    for i, uid in enumerate(la_forms):
+        prefix = f"learning_architecture_{uid}_"
         arch = deepcopy(LEARNING_ARCHITECTURE)
         for field in arch:
             arch[field] = st.session_state.get(f"{prefix}{field}", arch[field])
         arch["id"] = cast("Any", i)
+        # Embed the architecture figure as an inline base64 data URI so it
+        # survives the save → backend → reload cycle.
+        fig_meta = render_uploads.get(f"{prefix}architecture_figure")
+        if fig_meta:
+            img_data = _read_upload_as_data_uri(fig_meta)
+            if img_data:
+                arch["architecture_figure"] = cast("Any", img_data)
         out.append(arch)
     return out
 
@@ -188,13 +233,22 @@ def _inject_training_iots(
     counts: dict[tuple[str, str], int] = {}
 
     for entry in _iter_modalities():
-        clean = entry["modality"].strip().replace(" ", "_").lower()
+        clean = (
+            strip_brackets(entry["modality"]).strip().replace(" ", "_").lower()
+        )
         src = entry["source"]
         pair = (clean, src)
         idx_for_pair = counts.get(pair, 0)
         counts[pair] = idx_for_pair + 1
 
-        detail: dict[str, Any] = {"entry": entry["modality"], "source": src}
+        source_label = (
+            "Model input" if src == "model_inputs" else "Model output"
+        )
+        detail: dict[str, Any] = {
+            "entry": entry["modality"],
+            "source": src,
+            "source_label": source_label,
+        }
         for field in DATA_INPUT_OUTPUT_TS:
             detail[field] = _get_with_fallback(
                 f"training_data_{clean}_{src}_{idx_for_pair}_{field}",
@@ -248,6 +302,51 @@ def _attach_metrics(
                 eval_form[metric_type] = metrics
 
 
+def _inject_standalone_images(structured: OrderedDict[str, Any]) -> None:
+    """Embed all uploaded images (except LA figures) as base64 data URIs.
+
+    Architecture figures are already inlined inside the
+    ``learning_architectures`` list by
+    :func:`_build_learning_architectures`.  Everything else in
+    ``render_uploads`` (model pipeline figure, loss curves, evaluation
+    figures, appendix files) is collected here and stored under
+    ``structured["_images"]``.
+
+    Appendix upload metadata (labels, sections, etc.) is preserved separately
+    under ``structured["_appendix_meta"]`` so it can be fully restored on load.
+    """
+    render_uploads: dict[str, Any] = st.session_state.get("render_uploads", {})
+    la_forms: dict[str, str] = st.session_state.get(
+        "learning_architecture_forms", {},
+    )
+    # Keys already embedded in the learning_architectures list
+    la_fig_keys: set[str] = {
+        f"learning_architecture_{uid}_architecture_figure"
+        for uid in la_forms
+    }
+    images: dict[str, dict[str, str]] = {}
+    for full_key, meta in render_uploads.items():
+        if full_key in la_fig_keys:
+            continue
+        img_data = _read_upload_as_data_uri(meta)
+        if img_data:
+            images[full_key] = img_data
+    if images:
+        structured["_images"] = images
+
+    # Preserve appendix upload metadata (labels, sections, subsections, …)
+    appendix_uploads: dict[str, Any] = st.session_state.get(
+        "appendix_uploads", {},
+    )
+    if appendix_uploads:
+        appendix_meta: dict[str, dict[str, str]] = {
+            original_name: {k: v for k, v in ameta.items() if k != "path"}
+            for original_name, ameta in appendix_uploads.items()
+        }
+        if appendix_meta:
+            structured["_appendix_meta"] = appendix_meta
+
+
 def parse_into_json(schema: dict[str, Any]) -> str:
     """
     Parse the schema into a JSON string.
@@ -268,5 +367,7 @@ def parse_into_json(schema: dict[str, Any]) -> str:
 
     if "other_considerations" in raw:
         structured["other_considerations"] = raw["other_considerations"]
+
+    _inject_standalone_images(structured)
 
     return json.dumps(structured, indent=2)

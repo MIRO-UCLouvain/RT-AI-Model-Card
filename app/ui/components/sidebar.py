@@ -437,6 +437,7 @@ def _readme_tab() -> None:
 
 def _render_github_repo(repo_url: str) -> None:
     """Render a GitHub repository link with a badge (centered card-style)."""
+    owner_repo = repo_url.rsplit("github.com/", maxsplit=1)[-1]
     st.markdown(
         f"""
         <div style="text-align: center; padding: 1.2em; border: 1px solid #ddd;
@@ -451,7 +452,7 @@ def _render_github_repo(repo_url: str) -> None:
                      alt="GitHub Repository"/>
             </a>
             <a href="{repo_url}/stargazers" target="_blank">
-                <img src="https://img.shields.io/github/stars/{repo_url.split('github.com/')[-1]}?style=social"
+                <img src="https://img.shields.io/github/stars/{owner_repo}?style=social"
                      alt="GitHub Stars"/>
             </a>
         </div>

@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import logging
 import mimetypes
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -29,6 +28,7 @@ from app.core.templates.registry import (
 from app.services.evaluations_extractor import (
     extract_evaluations_from_state,
 )
+from app.ui.utils.typography import strip_brackets
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -103,9 +103,19 @@ def build_appendix_files_context() -> list[dict[str, Any]]:
         )
         mime = (norm or {}).get("type")
         is_image = bool(mime and str(mime).lower().startswith("image/"))
+        section = (data.get("section") or "").strip()
+        subsection = (data.get("subsection") or "").strip()
+        subsection_custom = (data.get("subsection_custom") or "").strip()
+        # Resolve "Other" subsection to the free-text value typed by the user
+        subsection_display = (
+            subsection_custom if subsection == "Other" else subsection
+        )
+
         items.append(
             {
                 "label": (data.get("custom_label") or "").strip(),
+                "section": section,
+                "subsection_display": subsection_display,
                 "file": {
                     "name": original_name,
                     "key": stored_key,
@@ -208,18 +218,32 @@ def _normalize_upload_entry(
     if not info:
         return None
 
-    path = info.get("path")
-    name = info.get("name") or (Path(path).name if path else None)
+    name: str | None = info.get("name")
 
-    mime, _ = mimetypes.guess_type(name or "")
+    # Inline data URI — present when the image was restored from a saved JSON
+    # (i.e. the original local file no longer exists in this process).
+    data_uri: str | None = info.get("data_uri")
+    if data_uri:
+        mime: str | None = None
+        if name:
+            mime, _ = mimetypes.guess_type(name)
+        if not mime and data_uri.startswith("data:"):
+            mime = data_uri.split(";")[0][len("data:") :] or None
+        return FileObj(name=name, type=mime, url=data_uri)
+
+    path = info.get("path")
+    if not name:
+        name = Path(path).name if path else None
+
+    mime_from_name, _ = mimetypes.guess_type(name or "")
 
     url = (
-        _file_to_data_uri(path, fallback_mime=mime)
+        _file_to_data_uri(path, fallback_mime=mime_from_name)
         if path and Path(path).exists()
         else None
     )
 
-    return FileObj(name=name, type=mime, url=url)
+    return FileObj(name=name, type=mime_from_name, url=url)
 
 
 def _normalize_file_from_key(
@@ -267,35 +291,30 @@ def _collect_learning_architectures_from_state() -> list[dict[str, Any]]:
     :return: List of learning architecture info.
     :rtype: list[dict[str, Any]]
     """
-    grouped: dict[int, dict[str, Any]] = {}
-    patterns = [
-        re.compile(r"^learning_architecture_(\d+)_(.+)$"),
-        re.compile(
-            r"^technical_specifications_learning_architecture_(\d+)_(.+)$",
-        ),
-    ]
-
-    for key, val in _safe_session_items():
-        for pat in patterns:
-            m = pat.match(key)
-            if m:
-                idx = int(m.group(1))
-                field = m.group(2)
-                grouped.setdefault(idx, {})[field] = val
-                break
-
-    forms = st.session_state.get("learning_architecture_forms") or {}
-    for i in range(len(forms)):
-        grouped.setdefault(i, {})
+    forms: dict[str, Any] = (
+        st.session_state.get("learning_architecture_forms") or {}
+    )
 
     result: list[dict[str, Any]] = []
-    for i in sorted(grouped):
-        la = grouped[i]
+    for i, uid in enumerate(forms):
+        prefixes = (
+            f"learning_architecture_{uid}_",
+            f"technical_specifications_learning_architecture_{uid}_",
+        )
+        la: dict[str, Any] = {}
+        for key, val in _safe_session_items():
+            for pfx in prefixes:
+                if key.startswith(pfx):
+                    la[key[len(pfx) :]] = val
+                    break
+
         la["id"] = i
         for k in (
-            f"learning_architecture_{i}_architecture_figure",
-            f"technical_specifications_learning_architecture_{i}_"
-            "architecture_figure",
+            f"learning_architecture_{uid}_architecture_figure",
+            (
+                f"technical_specifications_learning_architecture_{uid}_"
+                "architecture_figure"
+            ),
         ):
             norm = _normalize_file_from_key(k)
             if norm:
@@ -391,11 +410,18 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
                 norm = _normalize_file_from_key(k)
                 if norm:
                     ctx[k] = norm
-            for i, la in enumerate(ctx.get("learning_architectures", [])):
-                la_key1 = f"learning_architecture_{i}_architecture_figure"
+            la_uids = list(
+                st.session_state.get("learning_architecture_forms") or {},
+            )
+            for uid, la in zip(
+                la_uids,
+                ctx.get("learning_architectures", []),
+                strict=False,
+            ):
+                la_key1 = f"learning_architecture_{uid}_architecture_figure"
                 la_key2 = (
                     "technical_specifications_learning_architecture_"
-                    f"{i}_architecture_figure"
+                    f"{uid}_architecture_figure"
                 )
                 norm = _normalize_file_from_key(
                     la_key1,
@@ -403,6 +429,15 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
                 if norm:
                     la["architecture_figure"] = norm
         if prefix == PREFIX_TRAINING:
+            # Normalize the train/val loss figure from render_uploads so the
+            # template receives a proper {name, type, url} dict instead of the
+            # raw session-state value.
+            norm = _normalize_file_from_key(
+                "training_data_train_and_validation_loss_curves",
+            )
+            if norm:
+                ctx["training_data_train_and_validation_loss_curves"] = norm
+
             ctx["DATA_INPUT_OUTPUT_TS"] = DATA_INPUT_OUTPUT_TS
 
             modality_entries: list[dict[str, str]] = []
@@ -417,11 +452,19 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
                         {"modality": item, "source": "model_outputs"}
                         for item in value
                     )
+            modality_entries.sort(
+                key=lambda x: 0 if x["source"] == "model_inputs" else 1,
+            )
             counts: dict[tuple[str, str], int] = {}
             io_details: list[dict[str, Any]] = []
 
             for entry in modality_entries:
-                clean = entry["modality"].strip().replace(" ", "_").lower()
+                clean = (
+                    strip_brackets(entry["modality"])
+                    .strip()
+                    .replace(" ", "_")
+                    .lower()
+                )
                 source = entry["source"]
                 pair = (clean, source)
                 idx = counts.get(pair, 0)
@@ -429,7 +472,16 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
 
                 suffix = f"{clean}_{source}_{idx}"
 
-                detail = {"entry": entry["modality"], "source": source}
+                source_label = (
+                    "Model input"
+                    if source == "model_inputs"
+                    else "Model output"
+                )
+                detail = {
+                    "entry": entry["modality"],
+                    "source": source,
+                    "source_label": source_label,
+                }
 
                 for field_key in DATA_INPUT_OUTPUT_TS:
                     k = f"training_data_{suffix}_{field_key}"
@@ -448,7 +500,9 @@ def build_context_for_prefix(prefix: str) -> dict[str, Any]:  # noqa: C901, PLR0
 
                 io_details.append(detail)
 
-            ctx["training_data_inputs_outputs_technical_specifications"] = io_details
+            ctx[
+                "training_data_inputs_outputs_technical_specifications"
+            ] = io_details
 
         if prefix == PREFIX_OTHER_CONSIDERATIONS:
             oc = {
@@ -744,7 +798,7 @@ img, figure img {
   border-radius: 6px;
 }
 figcaption { font-size: 9pt; color: var(--muted); margin-top: 0.3em; }
-"""
+"""  # noqa: RUF001
 
 
 
