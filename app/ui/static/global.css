@@ -26,7 +26,7 @@
    flex parent. Setting them here keeps it centred regardless. */
 .block-container{
   max-width: 1100px;
-  padding: 1.75rem 2rem clamp(.5rem, 1.4vh, 1.5rem);
+  padding: 1.25rem 2rem clamp(2rem, 5vh, 4rem);
   margin-left: auto;
   margin-right: auto;
 }
@@ -96,7 +96,7 @@
 .hero{
   width: 100vw;
   margin-left: calc(-50vw + 50%);
-  padding: clamp(.6rem, 4.2vh, 3.5rem) 0 clamp(.75rem, 4.8vh, 4rem);
+  padding: clamp(.6rem, 3.6vh, 3rem) 0 clamp(.75rem, 4vh, 3.25rem);
 
   background: linear-gradient(
     180deg,
@@ -159,7 +159,7 @@ p, li{ line-height: 1.65; color: var(--ink); }
 }
 
 .home-intro{
-  margin-top: clamp(.5rem, 3vh, 2.5rem);
+  margin-top: clamp(.5rem, 2.2vh, 2rem);
   text-align: center;
 }
 
@@ -168,7 +168,7 @@ p, li{ line-height: 1.65; color: var(--ink); }
 .home-logo img{
   display: block;
   /* Sized by height so the logo grows and shrinks with the viewport */
-  height: clamp(75px, 19.5vh, 235px);
+  height: clamp(75px, 17vh, 210px);
   width: auto;
   max-width: 100%;
   margin: 0 auto;
@@ -205,6 +205,9 @@ p, li{ line-height: 1.65; color: var(--ink); }
   text-align: center;
   margin-top: clamp(.5rem, 2.8vh, 2.2rem);
   padding-top: clamp(.4rem, 2vh, 1.4rem);
+  /* A little of its own room below the badges; the bulk of the gap comes
+     from the container's bottom padding, so the two don't stack up. */
+  padding-bottom: clamp(.4rem, 1.2vh, 1rem);
   border-top: 1px solid rgba(24, 65, 151, .12);  /* closes the composition */
 }
 .home-actions__copy{

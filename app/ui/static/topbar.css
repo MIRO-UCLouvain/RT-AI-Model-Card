@@ -95,7 +95,7 @@
 }
 
 .hero--long{
-  padding: clamp(.6rem, 4.2vh, 3.5rem) 0 clamp(.75rem, 4.8vh, 4rem);
+  padding: clamp(.6rem, 3.6vh, 3rem) 0 clamp(.75rem, 4vh, 3.25rem);
 }
 
 .hero-inner{
